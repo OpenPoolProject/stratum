@@ -11,11 +11,13 @@ use async_std::{
     task,
     task::JoinHandle,
 };
-use futures::{channel::mpsc::unbounded, io::AsyncReadExt, SinkExt, StreamExt};
+use futures::StreamExt;
 use log::{info, warn};
 // use metrics_exporter_prometheus::PrometheusBuilder;
-use smol::Async;
-use std::{os::unix::net::UnixStream, time::Instant};
+use signal_hook::consts::signal::*;
+use signal_hook_async_std::{Handle, Signals};
+//@todo maybe remove this with time dependency
+use std::time::Instant;
 use stop_token::{future::FutureExt, stream::StreamExt as StopStreamExt, StopSource, StopToken};
 
 //@todo make this not default, but api.
@@ -63,6 +65,26 @@ where
     pub(crate) ready_indicator: ReadyIndicator,
 }
 
+//@todo consider this signal for reloading upstream config?
+// SIGHUP => {
+//     // Reload configuration
+//     // Reopen the log file
+// }
+//@todo maybe move this somewhere else outside of this file.
+async fn handle_signals(mut signals: Signals, stop_source: Arc<Mutex<Option<StopSource>>>) {
+    while let Some(signal) = signals.next().await {
+        match signal {
+            SIGTERM | SIGINT | SIGQUIT => {
+                // Shutdown the system;
+                //@todo print the signal here
+                info!("Received SIGINT. Initiating shutdown...");
+                *stop_source.lock().await = None;
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static>
     StratumServer<State, CState>
 {
@@ -71,91 +93,23 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     //Initialize the server before we want to start accepting any connections.
-    async fn init(&self) -> Result<()> {
+    async fn init(&self) -> Result<(Handle, JoinHandle<()>)> {
         info!("Initializing...");
-
-        // let stop_source = StopSource::new();
 
         if cfg!(feature = "default") {
             init_api_server(self.stop_token.clone(), self.ready_indicator.clone()).await?;
             info!("API Server Initialized");
         }
 
-        //This is the shutdown channel. If we get a result from here, then we shutdown.
-        let (tx, mut rx) = unbounded();
-        let tx = Arc::new(Mutex::new(tx));
+        let signals = Signals::new(&[SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
+        let handle = signals.handle();
 
-        //Handle signals here.
-        //@todo probably move this code elsewhere as it's a bit messy -> And could use some
-        //cleanups.
-        //@todo also figure out to test this BOTH signterm and sigint
-        let (a, mut b) = Async::<UnixStream>::pair()?;
-        signal_hook::pipe::register(signal_hook::SIGINT, a)?;
-
-        let (c, mut d) = Async::<UnixStream>::pair()?;
-        signal_hook::pipe::register(signal_hook::SIGTERM, c)?;
-
-        async_std::task::spawn({
-            let tx = tx.clone();
-            let stop_token = self.stop_token.clone();
-            async move {
-                // Receive a byte that indicates the SIGINT signal occurred.
-                let mut read = [0];
-                let read_exact = b.read_exact(&mut read).timeout_at(stop_token);
-
-                match read_exact.await {
-                    Ok(result) => {
-                        //@todo obviously don't do this.
-                        result.unwrap();
-                        //@todo remove print here. init_env_logger in testing btw.
-                        info!("Received SIGINT. Initiating shutdown...");
-                        tx.lock().await.send(1).await.unwrap();
-                    }
-                    Err(_) => {
-                        info!("Closing SIGINT watch task");
-                    }
-                };
-            }
-        });
-
-        async_std::task::spawn({
-            let stop_token = self.stop_token.clone();
-            async move {
-                // Receive a byte that indicates the SIGTERM signal occurred.
-                let mut read = [0];
-                let read_exact = d.read_exact(&mut read).timeout_at(stop_token);
-
-                match read_exact.await {
-                    Ok(result) => {
-                        result.unwrap();
-
-                        //@todo remove print here. init_env_logger in testing btw.
-                        info!("Received SIGTERM. Initiating shutdown...");
-                        tx.lock().await.send(1).await.unwrap();
-                    }
-                    Err(_) => {
-                        //@todo remove print here. init_env_logger in testing btw.
-                        info!("Closing SIGTERM watch task");
-                    }
-                }
-            }
-        });
-
-        async_std::task::spawn({
-            let stop_source = self.stop_source.clone();
-            async move {
-                //@todo maybe we want to know which signal shut us down forsure, but we can do
-                //that later.
-                //Wrap all this stuff in other things and maybe return a SignalEvent::Sigterm, etc
-                while let Some(event) = rx.next().await {
-                    info!("Shutting down due to the {} Signal received", event);
-                    *stop_source.lock().await = None;
-                }
-            }
-        });
+        let signals_task =
+            async_std::task::spawn(handle_signals(signals, self.stop_source.clone()));
 
         info!("Initialization Complete");
-        Ok(())
+
+        Ok((handle, signals_task))
     }
 
     pub fn add(&mut self, method: &str, ep: impl Endpoint<State, CState>) {
@@ -209,7 +163,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         //Initalize the recorder
         init_metrics_recorder();
 
-        self.init().await?;
+        let (signal_handle, signal_task) = self.init().await?;
 
         let listen_url = format!("{}:{}", &self.host, self.port);
 
@@ -346,6 +300,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         for thread in thread_list {
             thread.await;
         }
+
+        // Allow for signal threads to close. @todo check this in testing.
+        signal_handle.close();
+        signal_task.await;
 
         info!("Shutdown complete in {} ns", start.elapsed().as_nanos());
 

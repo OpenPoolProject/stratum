@@ -1,7 +1,7 @@
 [package]
 name = "stratum-server"
 version = "3.0.0-beta.27"
-authors = ["Urkel Labs Engineering <engineering@urkellabs.com>"]
+authors = ["Open Pool Project Developers devs@openpool.dev"]
 edition = "2021"
 license = "MIT"
 description = "The server code for the Rust Stratum (v1) implementation"
@@ -20,10 +20,9 @@ encodings = "0.1.0"
 ##### Unknown Externals #####
 
 # Futures
-async-std = {version = "1.10.0", features = ["attributes"] }
-async-trait = "0.1.52"
+async-std = {version = "1.11", features = ["attributes"] }
+async-trait = "0.1.53"
 futures = "0.3.21"
-smol = "1.2.5"
 stop-token = "0.7.0"
 tide = "0.16"
 
@@ -41,8 +40,8 @@ uuid = { version = "0.8.2", features = ["serde", "v4"] }
 log = "0.4"
 #@todo I would like to switch this to time v3 I believe.
 chrono = "0.4"
-# @todo come back to this -> Maybe use their async-std adapter and then we can remove smol
-signal-hook = "0.1.16"
+signal-hook = "0.3.14"
+signal-hook-async-std = "0.2.2"
 bit-set = "0.5.2"
 # jemallocator = "0.3.2"
 

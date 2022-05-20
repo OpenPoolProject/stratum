@@ -149,7 +149,7 @@ impl Miner {
         // let time_min = self.options.target_time as f64 * 0.40;
         // let time_max = self.options.target_time as f64 * 1.40;
 
-        let mut avg = job_stats.vardiff_buf.avg();
+        let avg = job_stats.vardiff_buf.avg();
 
         if avg <= 0.0 {
             return;
