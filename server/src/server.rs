@@ -305,6 +305,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         signal_handle.close();
         signal_task.await;
 
+        //@todo lets get some better parsing here. Seconds and NS would be great
         info!("Shutdown complete in {} ns", start.elapsed().as_nanos());
 
         Ok(())
