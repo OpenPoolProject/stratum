@@ -1,11 +1,8 @@
-use async_std::net::TcpStream;
-use async_std::prelude::FutureExt;
-use async_std::sync::Arc;
+use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
 use futures::io::AsyncWriteExt;
-use jemallocator::Jemalloc;
+// use jemallocator::Jemalloc;
 use std::time::Duration;
-use stratum_server::StratumServer;
-use stratum_server::{Connection, StratumRequest};
+use stratum_server::{Connection, StratumRequest, StratumServer};
 
 mod common;
 
@@ -26,9 +23,9 @@ mod common;
 //drop everything).
 //@todo test 1 connection and dropping.
 
-#[cfg(not(target_env = "msvc"))]
-#[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+// #[cfg(not(target_env = "msvc"))]
+// #[global_allocator]
+// static GLOBAL: Jemalloc = Jemalloc;
 
 #[derive(Clone)]
 pub struct AuthProvider {}
@@ -44,7 +41,7 @@ pub struct State {
     auth: AuthProvider,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ConnectionState {}
 
 #[cfg(not(feature = "websockets"))]
@@ -54,9 +51,8 @@ async fn test_basic_server() {
 
     let auth = AuthProvider {};
     let state = State { auth };
-    let connection_state = ConnectionState {};
     let port = common::find_port().await;
-    let mut server = StratumServer::builder(state, connection_state)
+    let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
         .with_port(port)
         .build();

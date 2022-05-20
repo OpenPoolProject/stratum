@@ -10,6 +10,5 @@ members = [
 tag = false
 sign-commit = false
 consolidate-commits = true
-# tag-prefix = ""
 pre-release-commit-message = "chore({{ crate_name }}): Release {{ version }}"
 

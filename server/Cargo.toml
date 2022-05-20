@@ -4,7 +4,7 @@ version = "3.0.0-beta.27"
 authors = ["Open Pool Project Developers devs@openpool.dev"]
 edition = "2021"
 license = "MIT"
-description = "The server code for the Rust Stratum (v1) implementation"
+description = "The server code for the Rust Stratum implementation"
 
 [features]
 default = ["tcp"]
@@ -42,6 +42,7 @@ time = "0.3.9"
 signal-hook = "0.3.14"
 signal-hook-async-std = "0.2.2"
 bit-set = "0.5.2"
+#@todo decide if this is needed -> May be on the tests.
 # jemallocator = "0.3.2"
 
 # Optional
@@ -52,9 +53,9 @@ criterion = "0.3"
 async-std = {version = "1.10.0", features = ["attributes", "unstable"] }
 portpicker = "0.1.0"
 nix = "0.18"
-#maybe switch this w/ Test_logger.
+#@todo maybe switch this w/ Test_logger.
 env_logger = "0.8.1"
-serial_test = "0.5.0"
+serial_test = "0.6.0"
 
 [[bench]]
 name = "bench_main"

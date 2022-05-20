@@ -1,7 +1,7 @@
 use async_std::{net::TcpStream, sync::Arc, task::JoinHandle};
 use portpicker::pick_unused_port;
 use std::{sync::Once, time::Duration};
-use stratum_server::{Connection, MinerList, StratumRequest, StratumResult, StratumServer};
+use stratum_server::{Connection, ConnectionList, StratumRequest, StratumServer};
 
 #[cfg(feature = "websockets")]
 use async_tungstenite::WebSocketStream;
@@ -47,7 +47,7 @@ pub struct State {
     auth: AuthProvider,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ConnectionState {}
 
 //@todo test returning a message, so that we can assert eq in the main test.
@@ -62,7 +62,7 @@ pub async fn handle_auth(
     Ok(login)
 }
 
-pub async fn poll_global(state: State, connection_list: Arc<MinerList>) {
+pub async fn poll_global(state: State, connection_list: Arc<ConnectionList<ConnectionState>>) {
     loop {
         //Infite loop
         async_std::task::sleep(Duration::from_secs(10)).await;
@@ -74,7 +74,7 @@ pub async fn server_with_auth(port: u16) -> StratumServer<State, ConnectionState
     let state = State { auth };
     let connection_state = ConnectionState {};
     // let port = find_port().await;
-    let mut server = StratumServer::builder(state, connection_state)
+    let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
         .with_port(port)
         .build();
@@ -89,13 +89,13 @@ pub async fn server_with_global(port: u16) -> StratumServer<State, ConnectionSta
     let state = State { auth };
     let connection_state = ConnectionState {};
     // let port = find_port().await;
-    let mut server = StratumServer::builder(state, connection_state)
+    let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
         .with_port(port)
         .build();
 
     server.add("auth", handle_auth);
-    server.global(poll_global);
+    server.global("Poll Global", poll_global);
 
     server
 }
