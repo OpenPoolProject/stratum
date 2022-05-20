@@ -1,11 +1,8 @@
-use async_std::net::TcpStream;
-use async_std::prelude::FutureExt;
-use async_std::sync::Arc;
+use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
 use futures::io::AsyncWriteExt;
 use serial_test::serial;
 use std::time::Duration;
-use stratum_server::StratumServer;
-use stratum_server::{Connection, MinerList, StratumRequest, StratumResult};
+use stratum_server::{Connection, MinerList, StratumRequest, StratumResult, StratumServer};
 
 mod common;
 

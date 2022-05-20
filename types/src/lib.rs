@@ -3,15 +3,18 @@ pub mod miner;
 pub mod params;
 pub mod stratum_error;
 pub mod traits;
-use crate::params::{Params, Results};
 pub use crate::stratum_error::StratumError;
-use crate::traits::{PoolParams, StratumParams};
+use crate::{
+    params::{Params, Results},
+    traits::{PoolParams, StratumParams},
+};
 pub use error::Error;
 pub use miner::{MinerAuth, MinerInfo, MinerJobStats};
-use serde::de::{self, MapAccess, SeqAccess, Visitor};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::fmt;
-use std::marker::PhantomData;
+use serde::{
+    de::{self, MapAccess, SeqAccess, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
+use std::{fmt, marker::PhantomData};
 
 pub type Result<T> = std::result::Result<T, Error>;
 

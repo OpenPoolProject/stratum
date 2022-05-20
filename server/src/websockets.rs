@@ -1,17 +1,17 @@
-use crate::connection::Connection;
-use crate::router::Router;
-use crate::server::{UpstreamConfig, VarDiffConfig};
-use crate::BanManager;
 pub use crate::MinerList;
-use crate::{Error, Result};
-use async_std::net::TcpStream;
-use async_std::sync::Arc;
-use async_tungstenite::tungstenite::protocol::Message;
-use async_tungstenite::WebSocketStream;
-use futures::channel::mpsc::{unbounded, UnboundedReceiver};
-use futures::stream::{SplitSink, SplitStream};
-use futures::SinkExt;
-use futures::StreamExt;
+use crate::{
+    connection::Connection,
+    router::Router,
+    server::{UpstreamConfig, VarDiffConfig},
+    BanManager, Error, Result,
+};
+use async_std::{net::TcpStream, sync::Arc};
+use async_tungstenite::{tungstenite::protocol::Message, WebSocketStream};
+use futures::{
+    channel::mpsc::{unbounded, UnboundedReceiver},
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt,
+};
 use log::{debug, info, warn};
 use serde_json::{Map, Value};
 use std::net::SocketAddr;

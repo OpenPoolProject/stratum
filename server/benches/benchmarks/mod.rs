@@ -1,2 +1,2 @@
-pub mod router;
 pub mod connections;
+pub mod router;

@@ -1,6 +1,4 @@
-use crate::miner::MinerInfo;
-use crate::stratum_error::StratumError;
-use crate::Result;
+use crate::{miner::MinerInfo, stratum_error::StratumError, Result};
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt::Debug;

@@ -1,13 +1,9 @@
-use async_std::net::TcpStream;
-use async_std::prelude::FutureExt;
-use async_std::sync::Arc;
+use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
 #[cfg(feature = "websockets")]
 use async_tungstenite::{async_std::connect_async, tungstenite::Message};
-use futures::io::AsyncWriteExt;
-use futures::SinkExt;
+use futures::{io::AsyncWriteExt, SinkExt};
 use std::time::Duration;
-use stratum_server::StratumServer;
-use stratum_server::{Connection, StratumRequest, StratumResult};
+use stratum_server::{Connection, StratumRequest, StratumResult, StratumServer};
 
 mod common;
 
