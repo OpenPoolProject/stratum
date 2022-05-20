@@ -1,7 +1,7 @@
 use async_std::sync::{Arc, Mutex};
-use chrono::{NaiveDateTime, Utc};
 use extended_primitives::Buffer;
 use log::warn;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::{connection::MinerOptions, types::VarDiffBuffer};
@@ -45,11 +45,11 @@ impl Miner {
             stats: Arc::new(Mutex::new(MinerStats {
                 accepted_shares: 0,
                 rejected_shares: 0,
-                last_active: Utc::now().naive_utc(),
+                last_active: OffsetDateTime::now_utc(),
             })),
             job_stats: Arc::new(Mutex::new(JobStats {
-                last_timestamp: Utc::now().naive_utc().timestamp(),
-                last_retarget: Utc::now().naive_utc().timestamp()
+                last_timestamp: OffsetDateTime::now_utc().unix_timestamp(),
+                last_retarget: OffsetDateTime::now_utc().unix_timestamp()
                     - options.retarget_time as i64 / 2,
                 vardiff_buf: VarDiffBuffer::new(),
                 last_retarget_share: 0,
@@ -102,7 +102,7 @@ impl Miner {
     pub async fn valid_share(&self) {
         let mut stats = self.stats.lock().await;
         stats.accepted_shares += 1;
-        stats.last_active = Utc::now().naive_utc();
+        stats.last_active = OffsetDateTime::now_utc();
         drop(stats);
         // self.consider_ban().await; @todo
         // @todo if we want to wrap this in an option, lets make it options.
@@ -125,7 +125,7 @@ impl Miner {
     //@todo see if we can solve a lot of these recasting issues.
     //@todo wrap u64 with a custom difficulty type.
     async fn retarget(&self) {
-        let now = Utc::now().naive_utc().timestamp();
+        let now = OffsetDateTime::now_utc().unix_timestamp();
 
         let mut job_stats = self.job_stats.lock().await;
 
@@ -234,7 +234,7 @@ impl Miner {
 pub struct MinerStats {
     accepted_shares: u64,
     rejected_shares: u64,
-    last_active: NaiveDateTime,
+    last_active: OffsetDateTime,
 }
 
 //@todo probably move these over to types.

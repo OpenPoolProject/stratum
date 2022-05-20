@@ -38,8 +38,7 @@ serde_json = "1.0"
 # Misc
 uuid = { version = "0.8.2", features = ["serde", "v4"] }
 log = "0.4"
-#@todo I would like to switch this to time v3 I believe.
-chrono = "0.4"
+time = "0.3.9"
 signal-hook = "0.3.14"
 signal-hook-async-std = "0.2.2"
 bit-set = "0.5.2"

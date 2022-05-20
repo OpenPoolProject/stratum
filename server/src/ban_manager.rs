@@ -1,12 +1,11 @@
 pub use crate::connection::Connection;
 use async_std::sync::RwLock;
-use chrono::{Duration, NaiveDateTime, Utc};
-use std::collections::HashMap;
-use std::net::SocketAddr;
+use std::{collections::HashMap, net::SocketAddr};
+use time::{Duration, OffsetDateTime};
 
 #[derive(Default)]
 pub struct BanManager {
-    pub ips: RwLock<HashMap<SocketAddr, NaiveDateTime>>,
+    pub ips: RwLock<HashMap<SocketAddr, OffsetDateTime>>,
 }
 
 //@todo there is a memory leak here. We need to tell the server to run a function every 10 minutes
@@ -25,7 +24,7 @@ impl BanManager {
 
         let banned = match self.ips.read().await.get(addr) {
             Some(ban_end_time) => {
-                if ban_end_time > &Utc::now().naive_utc() {
+                if ban_end_time > &OffsetDateTime::now_utc() {
                     true
                 } else {
                     to_remove = true;
@@ -48,8 +47,8 @@ impl BanManager {
 
     pub async fn add_ban(&self, addr: &SocketAddr) {
         //1 hour from now - make this a config @todo.
-        let ban_time = Utc::now() + Duration::hours(1);
+        let ban_time = OffsetDateTime::now_utc() + Duration::HOUR;
 
-        self.ips.write().await.insert(*addr, ban_time.naive_utc());
+        self.ips.write().await.insert(*addr, ban_time);
     }
 }
