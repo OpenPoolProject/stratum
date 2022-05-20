@@ -1,11 +1,11 @@
-use async_std::net::TcpStream;
-use async_std::sync::Arc;
-use async_std::task::block_on;
-use async_std::task::JoinHandle;
+use async_std::{
+    net::TcpStream,
+    sync::Arc,
+    task::{block_on, JoinHandle},
+};
 use criterion::{criterion_group, BenchmarkId, Criterion};
 use std::time::Duration;
-use stratum_server::StratumServer;
-use stratum_server::{Connection, MinerList, StratumRequest, StratumResult};
+use stratum_server::{Connection, MinerList, StratumRequest, StratumResult, StratumServer};
 
 pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<JoinHandle<usize>> {
     let mut connections = Vec::new();
@@ -45,7 +45,7 @@ pub struct State {
     auth: AuthProvider,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ConnectionState {}
 
 //@todo test returning a message, so that we can assert eq in the main test.
@@ -63,9 +63,8 @@ pub async fn handle_auth(
 pub async fn server_with_auth(port: u16) -> StratumServer<State, ConnectionState> {
     let auth = AuthProvider {};
     let state = State { auth };
-    let connection_state = ConnectionState {};
     // let port = find_port().await;
-    let mut server = StratumServer::builder(state, connection_state)
+    let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
         .with_port(port)
         .build();
