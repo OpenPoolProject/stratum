@@ -1,0 +1,20 @@
+[package]
+name = "stratum-client"
+version = "0.9.19"
+authors = ["Urkel Labs Engineering <engineering@urkellabs.com>"]
+edition = "2018"
+license = "MIT"
+description = "The client code for the Rust Stratum (v1) implementation."
+
+[dependencies]
+
+# Known External
+stratum-types = { path = "../types", version = "^0.9.0"}
+
+# Unknown Externals
+async-std = {version = "1.4.0", features = ["attributes"] }
+futures = "0.3.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+rand = "0.7.3"
+
