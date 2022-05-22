@@ -1,0 +1,143 @@
+name: PR Review
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+env:
+  RUST_LOG: info
+  RUST_BACKTRACE: 1
+
+jobs:
+  test-versions:
+    name: Test Suite on ${{ matrix.rust }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # if you have an MSRV, you can of course include it here too.
+        rust: [stable, beta, nightly]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          profile: minimal
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose --workspace 
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose --workspace -- --ignored
+      #@todo re-enbable when websockets is fixed.
+      #- run: cargo test --verbose --workspace --features websockets
+
+  rustfmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+
+    - uses: actions-rs/toolchain@v1
+      with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt
+    - uses: Swatinem/rust-cache@v1
+    - name: Check formatting
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+
+  clippy:
+   name: Clippy
+   runs-on: ubuntu-latest
+   steps:
+     - uses: actions/checkout@v1
+     - name: Install Rust toolchain
+       uses: actions-rs/toolchain@v1
+       with:
+         toolchain: stable
+         profile: minimal
+         override: true
+         components: clippy 
+     - name: Clippy check
+       uses: actions-rs/cargo@v1
+       with:
+        command: clippy
+        args: --all-targets --workspace -- -D warnings
+     # @todo re-enable when websockets is working
+     # - run: cargo clippy --workspace --all-targets --verbose --features websockets
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - uses: Swatinem/rust-cache@v1
+      - name: Check documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --no-deps --document-private-items --workspace --examples
+          #@todo do websockets when we fix them
+
+  publish-dry-run:
+    name: Publish dry run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --dry-run
+
+  coverage:
+    name: Code coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+      - uses: Swatinem/rust-cache@v1
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          args: '--workspace --ignore-tests --out Lcov'
+      #@todo do websockets when its implemented
+      - name: Upload to Coveralls
+        # upload only if push
+        if: ${{ github.event_name == 'push' }}
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: './lcov.info'
