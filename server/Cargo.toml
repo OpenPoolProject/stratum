@@ -54,7 +54,7 @@ nix = "0.24"
 # jemallocator = "0.5.3"
 
 #@todo maybe switch this w/ Test_logger.
-env_logger = "0.8.1"
+env_logger = "0.9.0"
 serial_test = "0.6.0"
 
 [[bench]]
