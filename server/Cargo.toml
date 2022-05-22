@@ -42,7 +42,7 @@ signal-hook-async-std = "0.2.2"
 bit-set = "0.5.2"
 
 # Optional
-async-tungstenite = { version="0.8.0", features=["async-std-runtime", "async-native-tls"], optional=true}
+async-tungstenite = { version="0.17.2", features=["async-std-runtime", "async-native-tls"], optional=true}
 
 [dev-dependencies]
 criterion = "0.3"
