@@ -5,6 +5,9 @@ authors = ["Open Pool Project Developers devs@openpool.dev"]
 edition = "2021"
 license = "MIT"
 description = "The server code for the Rust Stratum implementation"
+documentation = "https://docs.rs/stratum-server"
+repository = "https://github.com/OpenPoolProject/stratum"
+homepage = "https://openpool.dev"
 
 [features]
 default = ["tcp"]
