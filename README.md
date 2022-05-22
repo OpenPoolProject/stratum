@@ -26,6 +26,7 @@ This will compile the documentation for every module in this crate, including pr
 compile the dependency documenation. If you would like to have that documentation compiled, then drop the `--no-deps` flag from the above 
 command.
 
+@todo link to the tests readme
 ### Testing for Memory Leaks
 
 We currently use MacOS's new tooling `Instruments` for testing memory leaks. Along with this we use `cargo instruments`.
