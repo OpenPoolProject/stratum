@@ -1,6 +1,11 @@
 # Stratum
 Workspace containing a full stratum client, server and proxy in Rust.
 
+What is the point of this?
+Every stratum is different, and so consider this like an http library. The point is not to write your API for you, but to make it easier for you to write an API. 
+
+This is that for stratums. It TODO
+
 ## How is this workspace organized?
 ```
     stratum
