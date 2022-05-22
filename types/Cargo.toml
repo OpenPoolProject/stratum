@@ -14,7 +14,7 @@ serde_json = "1.0"
 async-trait = "0.1.22"
 futures = "0.3.1"
 #@todo not saying I don't trust this guy, but Ideally bake this in ourselves before releasing this more publically.
-serde_tuple = "0.4.0"
+serde_tuple = "0.5.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 
 # [package.metadata.release]
