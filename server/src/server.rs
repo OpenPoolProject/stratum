@@ -12,7 +12,7 @@ use async_std::{
     task::JoinHandle,
 };
 use futures::StreamExt;
-use log::{info, warn};
+use log::info;
 // use metrics_exporter_prometheus::PrometheusBuilder;
 use signal_hook::consts::signal::*;
 use signal_hook_async_std::{Handle, Signals};

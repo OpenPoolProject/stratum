@@ -5,7 +5,7 @@ use async_std::{
 };
 use criterion::{criterion_group, BenchmarkId, Criterion};
 use std::time::Duration;
-use stratum_server::{Connection, MinerList, StratumRequest, StratumResult, StratumServer};
+use stratum_server::{Connection, StratumRequest, StratumServer};
 
 pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<JoinHandle<usize>> {
     let mut connections = Vec::new();
@@ -17,7 +17,7 @@ pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<J
                 //Setup Costs
                 async_std::task::sleep(Duration::from_millis(200)).await;
 
-                let mut stream = TcpStream::connect(&url).await;
+                let _stream = TcpStream::connect(&url).await;
 
                 async_std::task::sleep(Duration::from_secs(sleep_duration)).await;
 
@@ -75,7 +75,7 @@ pub async fn server_with_auth(port: u16) -> StratumServer<State, ConnectionState
 }
 
 fn num_connections(c: &mut Criterion) {
-    let server = block_on(async { server_with_auth(8889).await });
+    let _server = block_on(async { server_with_auth(8889).await });
 
     let num: usize = 1;
 

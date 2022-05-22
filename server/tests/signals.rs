@@ -1,7 +1,7 @@
 use serial_test::serial;
 use std::time::Duration;
 
-mod common;
+pub mod common;
 
 //@todo we might be able to pull out some of the websocket tests since we refactor how that works.
 //When we rework websocket files, let's check that out.

@@ -4,7 +4,9 @@ use futures::io::AsyncWriteExt;
 use std::time::Duration;
 use stratum_server::{Connection, StratumRequest, StratumServer};
 
-mod common;
+// pub use common::init;
+
+pub mod common;
 
 //@todo note: We might be suffering from this: https://github.com/rust-lang/cargo/issues/7916 AND https://github.com/rust-lang/cargo/issues/1796
 //Due to the fact that we are including async-std twice, only with a different feature in the

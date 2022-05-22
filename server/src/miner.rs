@@ -164,12 +164,10 @@ impl Miner {
             } else {
                 new_diff = job_stats.current_difficulty / 2;
             }
+        } else if (avg / self.options.target_time as f64) >= 0.7 {
+            return;
         } else {
-            if (avg / self.options.target_time as f64) >= 0.7 {
-                return;
-            } else {
-                new_diff = job_stats.current_difficulty * 2;
-            }
+            new_diff = job_stats.current_difficulty * 2;
         }
 
         if new_diff < self.options.min_diff {
@@ -223,7 +221,7 @@ impl Miner {
     }
 
     pub async fn set_difficulty(&self, difficulty: u64) {
-        let old_diff = self.difficulty.lock().await.clone();
+        let old_diff = *self.difficulty.lock().await;
         *self.difficulty.lock().await = difficulty;
         *self.previous_difficulty.lock().await = old_diff;
         self.job_stats.lock().await.current_difficulty = difficulty;

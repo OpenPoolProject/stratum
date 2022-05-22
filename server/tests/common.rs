@@ -62,7 +62,7 @@ pub async fn handle_auth(
     Ok(login)
 }
 
-pub async fn poll_global(state: State, connection_list: Arc<ConnectionList<ConnectionState>>) {
+pub async fn poll_global(_state: State, _connection_list: Arc<ConnectionList<ConnectionState>>) {
     loop {
         //Infite loop
         async_std::task::sleep(Duration::from_secs(10)).await;
@@ -72,7 +72,6 @@ pub async fn poll_global(state: State, connection_list: Arc<ConnectionList<Conne
 pub async fn server_with_auth(port: u16) -> StratumServer<State, ConnectionState> {
     let auth = AuthProvider {};
     let state = State { auth };
-    let connection_state = ConnectionState {};
     // let port = find_port().await;
     let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
@@ -87,7 +86,6 @@ pub async fn server_with_auth(port: u16) -> StratumServer<State, ConnectionState
 pub async fn server_with_global(port: u16) -> StratumServer<State, ConnectionState> {
     let auth = AuthProvider {};
     let state = State { auth };
-    let connection_state = ConnectionState {};
     // let port = find_port().await;
     let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
@@ -112,7 +110,7 @@ pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<J
                 //Setup Costs
                 async_std::task::sleep(Duration::from_millis(200)).await;
 
-                let mut stream = TcpStream::connect(&url).await.unwrap();
+                let _stream = TcpStream::connect(&url).await.unwrap();
 
                 async_std::task::sleep(Duration::from_secs(sleep_duration)).await;
 

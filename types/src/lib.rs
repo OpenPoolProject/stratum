@@ -11,7 +11,7 @@ use crate::{
 pub use error::Error;
 pub use miner::{MinerAuth, MinerInfo, MinerJobStats};
 use serde::{
-    de::{self, MapAccess, SeqAccess, Visitor},
+    de::{self, MapAccess, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use std::{fmt, marker::PhantomData};
@@ -67,7 +67,7 @@ where
             Method,
             Params,
             JsonRPC,
-        };
+        }
 
         // This part could also be generated independently by:
         //
@@ -113,7 +113,7 @@ where
             SP: StratumParams,
         {
             marker: PhantomData<fn() -> Request<PP, SP>>,
-        };
+        }
 
         impl<SP, PP> RequestVisitor<SP, PP>
         where
@@ -205,7 +205,7 @@ where
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["id", "method", "params", "jsonrpc"];
+        const FIELDS: &[&str; 4] = &["id", "method", "params", "jsonrpc"];
         deserializer.deserialize_struct("Request", FIELDS, RequestVisitor::new())
     }
 }
@@ -262,13 +262,13 @@ pub enum StratumMethod {
 
 impl StratumMethod {
     pub fn is_classic(&self) -> bool {
-        match self {
-            StratumMethod::ClassicAuthorize => true,
-            StratumMethod::ClassicSubmit => true,
-            StratumMethod::ClassicNotify => true,
-            StratumMethod::ClassicSetDifficulty => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            StratumMethod::ClassicAuthorize
+                | StratumMethod::ClassicSubmit
+                | StratumMethod::ClassicNotify
+                | StratumMethod::ClassicSetDifficulty
+        )
     }
 }
 

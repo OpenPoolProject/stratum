@@ -1,11 +1,11 @@
-use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
+use async_std::sync::Arc;
 #[cfg(feature = "websockets")]
 use async_tungstenite::{async_std::connect_async, tungstenite::Message};
-use futures::{io::AsyncWriteExt, SinkExt};
-use std::time::Duration;
-use stratum_server::{Connection, StratumRequest, StratumResult, StratumServer};
+use stratum_server::{Connection, StratumRequest};
 
-mod common;
+// pub use common::init;
+
+pub mod common;
 
 //@todo use ONCE here from std::sync:Once -> See the test I linked in Proq.
 //@todo use future.race btw, this will call whichever function first.

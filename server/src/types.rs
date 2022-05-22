@@ -132,17 +132,19 @@ impl MessageTypes {
             _ => MessageTypes::Unknown(cmd),
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl fmt::Display for MessageTypes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            MessageTypes::RegisterWorker => String::from("exMessageRegisterWorker"),
-            MessageTypes::SubmitShare => String::from("exMessageSubmitShare"),
-            MessageTypes::SubmitShareWithTime => String::from("exMessageSubmitShare"),
-            MessageTypes::UnregisterWorker => String::from("exMessageUnregisterWorker"),
-            MessageTypes::MiningSetDiff => String::from("exMessageMiningSetDiff"),
-            MessageTypes::SubmitShareWithVersion => String::from("exMessageSubmitShare"),
-            MessageTypes::SubmitShareWithTimeAndVersion => String::from("exMessageSubmitShare"),
-            _ => String::from(""),
+            MessageTypes::RegisterWorker => write!(f, "exMessageRegisterWorker"),
+            MessageTypes::SubmitShare => write!(f, "exMessageSubmitShare"),
+            MessageTypes::SubmitShareWithTime => write!(f, "exMessageSubmitShare"),
+            MessageTypes::UnregisterWorker => write!(f, "exMessageUnregisterWorker"),
+            MessageTypes::MiningSetDiff => write!(f, "exMessageMiningSetDiff"),
+            MessageTypes::SubmitShareWithVersion => write!(f, "exMessageSubmitShare"),
+            MessageTypes::SubmitShareWithTimeAndVersion => write!(f, "exMessageSubmitShare"),
+            _ => write!(f, ""),
         }
     }
 }
