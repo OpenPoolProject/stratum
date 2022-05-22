@@ -1,10 +1,10 @@
-use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
-use futures::io::AsyncWriteExt;
 use serial_test::serial;
 use std::time::Duration;
-use stratum_server::{Connection, MinerList, StratumRequest, StratumResult, StratumServer};
 
 mod common;
+
+//@todo we might be able to pull out some of the websocket tests since we refactor how that works.
+//When we rework websocket files, let's check that out.
 
 //===== SIGINT Tests =====//
 #[cfg(not(feature = "websockets"))]

@@ -138,17 +138,25 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 let call = ep.call(state, connection_list).timeout_at(stop_token);
                 match call.await {
                     Ok(()) => {}
-                    Err(e) => {
-                        //@todo
+                    Err(_e) => {
+                        //@todo - This will only be relevant for when we have results returned by
+                        //Globals because currently this block will only be called if the stop
+                        //token is revoked. Re-enable this when that is implemented.
                         //2. We should probably have a config setting that asks if we want to nuke everything if a
                         //   global falls. I don't know if we should automatically nuke everything, but it should
                         //   be a setting that is available. Maybe it's available on a per-global basis, but I
                         //   think it's something we should absolutely know about.
-                        warn!(
-                            "Global thread id: {} name: {} was unexpected closed by the error: {}",
+                        //   @
+                        // warn!(
+                        //     "Global thread id: {} name: {} was unexpected closed by the error: {}",
+                        //     async_std::task::current().id(),
+                        //     async_std::task::current().name().unwrap_or(""),
+                        //     e
+                        // );
+                        info!(
+                            "Global thread id: {} name: {} was closed",
                             async_std::task::current().id(),
-                            async_std::task::current().name().unwrap_or(""),
-                            e
+                            async_std::task::current().name().unwrap_or("")
                         );
                     }
                 };
