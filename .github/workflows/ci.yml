@@ -135,8 +135,6 @@ jobs:
           args: '--workspace --ignore-tests --out Lcov'
       #@todo do websockets when its implemented
       - name: Upload to Coveralls
-        # upload only if push
-        if: ${{ github.event_name == 'push' }}
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
