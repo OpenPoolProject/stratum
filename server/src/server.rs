@@ -21,8 +21,8 @@ use std::time::Instant;
 use stop_token::{future::FutureExt, stream::StreamExt as StopStreamExt, StopSource, StopToken};
 
 //@todo make this not default, but api.
-#[cfg(feature = "default")]
-use crate::api::init_api_server;
+// #[cfg(feature = "default")]
+// use crate::api::init_api_server;
 
 // use crate::metrics::Metrics;
 
@@ -96,10 +96,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     async fn init(&self) -> Result<(Handle, JoinHandle<()>)> {
         info!("Initializing...");
 
-        if cfg!(feature = "default") {
-            init_api_server(self.stop_token.clone(), self.ready_indicator.clone()).await?;
-            info!("API Server Initialized");
-        }
+        // if cfg!(feature = "default") {
+        //     init_api_server(self.stop_token.clone(), self.ready_indicator.clone()).await?;
+        //     info!("API Server Initialized");
+        // }
 
         let signals = Signals::new(&[SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
         let handle = signals.handle();

@@ -4,7 +4,7 @@ mod tcp;
 #[cfg(feature = "websockets")]
 mod websockets;
 
-mod api;
+// mod api;
 mod ban_manager;
 mod builder;
 mod config;
