@@ -9,10 +9,8 @@ This is that for stratums. It TODO
 ## How is this workspace organized?
 ```
     stratum
-          └── client  # A client implementation of the stratum protocol
-          └── proxy   # A TCP proxy that will hold and load balance connections
           └── server  # A generic stratum implementation 
-          └── types   # The collection of types required for Stratum.
+          └── proxy   # A TCP proxy that will hold and load balance connections
 ```
 
 ## Development
