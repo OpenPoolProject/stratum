@@ -59,6 +59,7 @@ pub enum ConnectionState {
 #[derive(Debug)]
 pub enum SendInformation {
     Json(String),
+    Text(String),
     Raw(Buffer),
 }
 
@@ -200,6 +201,14 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
         //@todo this feels inefficient, maybe we do send bytes here.
         sender.send(SendInformation::Json(msg_string)).await?;
         // stream.write_all(b"\n").await?;
+
+        Ok(())
+    }
+
+    pub async fn send_text(&self, message: String) -> Result<()> {
+        let mut sender = self.sender.lock().await;
+
+        sender.send(SendInformation::Text(message)).await?;
 
         Ok(())
     }

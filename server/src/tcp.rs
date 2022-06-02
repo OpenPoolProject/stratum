@@ -45,6 +45,10 @@ pub async fn proxy_protocol(
     Ok(format!("{}:{}", pieces[2], pieces[4]).parse()?)
 }
 
+//@todo we can combine this with websockets
+//@todo we need to abstract this out because you might use different protocols for different
+//upstreams so you might need to mix and match websockets -> tcp etc. Need to figure out how to
+//that.
 pub async fn upstream_message_handler<
     State: Clone + Send + Sync + 'static,
     CState: Clone + Send + Sync + 'static,
@@ -417,6 +421,9 @@ pub async fn send_loop(
             SendInformation::Json(json) => {
                 rh.write_all(json.as_bytes()).await?;
                 rh.write_all(b"\n").await?;
+            }
+            SendInformation::Text(text) => {
+                rh.write_all(text.as_bytes()).await?;
             }
             SendInformation::Raw(buffer) => {
                 rh.write_all(&buffer).await?;

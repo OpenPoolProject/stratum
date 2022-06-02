@@ -1,6 +1,15 @@
-use async_std::sync::Arc;
+#[cfg(feature = "websockets")]
+use async_std::prelude::FutureExt;
 #[cfg(feature = "websockets")]
 use async_tungstenite::{async_std::connect_async, tungstenite::Message};
+#[cfg(feature = "websockets")]
+use futures::SinkExt;
+#[cfg(feature = "websockets")]
+use std::time::Duration;
+#[cfg(feature = "websockets")]
+use stratum_server::StratumServer;
+
+use std::sync::Arc;
 use stratum_server::{Connection, StratumRequest};
 
 // pub use common::init;
@@ -24,17 +33,18 @@ pub struct State {
     auth: AuthProvider,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ConnectionState {}
 
 #[cfg(feature = "websockets")]
 #[async_std::test]
 async fn basic_websocket_server_test() {
+    common::init();
+
     let auth = AuthProvider {};
     let state = State { auth };
-    let connection_state = ConnectionState {};
     let port = common::find_port().await;
-    let mut server = StratumServer::builder(state, connection_state)
+    let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
         .with_port(port)
         .build();
@@ -42,7 +52,7 @@ async fn basic_websocket_server_test() {
     server.add("register", handle_register);
 
     let server = async_std::task::spawn(async move {
-        server.start().await;
+        server.start().await.unwrap();
     });
 
     let client = async_std::task::spawn(async move {

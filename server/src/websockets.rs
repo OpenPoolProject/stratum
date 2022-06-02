@@ -1,148 +1,186 @@
-pub use crate::MinerList;
+pub use crate::ConnectionList;
 use crate::{
-    connection::Connection,
+    config::{UpstreamConfig, VarDiffConfig},
+    connection::{Connection, SendInformation},
+    id_manager::IDManager,
     router::Router,
-    server::{UpstreamConfig, VarDiffConfig},
-    BanManager, Error, Result,
+    types::{ExMessageGeneric, GlobalVars, MessageValue},
+    BanManager, Error, Result, EX_MAGIC_NUMBER,
 };
-use async_std::{net::TcpStream, sync::Arc};
+use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
 use async_tungstenite::{tungstenite::protocol::Message, WebSocketStream};
+use extended_primitives::Buffer;
 use futures::{
-    channel::mpsc::{unbounded, UnboundedReceiver},
+    channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
+    io::{AsyncBufReadExt, AsyncReadExt, BufReader, ReadHalf, WriteHalf},
     stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt,
+    AsyncWriteExt, SinkExt, StreamExt,
 };
-use log::{debug, info, warn};
+use log::{trace, warn};
 use serde_json::{Map, Value};
 use std::net::SocketAddr;
+use stop_token::future::FutureExt as stopFutureExt;
 
+//@todo might make sene to wrap a lot of these into one param called "ConnectionConfig" and then
+//just pass that along, but we'll see.
 #[allow(clippy::too_many_arguments)]
 pub async fn handle_connection<
     State: Clone + Send + Sync + 'static,
     CState: Clone + Send + Sync + 'static,
 >(
+    id_manager: Arc<IDManager>,
     ban_manager: Arc<BanManager>,
-    addr: SocketAddr,
-    connection_list: Arc<MinerList>,
+    mut addr: SocketAddr,
+    connection_list: Arc<ConnectionList<CState>>,
     router: Arc<Router<State, CState>>,
     upstream_router: Arc<Router<State, CState>>,
     upstream_config: UpstreamConfig,
     state: State,
-    // stream: WebSocketStream<TcpStream>,
     stream: TcpStream,
     var_diff_config: VarDiffConfig,
-    initial_difficulty: f64,
+    initial_difficulty: u64,
     connection_state: CState,
-    //@todo we don't use these in websockets, figure out if we need to or a better way to handle
-    //this? Otherwise just double check this works.
     _proxy: bool,
     _expected_port: u16,
-) {
+    global_vars: GlobalVars,
+) -> Result<()> {
+    //@todo through this error don't call expect
     let stream = async_tungstenite::accept_async(stream)
         .await
         .expect("Error during the websocket handshake occurred");
 
     let (wh, mut rh) = stream.split();
-    //
-    // let mut rh = BufReader::new(rh);
-    // @todo upstream is not configured correctly in this file I believe, so that is something we
-    // need to fix.
 
-    // let mut rh = if !cfg!(feature = "websockets") {
-    //     BufReader::new(rh)
-    // } else {
-    //     rh
-    // };
+    let mut buffer_stream = rh;
+    // let mut buffer_stream = BufReader::new(rh);
 
-    if !ban_manager.check_banned(&addr).await {
-        //@todo put this into the connection.
-        let (tx, rx) = unbounded();
-        let (utx, urx) = unbounded();
-        let (mut urtx, urrx) = unbounded();
-
-        let connection = Arc::new(Connection::new(
-            addr,
-            tx,
-            utx,
-            urrx,
-            // buffer_stream,
-            // wh,
-            // @todo these should all come in some config.
-            initial_difficulty,
-            var_diff_config,
-            connection_state,
-        ));
-
-        async_std::task::spawn(async move {
-            match send_loop(rx, wh).await {
-                //@todo not sure if we even want a info here, we need an ID tho.
-                Ok(_) => info!("Send Loop is closing for connection"),
-                Err(e) => warn!("Send loop is closed for connection: {}, Reason: {}", 1, e),
-            }
-        });
-
-        connection_list
-            .add_miner(addr, connection.clone())
-            .await
-            .unwrap();
-
-        info!("Accepting stream from: {}", addr);
-
-        loop {
-            if connection.is_disconnected().await {
-                break;
-            }
-
-            //Maybe have a wrap here or something and on Error instead of unwrap we
-            //break.
-            // let (method, values) = match connection.next_message().await {
-            //     Ok((method, values)) => (method, values),
-            //     Err(_) => {
-            //         break;
-            //     }
-            // };
-            let (method, values) = match next_message(&mut rh).await {
-                Ok((method, values)) => (method, values),
-                Err(_) => {
-                    break;
-                }
-            };
-
-            router
-                .call(&method, values, state.clone(), connection.clone())
-                .await;
-        }
-
-        //@todo we can kill state in connection now
-        //Unused for now, but may be useful for logging or bans
-        // let _result = connection.start(router.clone()).await;
-
-        info!("Closing stream from: {}", addr);
-
-        //First thing is let's kill the send loop.
-
-        // wh.send(Message::Close(None)).await;
-
-        //Ideally don't unwrap here.
-        // let mut original = rh.reunite(wh).unwrap();
-
-        // original.close(None).await;
-
-        connection_list.remove_miner(addr).await.unwrap();
-
-        if connection.needs_ban().await {
-            ban_manager.add_ban(&addr).await;
-        }
-
-    // drop(connection);
-
-    // send_loop.await;
-    } else {
+    if ban_manager.check_banned(&addr).await {
         warn!(
-            "Banned connection attempting to connect: {}. Connected closed",
+            "Banned connection attempting to connect: {}. Connection closed",
             addr
         );
+
+        return Ok(());
     }
+    let (tx, rx) = unbounded();
+    let (utx, urx) = unbounded();
+    let (urtx, urrx) = unbounded();
+
+    //@todo we should be printing the number of sessions issued out of the total supported.
+    //Currently have 24 sessions connected out of 15,000 total. <1% capacity.
+    let connection_id = match id_manager.allocate_session_id().await {
+        Some(id) => id,
+        None => {
+            warn!("Sessions full");
+            return Ok(());
+        }
+    };
+
+    let connection = Arc::new(Connection::new(
+        connection_id,
+        tx,
+        utx,
+        urrx,
+        initial_difficulty,
+        var_diff_config,
+        connection_state,
+    ));
+
+    let stop_token = connection.get_stop_token();
+
+    let id = connection.id();
+
+    async_std::task::spawn(async move {
+        match send_loop(rx, wh).await {
+            //@todo we should make this conditional on the connection actually being legit, or we
+            //can also check before we make a connection so we dodge all these nastiness
+            Ok(_) => trace!("Send Loop is closing for connection: {}", id),
+            Err(e) => warn!("Send loop is closed for connection: {}, Reason: {}", id, e),
+        }
+    });
+
+    //@todo handle this undwrap?
+    connection_list
+        .add_miner(addr, connection.clone())
+        .await
+        .unwrap();
+
+    loop {
+        if connection.is_disconnected().await {
+            trace!(
+                "Connection: {} disconnected. Breaking out of next_message loop",
+                connection.id()
+            );
+            break;
+        }
+
+        let timeout = connection.timeout().await;
+
+        let next_message = next_message(&mut buffer_stream)
+            .timeout(timeout)
+            .timeout_at(stop_token.clone())
+            .await;
+
+        match next_message {
+            //@todo this would most likely be stop_token
+            Err(e) => log::error!(
+                "Connection: {} error in 'next_message' (stop_token) Error: {}",
+                connection.id(),
+                e
+            ),
+            Ok(msg) => {
+                //@todo this would most likely be timeout function
+                match msg {
+                    Err(e) => {
+                        log::error!(
+                            "Connection: {} error in 'next_message' (timeout fn) Error: {}",
+                            connection.id(),
+                            e
+                        );
+                        break;
+                    }
+                    Ok(msg) => match msg {
+                        Err(e) => {
+                            log::error!(
+                                "Connection: {} error in 'next_message' (decoding/reading) Error: {}",
+                                connection.id(), e
+                            );
+                            break;
+                        }
+                        Ok((method, values)) => {
+                            router
+                                .call(
+                                    &method,
+                                    values,
+                                    state.clone(),
+                                    connection.clone(),
+                                    global_vars.clone(),
+                                )
+                                .await;
+                        }
+                    },
+                }
+            }
+        }
+    }
+
+    //@todo I think we should try to move these log statements into the Connection, since when they
+    //are just out here, we print them even when it's a bogus connection.
+    //@todo on that note, let's go through this workflow as if we are a complete hack and see if we
+    //can figure out if there are any bad spots.
+    //Not necessarily a hack, but say like a random request from a random website.
+    trace!("Closing stream from: {}", connection.id());
+
+    id_manager.remove_session_id(connection_id).await;
+    connection_list.remove_miner(addr).await;
+
+    if connection.needs_ban().await {
+        ban_manager.add_ban(&addr).await;
+    }
+
+    connection.shutdown().await;
+
+    Ok(())
 }
 
 //@todo a couple of things... We need to prevent attacks against us. This is a niche thing, but we
@@ -151,31 +189,27 @@ pub async fn handle_connection<
 //have a limit where we check what works and what doesn't in terms of how much non-conforming data
 //we allow before we start closign the sockets.
 pub async fn next_message(
-    rh: &mut SplitStream<WebSocketStream<TcpStream>>,
-) -> Result<(String, serde_json::map::Map<String, serde_json::Value>)> {
-    //@todo do a match here on the type of message as well. Close on close message.
-    let msg = match rh.next().await {
+    stream: &mut SplitStream<WebSocketStream<TcpStream>>,
+) -> Result<(String, MessageValue)> {
+    let msg = match stream.next().await {
         //@todo this can broken pipe here, we want to just return an error I think so we can drop
         //this connection.
         Some(msg) => msg.unwrap(),
         None => {
-            return Err(Error::StreamClosed);
+            return Err(Error::StreamClosed(format!("Websocket closed")));
         }
     };
 
     let raw = msg.into_text().unwrap();
 
-    debug!("Received Message: {}", &raw);
+    //I don't actually think this has to loop here.
 
-    //let raw = match msg.text() {
-    //    Some(text) => text.unwrap(),
-    //    None => {
-    //        //@todo double check this.
-    //        return Err(Error::StreamClosed);
-    //    }
-    //};
+    trace!("Received Message: {}", &raw);
 
-    let msg: Map<String, Value> = serde_json::from_str(&raw)?;
+    let msg: Map<String, Value> = match serde_json::from_str(&raw) {
+        Ok(msg) => msg,
+        Err(_) => return Err(Error::MethodDoesntExist),
+    };
 
     let method = if msg.contains_key("method") {
         match msg.get("method") {
@@ -183,12 +217,13 @@ pub async fn next_message(
             //@todo need better stratum erroring here.
             None => return Err(Error::MethodDoesntExist),
         }
-    } else if msg.contains_key("message") {
+    } else if msg.contains_key("messsage") {
         match msg.get("message") {
             Some(method) => method.as_str(),
-            //@todo need better stratum erroring here.
             None => return Err(Error::MethodDoesntExist),
         }
+    } else if msg.contains_key("result") {
+        Some("result")
     } else {
         // return Err(Error::MethodDoesntExist);
         Some("")
@@ -198,24 +233,45 @@ pub async fn next_message(
         //Mark the sender as active as we received a message.
         //We only mark them as active if the message/method was valid
         // self.stats.lock().await.last_active = Utc::now().naive_utc();
+        // @todo maybe expose a function on the connection for this btw.
 
-        Ok((method_string.to_owned(), msg))
+        return Ok((method_string.to_owned(), MessageValue::StratumV1(msg)));
     } else {
         //@todo improper format
-        Err(Error::MethodDoesntExist)
+        return Err(Error::MethodDoesntExist);
     }
 }
 
 //@todo this should return a result and we should catch on these others.
 pub async fn send_loop(
-    mut rx: UnboundedReceiver<String>,
-    mut wh: SplitSink<WebSocketStream<TcpStream>, Message>,
+    mut rx: UnboundedReceiver<SendInformation>,
+    mut rh: SplitSink<WebSocketStream<TcpStream>, Message>,
 ) -> Result<()> {
     while let Some(msg) = rx.next().await {
-        wh.send(Message::Text(msg)).await?;
+        match msg {
+            SendInformation::Json(json) => {
+                //@todo
+                rh.send(Message::Text((json.as_str().to_owned()))).await?;
+            }
+            SendInformation::Text(text) => rh.send(Message::Text((text))).await?,
+            SendInformation::Raw(buffer) => rh.send(Message::Binary((buffer.to_vec()))).await?,
+        }
+        // wh.send(Message::Text(msg)).await?;
     }
 
     //Close message
-    wh.send(Message::Close(None)).await?;
+    rh.send(Message::Close(None)).await?;
+    Ok(())
+}
+
+pub async fn upstream_send_loop(
+    mut rx: UnboundedReceiver<String>,
+    mut rh: WriteHalf<TcpStream>,
+) -> Result<()> {
+    while let Some(msg) = rx.next().await {
+        rh.write_all(msg.as_bytes()).await?;
+        rh.write_all(b"\n").await?;
+    }
+
     Ok(())
 }
