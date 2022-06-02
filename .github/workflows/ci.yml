@@ -1,14 +1,33 @@
-name: PR Review
+name: ci
+
+permissions:
+  contents: read
 
 on:
   pull_request:
   push:
     branches:
       - master
+      - dev
+      - staging
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
 
 env:
-  RUST_LOG: info
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  RUST_TEST_THREADS: 1
+  RUSTDOCFLAGS: -D warnings
+  RUSTFLAGS: -D warnings
+  RUSTUP_MAX_RETRIES: 10
+  RUST_LOG: info
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   test-versions:
@@ -151,3 +170,18 @@ jobs:
       #   with:
       #     github-token: ${{ secrets.GITHUB_TOKEN }}
       #     path-to-lcov: './lcov.info'
+  
+  ci-success:
+    name: ci
+    if: success()
+    needs:
+      - test-versions
+      - rustfmt
+      - clippy
+      - docs
+      - publish-dry-run
+      - coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark the job as a success
+        run: exit 0
