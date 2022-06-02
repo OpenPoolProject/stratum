@@ -2,7 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/stratum-server?style=flat-square&logo=rust)](https://crates.io/crates/stratum-server)
 [![license](https://img.shields.io/badge/license-Apache--2.0_OR_MIT-blue?style=flat-square)](#license)
-[![build status](https://img.shields.io/github/workflow/status/OpenPoolProject/stratum-server/CI/main?style=flat-square&logo=github)](https://github.com/OpenPoolProject/stratum-server/actions)
+[![build status](https://img.shields.io/github/workflow/status/OpenPoolProject/stratum/CI/main?style=flat-square&logo=github)](https://github.com/OpenPoolProject/stratum/actions)
 
 
 Rust library for building out stratum servers. Think what Tide or Actix are to building HTTP APIs on Rust, this library is that for stratum servers.
