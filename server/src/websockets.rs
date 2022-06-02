@@ -4,7 +4,7 @@ use crate::{
     connection::{Connection, SendInformation},
     id_manager::IDManager,
     router::Router,
-    types::{ GlobalVars, MessageValue},
+    types::{GlobalVars, MessageValue},
     BanManager, Error, Result,
 };
 use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
@@ -12,9 +12,9 @@ use async_tungstenite::{tungstenite::protocol::Message, WebSocketStream};
 use futures::{
     channel::mpsc::{unbounded, UnboundedReceiver},
     stream::{SplitSink, SplitStream},
-     SinkExt, StreamExt,
+    SinkExt, StreamExt,
 };
-use log::{trace, warn, info};
+use log::{info, trace, warn};
 use serde_json::{Map, Value};
 use std::net::SocketAddr;
 use stop_token::future::FutureExt as stopFutureExt;
@@ -65,7 +65,10 @@ pub async fn handle_connection<
     let (_urtx, urrx) = unbounded();
 
     //@todo remove this but we just have to do it to pass builds
-    info!("Upstream enabled status: {}\nUpstream URL: {}", upstream_config.enabled, upstream_config.url);
+    info!(
+        "Upstream enabled status: {}\nUpstream URL: {}",
+        upstream_config.enabled, upstream_config.url
+    );
 
     //@todo we should be printing the number of sessions issued out of the total supported.
     //Currently have 24 sessions connected out of 15,000 total. <1% capacity.
