@@ -200,7 +200,7 @@ pub async fn next_message(
         //this connection.
         Some(msg) => msg.unwrap(),
         None => {
-            return Err(Error::StreamClosed(format!("Websocket closed")));
+            return Err(Error::StreamClosed(String::from("Websocket closed")));
         }
     };
 
@@ -239,10 +239,10 @@ pub async fn next_message(
         // self.stats.lock().await.last_active = Utc::now().naive_utc();
         // @todo maybe expose a function on the connection for this btw.
 
-        return Ok((method_string.to_owned(), MessageValue::StratumV1(msg)));
+        Ok((method_string.to_owned(), MessageValue::StratumV1(msg)))
     } else {
         //@todo improper format
-        return Err(Error::MethodDoesntExist);
+        Err(Error::MethodDoesntExist)
     }
 }
 

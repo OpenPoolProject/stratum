@@ -50,7 +50,7 @@ impl ConnectionInfo {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum ConnectionState {
     Connected,
     Disconnect,

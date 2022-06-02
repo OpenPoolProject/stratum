@@ -3,9 +3,6 @@ use portpicker::pick_unused_port;
 use std::{sync::Once, time::Duration};
 use stratum_server::{Connection, ConnectionList, StratumRequest, StratumServer};
 
-#[cfg(feature = "websockets")]
-use async_tungstenite::WebSocketStream;
-
 pub async fn find_port() -> u16 {
     pick_unused_port().expect("No ports free")
 }
