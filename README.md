@@ -25,6 +25,32 @@ compile the dependency documenation. If you would like to have that documentatio
 command.
 
 @todo link to the tests readme
+
+## Testing
+
+Due to the nature of some of the tests in this library (Mainly signal testing), cargo test will not work out of the box unless we skip those steps.
+
+To Mitigate that process, we use a next-generation test runner called cargo-nextest
+
+The quickest way to install is to run the following command: 
+`cargo install cargo-nextest`
+
+Further installation methods can be found at the official website [Nextest](https://nexte.st/index.html). 
+
+After installing, to run our test suite simply run:
+`cargo nextest run`
+
+### Test Coverage
+
+Testing coverage is generated automatically on every Pull Request - In order to generate the coverage data locally you first need to follow the setup instructions here: https://github.com/taiki-e/cargo-llvm-cov
+
+This library provides us with source-based coverage data which is an improved method of detecting testing coverage.
+
+Once you have install llvm-cov, run the following command for the coverage data to be generated to stdout (further configuration can be found in their docs):
+
+`cargo llvm-cov nextest`
+
+
 ### Testing for Memory Leaks
 
 We currently use MacOS's new tooling `Instruments` for testing memory leaks. Along with this we use `cargo instruments`.
