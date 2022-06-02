@@ -1,17 +1,35 @@
 # Stratum
-Workspace containing a full stratum client, server and proxy in Rust.
 
-What is the point of this?
-Every stratum is different, and so consider this like an http library. The point is not to write your API for you, but to make it easier for you to write an API. 
+[![crates.io](https://img.shields.io/crates/v/stratum-server?style=flat-square&logo=rust)](https://crates.io/crates/stratum-server)
+[![license](https://img.shields.io/badge/license-Apache--2.0_OR_MIT-blue?style=flat-square)](#license)
+[![build status](https://img.shields.io/github/workflow/status/OpenPoolProject/stratum-server/CI/main?style=flat-square&logo=github)](https://github.com/OpenPoolProject/stratum-server/actions)
 
-This is that for stratums. It TODO
 
-## How is this workspace organized?
-```
-    stratum
-          └── server  # A generic stratum implementation 
-          └── proxy   # A TCP proxy that will hold and load balance connections
-```
+Rust library for building out stratum servers. Think what Tide or Actix are to building HTTP APIs on Rust, this library is that for stratum servers.
+
+- Support for 2 connection models. (TCP and Websockets)
+- Used in practice to support multiple various strstum protocol versions including: 
+	- Stratum V1
+	- Stratum v2
+	- BTCAgent
+
+**Table of Contents:**
+
+- [Usage](#usage)
+  - [Basic usage](#basic-usage)
+- [Installation](#installation)
+- [Development](#development)
+- [Testing](#testing)
+- [License](#license)
+
+## Usage
+@todo coming soon
+
+### Basic usage
+@todo coming soon
+
+## Installation
+@todo coming soon
 
 ## Development
 
