@@ -156,7 +156,7 @@ jobs:
     needs:
       - test-versions
       - msrv
-      - tide
+      - tidy
       - docs
       - publish-dry-run
       - coverage
