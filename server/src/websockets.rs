@@ -4,19 +4,17 @@ use crate::{
     connection::{Connection, SendInformation},
     id_manager::IDManager,
     router::Router,
-    types::{ExMessageGeneric, GlobalVars, MessageValue},
-    BanManager, Error, Result, EX_MAGIC_NUMBER,
+    types::{ GlobalVars, MessageValue},
+    BanManager, Error, Result,
 };
 use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
 use async_tungstenite::{tungstenite::protocol::Message, WebSocketStream};
-use extended_primitives::Buffer;
 use futures::{
-    channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
-    io::{AsyncBufReadExt, AsyncReadExt, BufReader, ReadHalf, WriteHalf},
+    channel::mpsc::{unbounded, UnboundedReceiver},
     stream::{SplitSink, SplitStream},
-    AsyncWriteExt, SinkExt, StreamExt,
+     SinkExt, StreamExt,
 };
-use log::{trace, warn};
+use log::{trace, warn, info};
 use serde_json::{Map, Value};
 use std::net::SocketAddr;
 use stop_token::future::FutureExt as stopFutureExt;
@@ -30,10 +28,10 @@ pub async fn handle_connection<
 >(
     id_manager: Arc<IDManager>,
     ban_manager: Arc<BanManager>,
-    mut addr: SocketAddr,
+    addr: SocketAddr,
     connection_list: Arc<ConnectionList<CState>>,
     router: Arc<Router<State, CState>>,
-    upstream_router: Arc<Router<State, CState>>,
+    _upstream_router: Arc<Router<State, CState>>,
     upstream_config: UpstreamConfig,
     state: State,
     stream: TcpStream,
@@ -49,7 +47,7 @@ pub async fn handle_connection<
         .await
         .expect("Error during the websocket handshake occurred");
 
-    let (wh, mut rh) = stream.split();
+    let (wh, rh) = stream.split();
 
     let mut buffer_stream = rh;
     // let mut buffer_stream = BufReader::new(rh);
@@ -63,8 +61,11 @@ pub async fn handle_connection<
         return Ok(());
     }
     let (tx, rx) = unbounded();
-    let (utx, urx) = unbounded();
-    let (urtx, urrx) = unbounded();
+    let (utx, _urx) = unbounded();
+    let (_urtx, urrx) = unbounded();
+
+    //@todo remove this but we just have to do it to pass builds
+    info!("Upstream enabled status: {}\nUpstream URL: {}", upstream_config.enabled, upstream_config.url);
 
     //@todo we should be printing the number of sessions issued out of the total supported.
     //Currently have 24 sessions connected out of 15,000 total. <1% capacity.
@@ -251,10 +252,10 @@ pub async fn send_loop(
         match msg {
             SendInformation::Json(json) => {
                 //@todo
-                rh.send(Message::Text((json.as_str().to_owned()))).await?;
+                rh.send(Message::Text(json.as_str().to_owned())).await?;
             }
-            SendInformation::Text(text) => rh.send(Message::Text((text))).await?,
-            SendInformation::Raw(buffer) => rh.send(Message::Binary((buffer.to_vec()))).await?,
+            SendInformation::Text(text) => rh.send(Message::Text(text)).await?,
+            SendInformation::Raw(buffer) => rh.send(Message::Binary(buffer.to_vec())).await?,
         }
         // wh.send(Message::Text(msg)).await?;
     }
@@ -264,14 +265,14 @@ pub async fn send_loop(
     Ok(())
 }
 
-pub async fn upstream_send_loop(
-    mut rx: UnboundedReceiver<String>,
-    mut rh: WriteHalf<TcpStream>,
-) -> Result<()> {
-    while let Some(msg) = rx.next().await {
-        rh.write_all(msg.as_bytes()).await?;
-        rh.write_all(b"\n").await?;
-    }
-
-    Ok(())
-}
+// pub async fn upstream_send_loop(
+//     mut rx: UnboundedReceiver<String>,
+//     mut rh: WriteHalf<TcpStream>,
+// ) -> Result<()> {
+//     while let Some(msg) = rx.next().await {
+//         rh.write_all(msg.as_bytes()).await?;
+//         rh.write_all(b"\n").await?;
+//     }
+//
+//     Ok(())
+// }
