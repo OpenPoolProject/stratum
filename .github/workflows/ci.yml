@@ -139,7 +139,7 @@ jobs:
       #     args: '--workspace --ignore-tests --out Lcov'
       #@todo do websockets when its implemented
       - name: Generate code coverage
-        run: cargo llvm-cov nextest --workspace --lcov --output-path lcov.info
+        run: cargo llvm-cov nextest --workspace --lcov --output-path lcov.info --color always
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

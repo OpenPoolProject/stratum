@@ -56,3 +56,12 @@ Once you have install llvm-cov, run the following command for the coverage data 
 We currently use MacOS's new tooling `Instruments` for testing memory leaks. Along with this we use `cargo instruments`.
 
 In order to install cargo instruments, you need to install from a separate branch until the master branch has been updated. To do this, run: `cargo install --branch update-cargo --git https://github.com/cmyr/cargo-instruments.git`.
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
+[MIT license](LICENSE-MIT) at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.
