@@ -57,44 +57,35 @@ jobs:
       #@todo re-enbable when websockets is fixed.
       #- run: cargo test --verbose --workspace --features websockets
 
-  rustfmt:
-    name: Rustfmt
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@cargo-hack
+      - run: cargo hack build --workspace --ignore-private --no-dev-deps --version-range .. --version-step 2
+
+  tidy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-
-    - uses: actions-rs/toolchain@v1
+    - uses: taiki-e/github-actions/install-rust@main
       with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-          components: rustfmt
-    - uses: Swatinem/rust-cache@v1
-    - name: Check formatting
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
+        component: clippy,rustfmt
+    - uses: taiki-e/install-action@cargo-hack
+    - uses: taiki-e/install-action@cargo-minimal-versions
+    - uses: taiki-e/install-action@shellcheck
+    - run: cargo fmt --all --check
+      if: always()
+    - run: cargo clippy --workspace --all-targets
+      if: always()
+      #@todo we'll have to integrate websockets into shit eventually.
+    - run: cargo minimal-versions build --workspace --ignore-private
+      if: always()
+    - run: shellcheck $(git ls-files '*.sh')
+      if: always()
 
-  clippy:
-   name: Clippy
-   runs-on: ubuntu-latest
-   steps:
-     - uses: actions/checkout@v1
-     - name: Install Rust toolchain
-       uses: actions-rs/toolchain@v1
-       with:
-         toolchain: stable
-         profile: minimal
-         override: true
-         components: clippy 
-     - name: Clippy check
-       uses: actions-rs/cargo@v1
-       with:
-        command: clippy
-        args: --all-targets --workspace -- -D warnings
-     # @todo re-enable when websockets is working
-     # - run: cargo clippy --workspace --all-targets --verbose --features websockets
   docs:
     name: Docs
     runs-on: ubuntu-latest

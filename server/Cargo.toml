@@ -2,6 +2,7 @@
 name = "stratum-server"
 version = "3.0.0-beta.27"
 authors = ["Sean Kilgarriff sean@urkel.com"]
+rust-version = "1.59"
 edition = "2021"
 license = "APACHE-2.0 OR MIT"
 description = "The server code for the Rust Stratum implementation"
