@@ -23,7 +23,7 @@ defaults:
 
 jobs:
   create-release:
-    if: github.repository_owner == 'kilpatty'
+    if: github.repository_owner == 'OpenPoolProject'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
