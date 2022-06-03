@@ -1,6 +1,6 @@
 [package]
 name = "stratum-server"
-version = "3.0.0-beta.27"
+version = "3.0.0"
 authors = ["Sean Kilgarriff sean@urkel.com"]
 rust-version = "1.59"
 edition = "2021"
