@@ -4,11 +4,9 @@ version = "3.0.0"
 authors = ["Sean Kilgarriff sean@urkel.com"]
 rust-version = "1.59"
 edition = "2021"
-license = "APACHE-2.0 OR MIT"
+license = "Apache-2.0 OR MIT"
 description = "The server code for the Rust Stratum implementation"
-documentation = "https://docs.rs/stratum-server"
 repository = "https://github.com/OpenPoolProject/stratum"
-homepage = "https://openpool.dev"
 
 [features]
 default = ["tcp"]
