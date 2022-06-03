@@ -1,4 +1,6 @@
-#[cfg(not(feature = "tcp"))]
+pub mod common;
+
+#[cfg(feature = "websockets")]
 #[async_std::test]
 async fn basic_websocket_server_test() {
     use async_std::prelude::FutureExt;
@@ -11,8 +13,6 @@ async fn basic_websocket_server_test() {
     use stratum_server::{Connection, StratumRequest};
 
     // pub use common::init;
-
-    pub mod common;
 
     //@todo use ONCE here from std::sync:Once -> See the test I linked in Proq.
     //@todo use future.race btw, this will call whichever function first.
