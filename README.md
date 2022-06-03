@@ -2,6 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/stratum-server?style=flat-square&logo=rust)](https://crates.io/crates/stratum-server)
 [![license](https://img.shields.io/badge/license-Apache--2.0_OR_MIT-blue?style=flat-square)](#license)
+[![rustc](https://img.shields.io/badge/rustc-1.59+-blue?style=flat-square&logo=rust)](https://www.rust-lang.org)
 ![build status](https://img.shields.io/github/workflow/status/OpenPoolProject/stratum/ci)
 
 
@@ -16,7 +17,7 @@ Rust library for building out stratum servers. Think what Tide or Actix are to b
 **Table of Contents:**
 
 - [Usage](#usage)
-  - [Basic usage](#basic-usage)
+- [Basic usage](#basic-usage)
 - [Installation](#installation)
 - [Development](#development)
 - [Testing](#testing)
