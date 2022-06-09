@@ -1,4 +1,3 @@
-use serial_test::serial;
 use std::time::Duration;
 
 pub mod common;
@@ -9,8 +8,6 @@ pub mod common;
 //===== SIGINT Tests =====//
 #[cfg(not(feature = "websockets"))]
 #[async_std::test]
-// #[serial]
-// #[ignore]
 async fn test_signal_sigint_clean_shutdown() {
     common::init();
 
@@ -33,8 +30,6 @@ async fn test_signal_sigint_clean_shutdown() {
 
 #[cfg(feature = "websockets")]
 #[async_std::test]
-// #[serial]
-// #[ignore]
 async fn test_signal_sigint_clean_shutdown() {
     common::init();
 
@@ -56,8 +51,6 @@ async fn test_signal_sigint_clean_shutdown() {
 
 #[cfg(not(feature = "websockets"))]
 #[async_std::test]
-// #[serial]
-// #[ignore]
 async fn test_signal_sigint_clean_shutdown_with_connection() {
     common::init();
 
@@ -87,8 +80,6 @@ async fn test_signal_sigint_clean_shutdown_with_connection() {
 
 #[cfg(feature = "websockets")]
 #[async_std::test]
-// #[serial]
-// #[ignore]
 async fn test_signal_sigint_clean_shutdown_with_connection() {
     common::init();
 
@@ -118,8 +109,6 @@ async fn test_signal_sigint_clean_shutdown_with_connection() {
 
 #[cfg(not(feature = "websockets"))]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_signal_sigint_clean_shutdown_with_n_connections() {
     common::init();
 
@@ -149,8 +138,6 @@ async fn test_signal_sigint_clean_shutdown_with_n_connections() {
 
 #[cfg(feature = "websockets")]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_signal_sigint_clean_shutdown_with_n_connections() {
     common::init();
 
@@ -180,8 +167,6 @@ async fn test_signal_sigint_clean_shutdown_with_n_connections() {
 
 #[cfg(not(feature = "websockets"))]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_signal_sigint_with_infinite_global() {
     common::init();
 
@@ -204,8 +189,6 @@ async fn test_signal_sigint_with_infinite_global() {
 
 #[cfg(feature = "websockets")]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_signal_sigint_with_infinite_global() {
     common::init();
 
@@ -230,8 +213,6 @@ async fn test_signal_sigint_with_infinite_global() {
 //===== SIGTERM Tests =====//
 #[cfg(not(feature = "websockets"))]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_sigterm_clean_shutdown() {
     common::init();
 
@@ -253,8 +234,6 @@ async fn test_sigterm_clean_shutdown() {
 
 #[cfg(feature = "websockets")]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_sigterm_clean_shutdown() {
     common::init();
 
@@ -276,8 +255,6 @@ async fn test_sigterm_clean_shutdown() {
 
 #[cfg(not(feature = "websockets"))]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_signal_sigterm_clean_shutdown_with_connection() {
     common::init();
 
@@ -307,8 +284,6 @@ async fn test_signal_sigterm_clean_shutdown_with_connection() {
 
 #[cfg(feature = "websockets")]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_signal_sigterm_clean_shutdown_with_connection() {
     common::init();
 
@@ -338,8 +313,6 @@ async fn test_signal_sigterm_clean_shutdown_with_connection() {
 
 #[cfg(not(feature = "websockets"))]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_signal_sigterm_clean_shutdown_with_n_connections() {
     common::init();
 
@@ -369,8 +342,6 @@ async fn test_signal_sigterm_clean_shutdown_with_n_connections() {
 
 #[cfg(feature = "websockets")]
 #[async_std::test]
-#[serial]
-#[ignore]
 async fn test_signal_sigterm_clean_shutdown_with_n_connections() {
     common::init();
 
@@ -400,8 +371,6 @@ async fn test_signal_sigterm_clean_shutdown_with_n_connections() {
 
 #[cfg(not(feature = "websockets"))]
 #[async_std::test]
-// #[serial]
-// #[ignore]
 async fn test_signal_sigterm_with_infinite_global() {
     common::init();
 
@@ -425,8 +394,6 @@ async fn test_signal_sigterm_with_infinite_global() {
 
 #[cfg(feature = "websockets")]
 #[async_std::test]
-// #[serial]
-// #[ignore]
 async fn test_signal_sigterm_with_infinite_global() {
     common::init();
 
