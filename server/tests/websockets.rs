@@ -3,6 +3,13 @@ pub mod common;
 #[cfg(feature = "websockets")]
 #[async_std::test]
 async fn basic_websocket_server_test() {
+    #[cfg(not(target_env = "msvc"))]
+    use jemallocator::Jemalloc;
+
+    #[cfg(not(target_env = "msvc"))]
+    #[global_allocator]
+    static GLOBAL: Jemalloc = Jemalloc;
+
     use async_std::prelude::FutureExt;
     use async_tungstenite::{async_std::connect_async, tungstenite::Message};
     use futures::SinkExt;

@@ -2,6 +2,13 @@ use std::time::Duration;
 
 pub mod common;
 
+#[cfg(not(target_env = "msvc"))]
+use jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 //@todo we might be able to pull out some of the websocket tests since we refactor how that works.
 //When we rework websocket files, let's check that out.
 

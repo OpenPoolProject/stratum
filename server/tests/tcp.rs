@@ -3,6 +3,13 @@ pub mod common;
 #[cfg(not(feature = "websockets"))]
 #[async_std::test]
 async fn test_basic_server() {
+    #[cfg(not(target_env = "msvc"))]
+    use jemallocator::Jemalloc;
+
+    #[cfg(not(target_env = "msvc"))]
+    #[global_allocator]
+    static GLOBAL: Jemalloc = Jemalloc;
+
     use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
     use futures::io::AsyncWriteExt;
     // use jemallocator::Jemalloc;
