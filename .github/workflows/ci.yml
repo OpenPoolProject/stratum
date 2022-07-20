@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
       - uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
         with:
-          toolchain: ${{ matrix.rust || "nightly"}}
+          toolchain: ${{ matrix.rust }}
           components: rust-src
       - uses: taiki-e/install-action@master
         with:
