@@ -44,7 +44,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.rust }}
-          component: rust-src
+          components: rust-src
       - uses: taiki-e/install-action@cargo-hack
       - uses: taiki-e/install-action@nextest
       - run: cargo hack nextest run --each-feature
@@ -64,7 +64,7 @@ jobs:
     - uses: actions/checkout@master
     - uses: dtolnay/rust-toolchain@nightly
       with:
-        component: clippy,rustfmt
+        components: clippy,rustfmt
     - uses: taiki-e/install-action@cargo-hack
     - uses: taiki-e/install-action@cargo-minimal-versions
     - run: cargo fmt --all --check
