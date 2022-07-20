@@ -4,6 +4,7 @@
 [![license](https://img.shields.io/badge/license-Apache--2.0_OR_MIT-blue?style=flat-square)](#license)
 [![rustc](https://img.shields.io/badge/rustc-1.59+-blue?style=flat-square&logo=rust)](https://www.rust-lang.org)
 ![build status](https://img.shields.io/github/workflow/status/OpenPoolProject/stratum/ci)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/6284/badge)](https://bestpractices.coreinfrastructure.org/projects/6284)
 
 
 Rust library for building out stratum servers. Think what Tide or Actix are to building HTTP APIs on Rust, this library is that for stratum servers.

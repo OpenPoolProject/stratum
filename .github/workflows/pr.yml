@@ -11,7 +11,13 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-    - uses: hmarr/auto-approve-action@v2
-      if: github.actor == 'dependabot[bot]' || 'kilpatty'
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: hmarr/auto-approve-action@v2
+        if: github.actor == 'dependabot[bot]' || 'kilpatty'
+        with:
+          github-token: ${{ steps.generate_token.outputs.token }}
