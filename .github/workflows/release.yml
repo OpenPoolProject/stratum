@@ -1,8 +1,6 @@
 name: Release
 
-permissions:
-  # TODO: once `releases: write` is supported, use it instead.
-  contents: write
+permissions: read-all
 
 on:
   push:
@@ -25,6 +23,8 @@ jobs:
   create-release:
     if: github.repository_owner == 'OpenPoolProject'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
