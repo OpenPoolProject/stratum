@@ -10,17 +10,29 @@ on:
       - '**/Cargo.lock'
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   audit:
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      issues: write
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@v2
-      - uses: actions-rs/audit-check@v1
+      - uses: Swatinem/rust-cache@6720f05bc48b77f96918929a9019fb2203ff71f8
+      - uses: actions-rs/audit-check@24a24e9d5c8179709dd1ad4d7ba661572de756e6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
