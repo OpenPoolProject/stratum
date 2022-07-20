@@ -41,7 +41,7 @@ jobs:
         rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@v3
-      - uses: taiki-e/github-actions/install-rust@main
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.rust }}
           component: rust-src
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - uses: taiki-e/github-actions/install-rust@main
+    - uses: dtolnay/rust-toolchain@nightly
       with:
         component: clippy,rustfmt
     - uses: taiki-e/install-action@cargo-hack
@@ -113,7 +113,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: publish
-          args: --dry-run
+          args: --dry-run -p stratum-server
 
   coverage:
     name: Code coverage
