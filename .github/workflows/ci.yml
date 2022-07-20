@@ -41,12 +41,16 @@ jobs:
         rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: ${{ matrix.rust || "nightly"}}
           components: rust-src
-      - uses: taiki-e/install-action@cargo-hack
-      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@master
+        with:
+          tool: cargo-hack
+      - uses: taiki-e/install-action@master
+        with:
+          tool: nextest
       - run: cargo hack nextest run --each-feature
 
   msrv:
@@ -55,18 +59,25 @@ jobs:
       - uses: actions/checkout@v3
         with:
           persist-credentials: false
-      - uses: taiki-e/install-action@cargo-hack
+      - uses: taiki-e/install-action@master
+        with:
+          tool: cargo-hack
       - run: cargo hack build -vvv --workspace --feature-powerset --optional-deps --ignore-private --no-dev-deps --version-range ..
 
   tidy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - uses: dtolnay/rust-toolchain@nightly
+    - uses: dtolnay/rust-toolchain@master
       with:
+        toolchain: nightly
         components: clippy,rustfmt
-    - uses: taiki-e/install-action@cargo-hack
-    - uses: taiki-e/install-action@cargo-minimal-versions
+    - uses: taiki-e/install-action@master
+      with:
+        tool: cargo-hack
+    - uses: taiki-e/install-action@master
+      with:
+        tool: cargo-minimal-versions
     - run: cargo fmt --all --check
       if: always()
     - run: cargo clippy --workspace --all-targets
@@ -82,16 +93,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-          profile: minimal
-          override: true
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@master
       - name: Check documentation
         env:
           RUSTDOCFLAGS: -D warnings
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@master
         with:
           command: doc
           args: --no-deps --document-private-items --workspace --examples
@@ -104,13 +113,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-          profile: minimal
-          override: true
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/cargo@v1
+      - uses: Swatinem/rust-cache@master
+      - uses: actions-rs/cargo@master
         with:
           command: publish
           args: --dry-run -p stratum-server
@@ -122,15 +129,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-          profile: minimal
-          override: true
           components: llvm-tools-preview
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
-      - uses: taiki-e/install-action@nextest
+        uses: taiki-e/install-action@master
+        with:
+          tool: cargo-llvm-cov
+      - uses: taiki-e/install-action@master
+        with:
+          tool: nextest
       # - uses: Swatinem/rust-cache@v1
       # - name: Run cargo-tarpaulin
       #   uses: actions-rs/tarpaulin@v0.1
@@ -142,7 +151,7 @@ jobs:
         run: cargo llvm-cov clean --workspace && cargo llvm-cov nextest --no-report --features tcp && cargo llvm-cov nextest --no-report --features websockets && cargo llvm-cov --no-run --lcov --output-path lcov.info
         
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@master
         with:
           files: lcov.info
           fail_ci_if_error: true
