@@ -14,4 +14,4 @@ jobs:
     - uses: hmarr/auto-approve-action@v2
       if: github.actor == 'dependabot[bot]' || 'kilpatty'
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.APPROVE_PAT }}
