@@ -26,14 +26,19 @@ jobs:
     if: github.repository_owner == 'OpenPoolProject'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
         with:
           persist-credentials: false
-      - uses: taiki-e/github-actions/install-rust@main
+      - uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
         with:
           toolchain: stable
       - run: cargo package
-      - uses: taiki-e/create-gh-release-action@v1
+      - uses: taiki-e/create-gh-release-action@3de2e252cf308192e55c6d49c7d57f7086a9c70e
         with:
           title: $version
           branch: master
@@ -42,3 +47,4 @@ jobs:
       - run: cargo publish -p stratum-server
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
