@@ -40,8 +40,13 @@ jobs:
         # if you have an MSRV, you can of course include it here too.
         rust: [stable, beta, nightly]
     steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
+      - uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
         with:
           toolchain: ${{ matrix.rust || "nightly"}}
           components: rust-src
@@ -56,7 +61,12 @@ jobs:
   msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+      - uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
         with:
           persist-credentials: false
       - uses: taiki-e/install-action@master
@@ -67,8 +77,13 @@ jobs:
   tidy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - uses: dtolnay/rust-toolchain@master
+    - name: Harden Runner
+      uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+      with:
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
+    - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+    - uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
       with:
         toolchain: nightly
         components: clippy,rustfmt
@@ -90,17 +105,22 @@ jobs:
     name: Docs
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@master
+      - uses: Swatinem/rust-cache@6720f05bc48b77f96918929a9019fb2203ff71f8
       - name: Check documentation
         env:
           RUSTDOCFLAGS: -D warnings
-        uses: actions-rs/cargo@master
+        uses: actions-rs/cargo@9e120dd99b0fbad1c065f686657e914e76bd7b72
         with:
           command: doc
           args: --no-deps --document-private-items --workspace --examples
@@ -110,14 +130,19 @@ jobs:
     name: Publish dry run
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@master
-      - uses: actions-rs/cargo@master
+      - uses: Swatinem/rust-cache@6720f05bc48b77f96918929a9019fb2203ff71f8
+      - uses: actions-rs/cargo@9e120dd99b0fbad1c065f686657e914e76bd7b72
         with:
           command: publish
           args: --dry-run -p stratum-server
@@ -126,10 +151,15 @@ jobs:
     name: Code coverage
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
         with:
           toolchain: stable
           components: llvm-tools-preview
@@ -151,7 +181,7 @@ jobs:
         run: cargo llvm-cov clean --workspace && cargo llvm-cov nextest --no-report --features tcp && cargo llvm-cov nextest --no-report --features websockets && cargo llvm-cov --no-run --lcov --output-path lcov.info
         
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@master
+        uses: codecov/codecov-action@2a829b95deaeea2d11d127cc0358005714ff35ea
         with:
           files: lcov.info
           fail_ci_if_error: true
@@ -168,5 +198,11 @@ jobs:
       - coverage
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+
       - name: Mark the job as a success
         run: exit 0
+
