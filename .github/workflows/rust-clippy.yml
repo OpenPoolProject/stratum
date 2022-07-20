@@ -7,7 +7,8 @@
 # More details at https://github.com/rust-lang/rust-clippy 
 # and https://rust-lang.github.io/rust-clippy/
 
-name: rust-clippy analyze
+name: Static Analysis
+permissions: read-all
 
 on:
   push:
@@ -17,6 +18,7 @@ on:
     branches: [ "master" ]
   schedule:
     - cron: '28 6 * * 6'
+
 
 jobs:
   rust-clippy-analyze:
