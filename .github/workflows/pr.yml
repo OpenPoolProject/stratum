@@ -7,6 +7,7 @@ permissions: {}
 
 jobs:
   auto-approve:
+    if: github.actor == 'kilpatty'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -18,6 +19,6 @@ jobs:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
       - uses: hmarr/auto-approve-action@v2
-        if: github.actor == 'dependabot[bot]' || 'kilpatty'
+        if: github.actor == 'kilpatty'
         with:
           github-token: ${{ steps.generate_token.outputs.token }}
