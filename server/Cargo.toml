@@ -16,7 +16,7 @@ websockets = ["async-tungstenite"]
 [dependencies]
 
 # Futures
-async-std = { version = "1.11", features = ["attributes", "unstable"] }
+async-std = { version = "1.12", features = ["attributes", "unstable"] }
 async-trait = "0.1.53"
 futures = "0.3.21"
 stop-token = "0.7.0"
