@@ -62,7 +62,7 @@ jobs:
       - uses: taiki-e/install-action@d7602d9dcb50ded93e0fe424498008db3ec9513d
         with:
           tool: nextest
-      - run: cargo hack nextest --no-capture run --each-feature
+      - run: cargo hack nextest run --no-capture --each-feature
         timeout-minutes: 15
 
   msrv:
