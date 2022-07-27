@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [dev-dependencies]
-async-std = { version = "1.11", features = ["attributes", "unstable"] }
+async-std = { version = "1.12", features = ["attributes", "unstable"] }
 stratum-server = { path = "../server" }
 criterion = "0.3"
 

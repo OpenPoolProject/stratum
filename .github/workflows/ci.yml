@@ -52,7 +52,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
-      - uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
+      - uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
           toolchain: ${{ matrix.rust }}
           components: rust-src
@@ -90,9 +90,8 @@ jobs:
         uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-
       - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
-      - uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
+      - uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
           toolchain: nightly
           components: clippy,rustfmt
@@ -122,7 +121,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
+        uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@6720f05bc48b77f96918929a9019fb2203ff71f8
@@ -147,7 +146,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
+        uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@6720f05bc48b77f96918929a9019fb2203ff71f8
@@ -168,7 +167,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@c517642e9065921d159848b8e210fe9e20c23f40
+        uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
           toolchain: stable
           components: llvm-tools-preview
@@ -193,7 +192,7 @@ jobs:
           websockets && cargo llvm-cov --no-run --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@2a829b95deaeea2d11d127cc0358005714ff35ea
+        uses: codecov/codecov-action@5c0da1b28f1c589bf17db0088d610ae638f4ccb7
         with:
           files: lcov.info
           fail_ci_if_error: true
