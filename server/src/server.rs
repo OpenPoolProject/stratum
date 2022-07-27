@@ -1,7 +1,7 @@
 use crate::{
     global::Global,
     route::Endpoint,
-    router::Router,
+    route&r::Router,
     types::{GlobalVars, ReadyIndicator},
     BanManager, ConnectionList, Result, StratumServerBuilder, UpstreamConfig, VarDiffConfig,
 };
@@ -73,6 +73,7 @@ where
 //@todo maybe move this somewhere else outside of this file.
 async fn handle_signals(mut signals: Signals, stop_source: Arc<Mutex<Option<StopSource>>>) {
     while let Some(signal) = signals.next().await {
+        log::warn!("{:?}", &signal);
         match signal {
             SIGTERM | SIGINT | SIGQUIT => {
                 // Shutdown the system;
