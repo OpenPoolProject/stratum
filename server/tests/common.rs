@@ -1,5 +1,9 @@
 use async_std::{net::TcpStream, sync::Arc, task::JoinHandle};
 use portpicker::pick_unused_port;
+use signal_hook::{
+    consts::{SIGINT, SIGTERM},
+    low_level::raise,
+};
 use std::{sync::Once, time::Duration};
 use stratum_server::{Connection, ConnectionList, StratumRequest, StratumServer};
 
@@ -22,12 +26,12 @@ pub fn init() {
 
 pub fn call_sigint() {
     log::info!("Raising SIGINT signal");
-    nix::sys::signal::raise(nix::sys::signal::SIGINT).unwrap();
+    raise(SIGINT).unwrap();
 }
 
 pub fn call_sigterm() {
     log::info!("Raising SIGTERM signal");
-    nix::sys::signal::raise(nix::sys::signal::SIGTERM).unwrap();
+    raise(SIGTERM).unwrap();
 }
 
 #[derive(Clone)]
