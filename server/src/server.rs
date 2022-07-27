@@ -310,7 +310,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         }
 
         // Allow for signal threads to close. @todo check this in testing.
+        info!("Awaiting for all signal handler to complete");
         signal_handle.close();
+        info!("Awaiting for all signal task to complete");
         signal_task.await;
 
         //@todo lets get some better parsing here. Seconds and NS would be great
