@@ -21,12 +21,12 @@ pub fn init() {
 }
 
 pub fn call_sigint() {
-    println!("Raising SIGINT signal");
+    log::info!("Raising SIGINT signal");
     nix::sys::signal::raise(nix::sys::signal::SIGINT).unwrap();
 }
 
 pub fn call_sigterm() {
-    println!("Raising SIGTERM signal");
+    log::info!("Raising SIGTERM signal");
     nix::sys::signal::raise(nix::sys::signal::SIGTERM).unwrap();
 }
 
