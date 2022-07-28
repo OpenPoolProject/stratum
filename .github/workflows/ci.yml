@@ -62,6 +62,7 @@ jobs:
       - uses: taiki-e/install-action@d7602d9dcb50ded93e0fe424498008db3ec9513d
         with:
           tool: nextest
+      - uses: Swatinem/rust-cache@6720f05bc48b77f96918929a9019fb2203ff71f8
       - run: cargo hack nextest run --no-capture --each-feature --profile ci
         timeout-minutes: 15
 
@@ -178,18 +179,13 @@ jobs:
       - uses: taiki-e/install-action@d7602d9dcb50ded93e0fe424498008db3ec9513d
         with:
           tool: nextest
-      # - uses: Swatinem/rust-cache@v1
-      # - name: Run cargo-tarpaulin
-      #   uses: actions-rs/tarpaulin@v0.1
-      #   with:
-      #     args: '--workspace --ignore-tests --out Lcov'
-      #@todo do websockets when its implemented
+      - uses: Swatinem/rust-cache@v1
       - name: Generate code coverage
-        # run: cargo llvm-cov nextest --workspace --lcov --output-path lcov.info --color always
-        run:
-          cargo llvm-cov clean --workspace && cargo llvm-cov nextest --no-report
-          --features tcp && cargo llvm-cov nextest --no-report --features
-          websockets && cargo llvm-cov --no-run --lcov --output-path lcov.info
+        run: |
+          cargo llvm-cov clean --workspace
+          cargo llvm-cov nextest --profile ci --no-report --features tcp
+          cargo llvm-cov nextest --profile ci --no-report --features websockets
+          cargo llvm-cov --no-run --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@5c0da1b28f1c589bf17db0088d610ae638f4ccb7
