@@ -1,7 +1,7 @@
 use crate::{
     global::Global,
     route::Endpoint,
-    route&r::Router,
+    router::Router,
     types::{GlobalVars, ReadyIndicator},
     BanManager, ConnectionList, Result, StratumServerBuilder, UpstreamConfig, VarDiffConfig,
 };
