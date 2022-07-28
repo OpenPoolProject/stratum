@@ -80,6 +80,7 @@ async fn handle_signals(mut signals: Signals, stop_source: Arc<Mutex<Option<Stop
                 //@todo print the signal here
                 info!("Received SIGINT. Initiating shutdown...");
                 *stop_source.lock().await = None;
+                info!("Stop token has been dropped")
             }
             _ => unreachable!(),
         }
