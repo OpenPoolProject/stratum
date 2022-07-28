@@ -39,7 +39,7 @@ log = "0.4"
 time = "0.3.9"
 signal-hook = "0.3.14"
 signal-hook-async-std = "0.2.2"
-bit-set = "0.5.2"
+bit-set = "0.5.3"
 
 # Optional
 async-tungstenite = { version="0.17.2", features=["async-std-runtime", "async-native-tls"], optional=true}
