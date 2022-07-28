@@ -34,7 +34,7 @@ encodings = "0.1.0"
 # metrics-exporter-prometheus = "0.1.0-alpha.5"
 
 # Misc
-uuid = { version = "1.0.0", features = ["serde", "v4"] }
+uuid = { version = "1.1.2", features = ["serde", "v4"] }
 log = "0.4"
 time = "0.3.9"
 signal-hook = "0.3.14"
