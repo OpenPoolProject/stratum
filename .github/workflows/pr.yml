@@ -6,7 +6,7 @@ permissions: {}
 
 jobs:
   auto-approve:
-    if: github.actor == 'kilpatty'
+    if: github.actor == 'renovate[bot]' || 'kilpatty'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
