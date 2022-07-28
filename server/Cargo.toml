@@ -46,7 +46,6 @@ async-tungstenite = { version="0.17.2", features=["async-std-runtime", "async-na
 
 [dev-dependencies]
 portpicker = "0.1.0"
-nix = "0.24"
 
 # Allocator
 jemallocator = "0.5.0"
