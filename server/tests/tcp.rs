@@ -145,7 +145,6 @@ async fn test_basic_server() {
 
 //    //@todo wrap this in common helper functions?
 //    // println!("Raising SIGINT signal");
-//    // nix::sys::signal::raise(nix::sys::signal::SIGINT).unwrap();
 
 //    let result = server.await;
 //    // let result = server.race(client).await;
