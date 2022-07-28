@@ -51,7 +51,7 @@ jobs:
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-      - uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
           toolchain: ${{ matrix.rust }}
@@ -76,7 +76,7 @@ jobs:
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-      - uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
         with:
           persist-credentials: false
       - uses: taiki-e/install-action@7d5481ab3ac31c153575df39eaf2815ac4f92de7
@@ -93,7 +93,7 @@ jobs:
         uses: step-security/harden-runner@74b568e8591fbb3115c70f3436a0c6b0909a8504
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
           toolchain: nightly
@@ -122,7 +122,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
-        uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
@@ -147,7 +147,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
-        uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
@@ -168,7 +168,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
-        uses: actions/checkout@d0651293c4a5a52e711f25b41b05b2212f385d28
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@415f4eec04da36a50da617131b6bd78f0282958b
         with:
