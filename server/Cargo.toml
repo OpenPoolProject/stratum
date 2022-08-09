@@ -36,7 +36,7 @@ encodings = "0.1.0"
 # Misc
 uuid = { version = "1.1.2", features = ["serde", "v4"] }
 log = "0.4"
-time = "0.3.11"
+time = "0.3.13"
 signal-hook = "0.3.14"
 signal-hook-async-std = "0.2.2"
 bit-set = "0.5.3"
