@@ -207,6 +207,7 @@ jobs:
         uses: orf/cargo-bloat-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          exclude_packages: "bench"
 
   ci-success:
     name: ci
