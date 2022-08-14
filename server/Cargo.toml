@@ -18,7 +18,7 @@ websockets = ["async-tungstenite"]
 # Futures
 async-std = { version = "1.12", features = ["attributes", "unstable"] }
 async-trait = "0.1.57"
-futures = "0.3.21"
+futures = "0.3.23"
 stop-token = "0.7.0"
 
 # Serialization
