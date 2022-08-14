@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - master
-name: release-please
+name: Release (Please) Generator
 jobs:
   release-please:
     runs-on: ubuntu-latest
@@ -10,4 +10,4 @@ jobs:
       - uses: google-github-actions/release-please-action@v3
         with:
           release-type: rust
-          package-name: release-please-action
+          package-name: stratum-server
