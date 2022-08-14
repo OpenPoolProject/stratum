@@ -195,6 +195,19 @@ jobs:
           files: lcov.info
           fail_ci_if_error: true
 
+  cargo_bloat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@f7003eed5ea1f2175ea1d670748f9c21af4f5d9e
+        with:
+          toolchain: stable
+      - name: Run cargo bloat
+        uses: orf/cargo-bloat-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   ci-success:
     name: ci
     if: success()
@@ -205,6 +218,7 @@ jobs:
       - docs
       - publish-dry-run
       - coverage
+      - cargo_bloat
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
