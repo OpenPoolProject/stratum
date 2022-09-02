@@ -332,6 +332,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     pub fn get_miner_list(&self) -> Arc<ConnectionList<CState>> {
         self.connection_list.clone()
     }
+
+    pub fn get_stop_token(&self) -> StopToken {
+        self.stop_token.clone()
+    }
 }
 
 //Initalizes the prometheus metrics recorder.
