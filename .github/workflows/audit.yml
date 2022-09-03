@@ -28,7 +28,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@4d318db07a155f99337e7fc8de813caea5e92c32
+        uses: dtolnay/rust-toolchain@0f2a41247f0cbad73dfdcf76a755e952ccdd5628
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@90429b3dea365e9a1b0cb82d7f98aabf3089dc63
