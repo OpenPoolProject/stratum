@@ -227,8 +227,6 @@ pub async fn handle_connection<
         // }
     }
 
-    //@todo I think we should try to move these log statements into the Connection, since when they
-    //are just out here, we print them even when it's a bogus connection.
     //@todo on that note, let's go through this workflow as if we are a complete hack and see if we
     //can figure out if there are any bad spots.
     //Not necessarily a hack, but say like a random request from a random website.
@@ -263,14 +261,6 @@ pub async fn send_loop(
                 rh.write_all(&buffer).await?;
             }
         }
-
-        // rh.write_all(msg.as_bytes()).await?;
-        //@todo the reason we write this here is that JSON RPC messages are ended with a newline.
-        //This probably should be built into the rpc library, but it works here for now.
-        //Don't move this unless websockets ALSO require the newline, then we can move it back into
-        //the Connection.send function.
-        // rh.write_all(b"\n").await?;
     }
-
     Ok(())
 }
