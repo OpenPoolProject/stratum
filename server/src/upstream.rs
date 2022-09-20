@@ -2,6 +2,7 @@ pub use crate::ConnectionList;
 use crate::{
     config::UpstreamConfig,
     connection::Connection,
+    next_message,
     router::Router,
     types::{GlobalVars, MessageValue},
     Error, Result,
@@ -15,7 +16,6 @@ use futures::{
 use serde_json::{Map, Value};
 use stop_token::future::FutureExt as stopFutureExt;
 use tracing::{trace, warn};
-use crate::next_message;
 
 pub async fn upstream_message_handler<
     State: Clone + Send + Sync + 'static,
