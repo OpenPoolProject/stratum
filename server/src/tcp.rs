@@ -13,9 +13,9 @@ use crate::{
 use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
 use extended_primitives::Buffer;
 use futures::{
-    channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
+    channel::mpsc::{unbounded, UnboundedReceiver},
     io::{AsyncBufReadExt, AsyncReadExt, BufReader, ReadHalf, WriteHalf},
-    AsyncWriteExt, SinkExt, StreamExt,
+    AsyncWriteExt, StreamExt,
 };
 use serde_json::{Map, Value};
 use std::net::SocketAddr;
@@ -46,83 +46,6 @@ pub async fn proxy_protocol(
     }
 
     Ok(format!("{}:{}", pieces[2], pieces[4]).parse()?)
-}
-
-//@todo move this to upstream file.
-//@todo we can combine this with websockets
-//@todo we need to abstract this out because you might use different protocols for different
-//upstreams so you might need to mix and match websockets -> tcp etc. Need to figure out how to
-//that.
-#[cfg(feature = "upstream")]
-pub async fn upstream_message_handler<
-    State: Clone + Send + Sync + 'static,
-    CState: Clone + Send + Sync + 'static,
->(
-    config: UpstreamConfig,
-    upstream_router: Arc<Router<State, CState>>,
-    urx: UnboundedReceiver<String>,
-    state: State,
-    connection: Arc<Connection<CState>>,
-    mut urtx: UnboundedSender<Map<String, Value>>,
-    global_vars: GlobalVars,
-) -> Result<()> {
-    if config.enabled {
-        let upstream = TcpStream::connect(config.url).await?;
-
-        let (urh, uwh) = upstream.split();
-        let mut upstream_buffer_stream = BufReader::new(urh);
-
-        async_std::task::spawn(async move {
-            match upstream_send_loop(urx, uwh).await {
-                //@todo not sure if we even want a info here, we need an ID tho.
-                Ok(_) => trace!("Upstream Send Loop is closing for connection"),
-                Err(e) => warn!(
-                    "Upstream Send loop is closed for connection: {}, Reason: {}",
-                    1, e
-                ),
-            }
-        });
-
-        async_std::task::spawn({
-            let state = state.clone();
-            let connection = connection.clone();
-            let stop_token = connection.get_stop_token();
-
-            async move {
-                loop {
-                    // @todo actually think about a real timeout here as well.
-                    let next_message =
-                        next_message(&mut upstream_buffer_stream).timeout_at(stop_token.clone());
-
-                    let (method, values) = match next_message.await? {
-                        Ok(mv) => mv,
-                        Err(_) => {
-                            break;
-                        }
-                    };
-
-                    if method == "result" {
-                        if let MessageValue::StratumV1(map) = values {
-                            urtx.send(map).await?;
-                        }
-                        continue;
-                    }
-
-                    upstream_router
-                        .call(
-                            &method,
-                            values,
-                            state.clone(),
-                            connection.clone(),
-                            global_vars.clone(),
-                        )
-                        .await;
-                }
-                Ok::<(), Error>(())
-            }
-        });
-    }
-    Ok(())
 }
 
 //@todo might make sene to wrap a lot of these into one param called "ConnectionConfig" and then
@@ -167,7 +90,9 @@ pub async fn handle_connection<
     }
 
     let (tx, rx) = unbounded();
+    #[cfg(feature = "upstream")]
     let (utx, urx) = unbounded();
+    #[cfg(feature = "upstream")]
     let (urtx, urrx) = unbounded();
 
     //@todo we should be printing the number of sessions issued out of the total supported.
@@ -183,7 +108,9 @@ pub async fn handle_connection<
     let connection = Arc::new(Connection::new(
         connection_id,
         tx,
+        #[cfg(feature = "upstream")]
         utx,
+        #[cfg(feature = "upstream")]
         urrx,
         initial_difficulty,
         var_diff_config,
@@ -443,19 +370,6 @@ pub async fn send_loop(
         //Don't move this unless websockets ALSO require the newline, then we can move it back into
         //the Connection.send function.
         // rh.write_all(b"\n").await?;
-    }
-
-    Ok(())
-}
-
-#[cfg(feature = "upstream")]
-pub async fn upstream_send_loop(
-    mut rx: UnboundedReceiver<String>,
-    mut rh: WriteHalf<TcpStream>,
-) -> Result<()> {
-    while let Some(msg) = rx.next().await {
-        rh.write_all(msg.as_bytes()).await?;
-        rh.write_all(b"\n").await?;
     }
 
     Ok(())

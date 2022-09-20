@@ -5,7 +5,10 @@ mod tcp;
 mod websockets;
 
 #[cfg(feature = "upstream")]
-use crate::config::UpstreamConfig;
+mod upstream;
+
+#[cfg(feature = "upstream")]
+use {crate::config::UpstreamConfig, crate::upstream};
 
 // mod api;
 mod ban_manager;
