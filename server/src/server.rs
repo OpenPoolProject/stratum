@@ -15,7 +15,7 @@ use async_std::{
     task::JoinHandle,
 };
 use futures::StreamExt;
-use log::info;
+use tracing::info;
 // use metrics_exporter_prometheus::PrometheusBuilder;
 use signal_hook::consts::signal::*;
 use signal_hook_async_std::{Handle, Signals};
@@ -80,7 +80,7 @@ where
 //@todo maybe move this somewhere else outside of this file.
 async fn handle_signals(mut signals: Signals, stop_source: Arc<Mutex<Option<StopSource>>>) {
     while let Some(signal) = signals.next().await {
-        log::warn!("{:?}", &signal);
+        tracing::warn!("{:?}", &signal);
         match signal {
             SIGTERM | SIGINT | SIGQUIT => {
                 // Shutdown the system;
@@ -237,7 +237,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 let mut check_bytes = [0u8; 4];
                 match stream.peek(&mut check_bytes).await {
                     Err(e) => {
-                        log::error!(
+                        tracing::error!(
                             "Trouble reading peak bytes from stream: {}. Exiting. Error: {}",
                             addr,
                             e

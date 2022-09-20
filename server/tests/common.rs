@@ -25,12 +25,12 @@ pub fn init() {
 }
 
 pub fn call_sigint() {
-    log::info!("Raising SIGINT signal");
+    tracing::info!("Raising SIGINT signal");
     raise(SIGINT).unwrap();
 }
 
 pub fn call_sigterm() {
-    log::info!("Raising SIGTERM signal");
+    tracing::info!("Raising SIGTERM signal");
     raise(SIGTERM).unwrap();
 }
 

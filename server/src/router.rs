@@ -4,8 +4,8 @@ use crate::{
     Connection, StratumRequest,
 };
 use async_std::sync::Arc;
-use log::warn;
 use std::collections::HashMap;
+use tracing::warn;
 
 pub struct Router<State, CState> {
     routes: HashMap<String, Box<DynEndpoint<State, CState>>>,
@@ -40,26 +40,26 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
             }
         };
 
-        if log::log_enabled!(log::Level::Trace) {
-            //@todo I think there is something really good we have going here, but needs to be
-            //refined a bit more before it's ready.
-            //@todo what we need to do here is idenitfy any message that is session specific -> I
-            //think one of the newer builds of btccom pool does this.
-            // if let MessageValue::ExMessage(msg) = value {
-            // if connection.is_agent().await {
-            // log::trace!(
-            //     "Calling method: {} for connection: {} with miner ID: {}",
-            //     method,
-            //     connection.id(),
-            // );
-            // } else {
-            log::trace!(
-                "Calling method: {} for connection: {}",
-                method,
-                connection.id()
-            );
-            // }
-        }
+        // if log::log_enabled!(log::Level::Trace) {
+        //@todo I think there is something really good we have going here, but needs to be
+        //refined a bit more before it's ready.
+        //@todo what we need to do here is idenitfy any message that is session specific -> I
+        //think one of the newer builds of btccom pool does this.
+        // if let MessageValue::ExMessage(msg) = value {
+        // if connection.is_agent().await {
+        // log::trace!(
+        //     "Calling method: {} for connection: {} with miner ID: {}",
+        //     method,
+        //     connection.id(),
+        // );
+        // } else {
+        tracing::trace!(
+            "Calling method: {} for connection: {}",
+            method,
+            connection.id()
+        );
+        // }
+        // }
 
         let request = StratumRequest {
             state,

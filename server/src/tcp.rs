@@ -17,10 +17,10 @@ use futures::{
     io::{AsyncBufReadExt, AsyncReadExt, BufReader, ReadHalf, WriteHalf},
     AsyncWriteExt, SinkExt, StreamExt,
 };
-use log::{trace, warn};
 use serde_json::{Map, Value};
 use std::net::SocketAddr;
 use stop_token::future::FutureExt as stopFutureExt;
+use tracing::{trace, warn};
 
 pub async fn proxy_protocol(
     buffer_stream: &mut BufReader<ReadHalf<TcpStream>>,
@@ -238,7 +238,7 @@ pub async fn handle_connection<
 
         match next_message {
             //@todo this would most likely be stop_token
-            Err(e) => log::error!(
+            Err(e) => tracing::error!(
                 "Connection: {} error in 'next_message' (stop_token) Error: {}",
                 connection.id(),
                 e
@@ -247,7 +247,7 @@ pub async fn handle_connection<
                 //@todo this would most likely be timeout function
                 match msg {
                     Err(e) => {
-                        log::error!(
+                        tracing::error!(
                             "Connection: {} error in 'next_message' (timeout fn) Error: {}",
                             connection.id(),
                             e
@@ -256,7 +256,7 @@ pub async fn handle_connection<
                     }
                     Ok(msg) => match msg {
                         Err(e) => {
-                            log::error!(
+                            tracing::error!(
                                 "Connection: {} error in 'next_message' (decoding/reading) Error: {}",
                                 connection.id(), e
                             );

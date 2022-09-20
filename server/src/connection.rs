@@ -5,11 +5,11 @@ use futures::{
     channel::mpsc::{UnboundedReceiver, UnboundedSender},
     SinkExt, StreamExt,
 };
-use log::{debug, trace};
 use serde::Serialize;
 use serde_json::json;
 use std::time::{Duration, SystemTime};
 use stop_token::{StopSource, StopToken};
+use tracing::{debug, trace};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
