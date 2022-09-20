@@ -17,6 +17,7 @@ use log::info;
 use signal_hook::consts::signal::*;
 use signal_hook_async_std::{Handle, Signals};
 //@todo maybe remove this with time dependency
+use extended_primitives::Buffer;
 use std::time::Instant;
 use stop_token::{future::FutureExt, stream::StreamExt as StopStreamExt, StopSource, StopToken};
 
@@ -63,6 +64,7 @@ where
     //@todo I think revamp this a bit to include getting the correct server_id from our
     //homebase
     pub(crate) ready_indicator: ReadyIndicator,
+    pub(crate) shutdown_message: Option<Buffer>,
 }
 
 //@todo consider this signal for reloading upstream config?
@@ -286,7 +288,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         //Before we return Ok here, we need to finish cleaning up the rest.
         //So what I'm thinking we do is iterate through miner list and shutdown everything.
-        self.connection_list.shutdown().await?;
+        //@todo magic number of 60 should be set somewhere
+        self.connection_list
+            .shutdown(self.shutdown_message.clone(), 60)
+            .await?;
 
         //I believe that shutdown here should basically trigger connect_list to self distruct.
         //That being said, if each handle_connection uses the same stop_token, then it won't even

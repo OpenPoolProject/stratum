@@ -6,6 +6,7 @@ use crate::{
     BanManager, ConnectionList, StratumServer,
 };
 use async_std::sync::{Arc, Mutex};
+use extended_primitives::Buffer;
 use std::marker::PhantomData;
 use stop_token::StopSource;
 
@@ -25,6 +26,7 @@ pub struct StratumServerBuilder<State, CState> {
     pub state: State,
     pub connection_state: PhantomData<CState>,
     pub ready_indicator: ReadyIndicator,
+    pub shutdown_message: Option<Buffer>,
 }
 
 impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static>
@@ -56,6 +58,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 enabled: false,
                 url: String::from(""),
             },
+            shutdown_message: None,
         }
     }
 
@@ -142,6 +145,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self
     }
 
+    pub fn with_shutdown_message(mut self, msg: Buffer) -> Self {
+        self.shutdown_message = Some(msg);
+        self
+    }
+
     pub fn build(self) -> StratumServer<State, CState> {
         let connection_list = Arc::new(ConnectionList::new(self.max_connections));
 
@@ -172,6 +180,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             stop_token,
             global_thread_list: Vec::new(),
             ready_indicator: self.ready_indicator,
+            shutdown_message: self.shutdown_message,
         }
     }
 }

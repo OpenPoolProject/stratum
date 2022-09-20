@@ -1,7 +1,8 @@
 pub use crate::connection::Connection;
 use crate::Result;
 use async_std::sync::{Arc, RwLock};
-use std::{collections::HashMap, net::SocketAddr};
+use extended_primitives::Buffer;
+use std::{collections::HashMap, net::SocketAddr, time::Duration};
 
 //@todo would love to get a data structure maybe stratumstats that is just recording all of the
 //data and giving us some fucking baller output. Like shares/sec unit.
@@ -61,7 +62,25 @@ impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
         }
     }
 
-    pub async fn shutdown(&self) -> Result<()> {
+    pub async fn shutdown(&self, msg: Option<Buffer>, delay_seconds: u64) -> Result<()> {
+        // First we send the miners a message (if provided), and give them a few seconds to
+        // reconnect to the new proxy.
+        // @todo report how many miners to start, and how many after.
+        // @todo move this into a separate function since we will want to call this without always
+        // shutting down (via API)
+        if let Some(msg) = msg {
+            for miner in self.miners.read().await.values() {
+                //@todo we don't want to throw as it would prevent other miners from getting the
+                //message.
+                //@todo log error here btw.
+                miner.send_raw(msg.clone()).await;
+            }
+        }
+
+        //@todo log
+        //All miners have received the shutdown message, now we wait and then we remove.
+        async_std::task::sleep(Duration::from_secs(delay_seconds)).await;
+
         //@todo we need to parallize this async.
         for miner in self.miners.read().await.values() {
             miner.shutdown().await;
