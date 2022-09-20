@@ -19,7 +19,6 @@ mod id_manager;
 mod miner;
 mod miner_list;
 mod request;
-mod result;
 mod route;
 mod router;
 mod server;
@@ -37,7 +36,6 @@ pub use crate::{
     miner::Miner,
     miner_list::MinerList,
     request::StratumRequest,
-    result::StratumResult,
     server::StratumServer,
     types::{ExMessageGeneric, MessageTypes, MessageValue, ReadyIndicator, EX_MAGIC_NUMBER, ID},
     utils::format_difficulty,

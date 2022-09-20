@@ -1,6 +1,8 @@
 use futures::channel::mpsc::SendError;
 use std::fmt;
 
+//@todo use thisError
+
 #[derive(Debug)]
 pub enum Error {
     NotAuthorized,

@@ -48,6 +48,7 @@ pub async fn proxy_protocol(
     Ok(format!("{}:{}", pieces[2], pieces[4]).parse()?)
 }
 
+//@todo move this to upstream file.
 //@todo we can combine this with websockets
 //@todo we need to abstract this out because you might use different protocols for different
 //upstreams so you might need to mix and match websockets -> tcp etc. Need to figure out how to
