@@ -1,9 +1,12 @@
+#[cfg(feature = "upstream")]
+use crate::UpstreamConfig;
+
 use crate::{
     global::Global,
     route::Endpoint,
     router::Router,
     types::{GlobalVars, ReadyIndicator},
-    BanManager, ConnectionList, Result, StratumServerBuilder, UpstreamConfig, VarDiffConfig,
+    BanManager, ConnectionList, Result, StratumServerBuilder, VarDiffConfig,
 };
 use async_std::{
     net::TcpListener,
@@ -50,8 +53,10 @@ where
     pub(crate) connection_list: Arc<ConnectionList<CState>>,
     pub(crate) ban_manager: Arc<BanManager>,
     pub(crate) router: Arc<Router<State, CState>>,
-    pub(crate) upstream_router: Arc<Router<State, CState>>,
     pub(crate) var_diff_config: VarDiffConfig,
+    #[cfg(feature = "upstream")]
+    pub(crate) upstream_router: Arc<Router<State, CState>>,
+    #[cfg(feature = "upstream")]
     pub(crate) upstream_config: UpstreamConfig,
     pub(crate) session_id_manager: Arc<IDManager>,
     //@todo maybe wrap this in something more friendly... Can use it in connection as well.
@@ -125,6 +130,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     //@todo will probably change this "Endpoint" here to an upstream endpoint.
+    #[cfg(feature = "upstream")]
     pub fn add_upstream(&mut self, method: &str, ep: impl Endpoint<State, CState>) {
         //@todo review this code.
         let router = Arc::get_mut(&mut self.upstream_router)
@@ -211,11 +217,13 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             let initial_difficulty = self.initial_difficulty;
             let ban_manager = self.ban_manager.clone();
             let router = self.router.clone();
+            #[cfg(feature = "upstream")]
             let upstream_router = self.upstream_router.clone();
             let state = self.state.clone();
             let connection_state = CState::default();
 
             let var_diff_config = self.var_diff_config.clone();
+            #[cfg(feature = "upstream")]
             let upstream_config = self.upstream_config.clone();
             let global_vars = GlobalVars::new(self.id);
 
@@ -257,7 +265,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                     addr,
                     connection_list,
                     router,
+                    #[cfg(feature = "upstream")]
                     upstream_router,
+                    #[cfg(feature = "upstream")]
                     upstream_config,
                     state,
                     stream,

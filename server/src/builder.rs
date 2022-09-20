@@ -1,8 +1,8 @@
+#[cfg(feature = "upstream")]
+use crate::config::UpstreamConfig;
+
 use crate::{
-    config::{UpstreamConfig, VarDiffConfig},
-    id_manager::IDManager,
-    router::Router,
-    types::ReadyIndicator,
+    config::VarDiffConfig, id_manager::IDManager, router::Router, types::ReadyIndicator,
     BanManager, ConnectionList, StratumServer,
 };
 use async_std::sync::{Arc, Mutex};
@@ -21,6 +21,7 @@ pub struct StratumServerBuilder<State, CState> {
     pub max_connections: Option<usize>,
     pub proxy: bool,
     pub var_diff_config: VarDiffConfig,
+    #[cfg(feature = "upstream")]
     pub upstream_config: UpstreamConfig,
     pub initial_difficulty: u64,
     pub state: State,
@@ -54,6 +55,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 target_time: 10,
                 variance_percent: 30.0,
             },
+            #[cfg(feature = "upstream")]
             upstream_config: UpstreamConfig {
                 enabled: false,
                 url: String::from(""),
@@ -137,6 +139,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self
     }
 
+    #[cfg(feature = "upstream")]
     pub fn with_upstream(mut self, url: &str) -> Self {
         self.upstream_config = UpstreamConfig {
             enabled: true,
@@ -172,9 +175,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             state: self.state,
             ban_manager: Arc::new(BanManager::new()),
             router: Arc::new(Router::new()),
+            #[cfg(feature = "upstream")]
             upstream_router: Arc::new(Router::new()),
-            var_diff_config: self.var_diff_config,
+            #[cfg(feature = "upstream")]
             upstream_config: self.upstream_config,
+            var_diff_config: self.var_diff_config,
             session_id_manager: Arc::new(IDManager::new(self.server_id)),
             stop_source: Arc::new(Mutex::new(Some(stop_source))),
             stop_token,

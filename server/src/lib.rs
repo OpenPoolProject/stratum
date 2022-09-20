@@ -4,6 +4,9 @@ mod tcp;
 #[cfg(feature = "websockets")]
 mod websockets;
 
+#[cfg(feature = "upstream")]
+use crate::config::UpstreamConfig;
+
 // mod api;
 mod ban_manager;
 mod builder;
@@ -26,7 +29,7 @@ mod utils;
 pub use crate::{
     ban_manager::BanManager,
     builder::StratumServerBuilder,
-    config::{UpstreamConfig, VarDiffConfig},
+    config::VarDiffConfig,
     connection::Connection,
     connection_list::ConnectionList,
     error::Error,

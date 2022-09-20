@@ -12,6 +12,7 @@ repository = "https://github.com/OpenPoolProject/stratum"
 default = ["tcp"]
 tcp = []
 websockets = ["async-tungstenite"]
+upstream = []
 
 [dependencies]
 

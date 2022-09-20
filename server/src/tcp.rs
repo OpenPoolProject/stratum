@@ -1,6 +1,9 @@
+#[cfg(feature = "upstream")]
+use crate::config::UpstreamConfig;
+
 pub use crate::ConnectionList;
 use crate::{
-    config::{UpstreamConfig, VarDiffConfig},
+    config::VarDiffConfig,
     connection::{Connection, SendInformation},
     id_manager::IDManager,
     router::Router,
@@ -49,6 +52,7 @@ pub async fn proxy_protocol(
 //@todo we need to abstract this out because you might use different protocols for different
 //upstreams so you might need to mix and match websockets -> tcp etc. Need to figure out how to
 //that.
+#[cfg(feature = "upstream")]
 pub async fn upstream_message_handler<
     State: Clone + Send + Sync + 'static,
     CState: Clone + Send + Sync + 'static,
@@ -132,8 +136,9 @@ pub async fn handle_connection<
     mut addr: SocketAddr,
     connection_list: Arc<ConnectionList<CState>>,
     router: Arc<Router<State, CState>>,
-    upstream_router: Arc<Router<State, CState>>,
-    upstream_config: UpstreamConfig,
+
+    #[cfg(feature = "upstream")] upstream_router: Arc<Router<State, CState>>,
+    #[cfg(feature = "upstream")] upstream_config: UpstreamConfig,
     state: State,
     stream: TcpStream,
     var_diff_config: VarDiffConfig,
@@ -186,6 +191,7 @@ pub async fn handle_connection<
 
     let stop_token = connection.get_stop_token();
 
+    #[cfg(feature = "upstream")]
     upstream_message_handler(
         upstream_config,
         upstream_router,
