@@ -188,7 +188,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         info!("Listening on {}", &listen_url);
 
-        let mut thread_list = Vec::new();
+        //@todo removing this to see if it's the cause of the memory leak. Would be ince to write
+        //some tests to see if this causes any leaked threads.
+        // let mut thread_list = Vec::new();
         let mut incoming_with_stop = incoming.timeout_at(self.stop_token.clone());
 
         while let Some(Ok(stream)) = incoming_with_stop.next().await {
@@ -286,7 +288,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             //@TODO really need to fix this.
             //https://github.com/smol-rs/async-task/pull/19
             //@todo also see this: https://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/second-edition/ch20-06-graceful-shutdown-and-cleanup.html
-            thread_list.push(handle);
+            // thread_list.push(handle);
         }
 
         let start = Instant::now();
@@ -319,10 +321,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         }
 
         //@TODO make this parrallel.
-        info!("Awaiting for all current connections to complete");
-        for thread in thread_list {
-            thread.await;
-        }
+        // info!("Awaiting for all current connections to complete");
+        // for thread in thread_list {
+        //     thread.await;
+        // }
 
         // Allow for signal threads to close. @todo check this in testing.
         info!("Awaiting for all signal handler to complete");
