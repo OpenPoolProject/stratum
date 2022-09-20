@@ -448,6 +448,7 @@ pub async fn send_loop(
     Ok(())
 }
 
+#[cfg(feature = "upstream")]
 pub async fn upstream_send_loop(
     mut rx: UnboundedReceiver<String>,
     mut rh: WriteHalf<TcpStream>,

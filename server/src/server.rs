@@ -111,7 +111,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         //     info!("API Server Initialized");
         // }
 
-        let signals = Signals::new(&[SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
+        let signals = Signals::new([SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
         let handle = signals.handle();
 
         let signals_task =

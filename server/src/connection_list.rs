@@ -3,6 +3,7 @@ use crate::Result;
 use async_std::sync::{Arc, RwLock};
 use extended_primitives::Buffer;
 use std::{collections::HashMap, net::SocketAddr, time::Duration};
+use tracing::warn;
 
 //@todo would love to get a data structure maybe stratumstats that is just recording all of the
 //data and giving us some fucking baller output. Like shares/sec unit.
@@ -73,7 +74,10 @@ impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
                 //@todo we don't want to throw as it would prevent other miners from getting the
                 //message.
                 //@todo log error here btw.
-                miner.send_raw(msg.clone()).await;
+                match miner.send_raw(msg.clone()).await {
+                    Ok(_) => {}
+                    Err(_) => warn!(connection_id = %miner.id, "Failed to send shutdown message"),
+                }
             }
         }
 
