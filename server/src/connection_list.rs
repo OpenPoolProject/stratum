@@ -76,7 +76,9 @@ impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
                 //@todo log error here btw.
                 match miner.send_raw(msg.clone()).await {
                     Ok(_) => {}
-                    Err(_) => warn!(connection_id = %miner.id, "Failed to send shutdown message"),
+                    //@todo fix this, causing recursion limits
+                    // Err(_) => warn!(connection_id = %miner.id, "Failed to send shutdown message"),
+                    Err(_) => warn!("Failed to send shutdown message"),
                 }
             }
             //@todo log
