@@ -1,9 +1,6 @@
+#![recursion_limit = "256"]
 #[warn(clippy::pedantic)]
-#[cfg(not(feature = "websockets"))]
 mod tcp;
-
-#[cfg(feature = "websockets")]
-mod websockets;
 
 #[cfg(feature = "upstream")]
 mod upstream;
@@ -22,6 +19,7 @@ mod global;
 mod id_manager;
 mod miner;
 mod miner_list;
+mod parsing;
 mod request;
 mod route;
 mod router;
@@ -39,6 +37,7 @@ pub use crate::{
     global::Global,
     miner::Miner,
     miner_list::MinerList,
+    parsing::next_message,
     request::StratumRequest,
     server::StratumServer,
     types::{ExMessageGeneric, MessageTypes, MessageValue, ReadyIndicator, EX_MAGIC_NUMBER, ID},

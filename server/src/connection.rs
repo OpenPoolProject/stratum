@@ -160,9 +160,9 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
             })),
             info: Arc::new(RwLock::new(ConnectionInfo::new())),
             sender: Arc::new(Mutex::new(sender)),
-            #[cfg(feature = "upstream")]
+            #[cfg(all(feature = "upstream", feature = "tcp"))]
             upstream_sender: Arc::new(Mutex::new(upstream_sender)),
-            #[cfg(feature = "upstream")]
+            #[cfg(all(feature = "upstream", feature = "tcp"))]
             upstream_receiver: Arc::new(Mutex::new(upstream_receiver)),
             difficulty: Arc::new(Mutex::new(initial_difficulty)),
             previous_difficulty: Arc::new(Mutex::new(initial_difficulty)),
