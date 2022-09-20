@@ -1,6 +1,12 @@
+#[cfg(feature = "upstream")]
+use {crate::config::UpstreamConfig, crate::upstream::upstream_message_handler};
+
+#[cfg(feature = "upstream")]
+use tracing::info;
+
 pub use crate::ConnectionList;
 use crate::{
-    config::{UpstreamConfig, VarDiffConfig},
+    config::VarDiffConfig,
     connection::{Connection, SendInformation},
     id_manager::IDManager,
     router::Router,
@@ -14,10 +20,10 @@ use futures::{
     stream::{SplitSink, SplitStream},
     SinkExt, StreamExt,
 };
-use log::{info, trace, warn};
 use serde_json::{Map, Value};
 use std::net::SocketAddr;
 use stop_token::future::FutureExt as stopFutureExt;
+use tracing::{trace, warn};
 
 //@todo might make sene to wrap a lot of these into one param called "ConnectionConfig" and then
 //just pass that along, but we'll see.
@@ -31,8 +37,8 @@ pub async fn handle_connection<
     addr: SocketAddr,
     connection_list: Arc<ConnectionList<CState>>,
     router: Arc<Router<State, CState>>,
-    _upstream_router: Arc<Router<State, CState>>,
-    upstream_config: UpstreamConfig,
+    #[cfg(feature = "upstream")] _upstream_router: Arc<Router<State, CState>>,
+    #[cfg(feature = "upstream")] upstream_config: UpstreamConfig,
     state: State,
     stream: TcpStream,
     var_diff_config: VarDiffConfig,
@@ -61,9 +67,12 @@ pub async fn handle_connection<
         return Ok(());
     }
     let (tx, rx) = unbounded();
+    #[cfg(feature = "upstream")]
     let (utx, _urx) = unbounded();
+    #[cfg(feature = "upstream")]
     let (_urtx, urrx) = unbounded();
 
+    #[cfg(feature = "upstream")]
     //@todo remove this but we just have to do it to pass builds
     info!(
         "Upstream enabled status: {}\nUpstream URL: {}",
@@ -83,7 +92,9 @@ pub async fn handle_connection<
     let connection = Arc::new(Connection::new(
         connection_id,
         tx,
+        #[cfg(feature = "upstream")]
         utx,
+        #[cfg(feature = "upstream")]
         urrx,
         initial_difficulty,
         var_diff_config,
@@ -127,7 +138,7 @@ pub async fn handle_connection<
 
         match next_message {
             //@todo this would most likely be stop_token
-            Err(e) => log::error!(
+            Err(e) => tracing::error!(
                 "Connection: {} error in 'next_message' (stop_token) Error: {}",
                 connection.id(),
                 e
@@ -136,7 +147,7 @@ pub async fn handle_connection<
                 //@todo this would most likely be timeout function
                 match msg {
                     Err(e) => {
-                        log::error!(
+                        tracing::error!(
                             "Connection: {} error in 'next_message' (timeout fn) Error: {}",
                             connection.id(),
                             e
@@ -145,7 +156,7 @@ pub async fn handle_connection<
                     }
                     Ok(msg) => match msg {
                         Err(e) => {
-                            log::error!(
+                            tracing::error!(
                                 "Connection: {} error in 'next_message' (decoding/reading) Error: {}",
                                 connection.id(), e
                             );

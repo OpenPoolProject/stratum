@@ -31,12 +31,15 @@ encodings = "0.1.0"
 # Telemtry
 tracing = "0.1"
 
-# Misc
+# Primitives
 uuid = { version = "1.1.2", features = ["serde", "v4"] }
 time = "0.3.14"
+
+# Utils
+thiserror = "1.0"
+bit-set = "0.5.3"
 signal-hook = "0.3.14"
 signal-hook-async-std = "0.2.2"
-bit-set = "0.5.3"
 
 # Optional
 async-tungstenite = { version="0.17.2", features=["async-std-runtime", "async-native-tls"], optional=true}
