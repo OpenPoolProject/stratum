@@ -27,18 +27,18 @@ jobs:
       contents: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e680f76da57a1e1ce6dc3eed69efc703fcca8dce
+        uses: step-security/harden-runner@0b61316f5a3fc8b7b29daa3d9b4a37cd052d11ed
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@4d318db07a155f99337e7fc8de813caea5e92c32
+      - uses: dtolnay/rust-toolchain@0f2a41247f0cbad73dfdcf76a755e952ccdd5628
         with:
           toolchain: stable
       - run: cargo package
-      - uses: taiki-e/create-gh-release-action@7677226954b76ff34a3c194447a784703dce1a99
+      - uses: taiki-e/create-gh-release-action@90ad5754f57c2df50d98a255c3de53e1d45ed230
         with:
           title: $version
           branch: master

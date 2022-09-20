@@ -29,7 +29,7 @@ jobs:
       security-events: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e680f76da57a1e1ce6dc3eed69efc703fcca8dce
+        uses: step-security/harden-runner@0b61316f5a3fc8b7b29daa3d9b4a37cd052d11ed
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
@@ -55,7 +55,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload analysis results to GitHub
-        uses: github/codeql-action/upload-sarif@70426bb879a3be8361f4db41697ea9fb4e2d57fd
+        uses: github/codeql-action/upload-sarif@aaca8193b16d8aa07c108ae27096823139a1997a
         with:
           sarif_file: rust-clippy-results.sarif
           wait-for-processing: true

@@ -47,22 +47,22 @@ jobs:
         rust: [stable, beta, nightly]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e680f76da57a1e1ce6dc3eed69efc703fcca8dce
+        uses: step-security/harden-runner@0b61316f5a3fc8b7b29daa3d9b4a37cd052d11ed
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
-      - uses: dtolnay/rust-toolchain@4d318db07a155f99337e7fc8de813caea5e92c32
+      - uses: dtolnay/rust-toolchain@0f2a41247f0cbad73dfdcf76a755e952ccdd5628
         with:
           toolchain: ${{ matrix.rust }}
           components: rust-src
-      - uses: taiki-e/install-action@d62eacb5625d90e0d62e2b664b76033f6f997dc4
+      - uses: taiki-e/install-action@6597128d216e9c47629f71c1a762293d60958d9d
         with:
           tool: cargo-hack
-      - uses: taiki-e/install-action@d62eacb5625d90e0d62e2b664b76033f6f997dc4
+      - uses: taiki-e/install-action@6597128d216e9c47629f71c1a762293d60958d9d
         with:
           tool: nextest
-      - uses: Swatinem/rust-cache@90429b3dea365e9a1b0cb82d7f98aabf3089dc63
+      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
         with:
           key: ${{ matrix.rust }}
       - run: cargo hack nextest run --no-capture --each-feature --profile ci
@@ -72,14 +72,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e680f76da57a1e1ce6dc3eed69efc703fcca8dce
+        uses: step-security/harden-runner@0b61316f5a3fc8b7b29daa3d9b4a37cd052d11ed
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
         with:
           persist-credentials: false
-      - uses: taiki-e/install-action@d62eacb5625d90e0d62e2b664b76033f6f997dc4
+      - uses: taiki-e/install-action@6597128d216e9c47629f71c1a762293d60958d9d
         with:
           tool: cargo-hack
       - run:
@@ -90,18 +90,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e680f76da57a1e1ce6dc3eed69efc703fcca8dce
+        uses: step-security/harden-runner@0b61316f5a3fc8b7b29daa3d9b4a37cd052d11ed
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
-      - uses: dtolnay/rust-toolchain@4d318db07a155f99337e7fc8de813caea5e92c32
+      - uses: dtolnay/rust-toolchain@0f2a41247f0cbad73dfdcf76a755e952ccdd5628
         with:
           toolchain: nightly
           components: clippy,rustfmt
-      - uses: taiki-e/install-action@d62eacb5625d90e0d62e2b664b76033f6f997dc4
+      - uses: taiki-e/install-action@6597128d216e9c47629f71c1a762293d60958d9d
         with:
           tool: cargo-hack
-      - uses: taiki-e/install-action@d62eacb5625d90e0d62e2b664b76033f6f997dc4
+      - uses: taiki-e/install-action@6597128d216e9c47629f71c1a762293d60958d9d
         with:
           tool: cargo-minimal-versions
       - run: cargo fmt --all --check
@@ -117,17 +117,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e680f76da57a1e1ce6dc3eed69efc703fcca8dce
+        uses: step-security/harden-runner@0b61316f5a3fc8b7b29daa3d9b4a37cd052d11ed
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@4d318db07a155f99337e7fc8de813caea5e92c32
+        uses: dtolnay/rust-toolchain@0f2a41247f0cbad73dfdcf76a755e952ccdd5628
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@90429b3dea365e9a1b0cb82d7f98aabf3089dc63
+      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
       - name: Check documentation
         env:
           RUSTDOCFLAGS: -D warnings
@@ -142,17 +142,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e680f76da57a1e1ce6dc3eed69efc703fcca8dce
+        uses: step-security/harden-runner@0b61316f5a3fc8b7b29daa3d9b4a37cd052d11ed
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@4d318db07a155f99337e7fc8de813caea5e92c32
+        uses: dtolnay/rust-toolchain@0f2a41247f0cbad73dfdcf76a755e952ccdd5628
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@90429b3dea365e9a1b0cb82d7f98aabf3089dc63
+      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
       - uses: actions-rs/cargo@9e120dd99b0fbad1c065f686657e914e76bd7b72
         with:
           command: publish
@@ -163,22 +163,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e680f76da57a1e1ce6dc3eed69efc703fcca8dce
+        uses: step-security/harden-runner@0b61316f5a3fc8b7b29daa3d9b4a37cd052d11ed
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
         uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@4d318db07a155f99337e7fc8de813caea5e92c32
+        uses: dtolnay/rust-toolchain@0f2a41247f0cbad73dfdcf76a755e952ccdd5628
         with:
           toolchain: stable
           components: llvm-tools-preview
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@d62eacb5625d90e0d62e2b664b76033f6f997dc4
+        uses: taiki-e/install-action@6597128d216e9c47629f71c1a762293d60958d9d
         with:
           tool: cargo-llvm-cov
-      - uses: taiki-e/install-action@d62eacb5625d90e0d62e2b664b76033f6f997dc4
+      - uses: taiki-e/install-action@6597128d216e9c47629f71c1a762293d60958d9d
         with:
           tool: nextest
       - uses: Swatinem/rust-cache@v1
@@ -190,7 +190,7 @@ jobs:
           cargo llvm-cov --no-run --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@7f20bd4c4151750a1d013be0901b7e35a46c2aad
+        uses: codecov/codecov-action@d9f34f8cd5cb3b3eb79b3e4b5dae3a16df499a70
         with:
           files: lcov.info
           fail_ci_if_error: true
@@ -208,7 +208,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e680f76da57a1e1ce6dc3eed69efc703fcca8dce
+        uses: step-security/harden-runner@0b61316f5a3fc8b7b29daa3d9b4a37cd052d11ed
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
