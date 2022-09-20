@@ -16,11 +16,7 @@ use serde_json::{Map, Value};
 use stop_token::future::FutureExt as stopFutureExt;
 use tracing::{trace, warn};
 use crate::next_message;
-//@todo we can combine this with websockets
-//@todo we need to abstract this out because you might use different protocols for different
-//upstreams so you might need to mix and match websockets -> tcp etc. Need to figure out how to
-//that.
-#[cfg(not(feature = "websockets"))]
+
 pub async fn upstream_message_handler<
     State: Clone + Send + Sync + 'static,
     CState: Clone + Send + Sync + 'static,
@@ -92,7 +88,6 @@ pub async fn upstream_message_handler<
     Ok(())
 }
 
-#[cfg(not(feature = "websockets"))]
 pub async fn upstream_send_loop(
     mut rx: UnboundedReceiver<String>,
     mut rh: WriteHalf<TcpStream>,

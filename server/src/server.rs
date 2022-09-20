@@ -31,11 +31,8 @@ use stop_token::{future::FutureExt, stream::StreamExt as StopStreamExt, StopSour
 // use crate::metrics::Metrics;
 
 use crate::id_manager::IDManager;
-#[cfg(not(feature = "websockets"))]
-use crate::tcp::handle_connection;
 
-#[cfg(feature = "websockets")]
-use crate::websockets::handle_connection;
+use crate::tcp::handle_connection;
 
 // #[derive(Clone)]
 pub struct StratumServer<State, CState>
