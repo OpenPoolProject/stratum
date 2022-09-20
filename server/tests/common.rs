@@ -6,21 +6,29 @@ use signal_hook::{
 };
 use std::{sync::Once, time::Duration};
 use stratum_server::{Connection, ConnectionList, StratumRequest, StratumServer};
+use tracing::subscriber::set_global_default;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter, Registry};
+
+pub fn init_telemetry() {
+    let fmt_layer = fmt::layer();
+    let filter_layer = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("info"))
+        .unwrap();
+
+    let subscriber = Registry::default().with(filter_layer).with(fmt_layer);
+
+    set_global_default(subscriber).expect("Failed to set subscriber");
+}
 
 pub async fn find_port() -> u16 {
     pick_unused_port().expect("No ports free")
 }
 
-static LOGGER_ENV: Once = Once::new();
 static LOGGER: Once = Once::new();
 
 pub fn init() {
-    LOGGER_ENV.call_once(|| {
-        std::env::set_var("RUST_LOG", "info");
-    });
-
     LOGGER.call_once(|| {
-        env_logger::init();
+        init_telemetry();
     });
 }
 

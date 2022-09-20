@@ -79,11 +79,10 @@ impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
                     Err(_) => warn!(connection_id = %miner.id, "Failed to send shutdown message"),
                 }
             }
+            //@todo log
+            //All miners have received the shutdown message, now we wait and then we remove.
+            async_std::task::sleep(Duration::from_secs(delay_seconds)).await;
         }
-
-        //@todo log
-        //All miners have received the shutdown message, now we wait and then we remove.
-        async_std::task::sleep(Duration::from_secs(delay_seconds)).await;
 
         //@todo we need to parallize this async.
         for miner in self.miners.read().await.values() {

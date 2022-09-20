@@ -227,7 +227,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             let global_vars = GlobalVars::new(self.id);
 
             //@todo should we pass the stop token in this?
-            let handle = task::spawn(async move {
+            // let handle = task::spawn(async move {
+            task::spawn(async move {
                 //First things first, since we get a ridiculous amount of no-data stream connections, we are
                 //going to peak 2 bytes off of this and if we get those 2 bytes we continue, otherwise we are
                 //burning it down with 0 logs baby.
