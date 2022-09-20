@@ -108,7 +108,6 @@ pub async fn server_with_global(port: u16) -> StratumServer<State, ConnectionSta
 }
 
 //@note these connections do not send any messages.
-#[cfg(not(feature = "websocket"))]
 pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<JoinHandle<usize>> {
     let mut connections = Vec::new();
 
@@ -122,33 +121,6 @@ pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<J
                 let _stream = TcpStream::connect(&url).await.unwrap();
 
                 async_std::task::sleep(Duration::from_secs(sleep_duration)).await;
-
-                i
-            }
-        });
-
-        connections.push(client);
-    }
-
-    connections
-}
-
-//@todo This needs to work.
-#[cfg(feature = "websocket")]
-pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<JoinHandle<usize>> {
-    let mut connections = Vec::new();
-
-    for i in 0..num {
-        let client = async_std::task::spawn({
-            let url = url.to_string();
-            async move {
-                //Setup Costs
-                async_std::task::sleep(Duration::from_millis(200)).await;
-
-                let mut stream = TcpStream::connect(&url).await.unwrap();
-                async_tungstenite::async_std::task::sleep(Duration::from_secs(sleep_duration))
-                    .await;
-                // async_tungstenite::
 
                 i
             }
