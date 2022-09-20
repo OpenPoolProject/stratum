@@ -1,3 +1,4 @@
+#[warn(clippy::pedantic)]
 #[cfg(not(feature = "websockets"))]
 mod tcp;
 

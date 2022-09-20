@@ -50,7 +50,9 @@ pub async fn proxy_protocol(
 
 //@todo might make sene to wrap a lot of these into one param called "ConnectionConfig" and then
 //just pass that along, but we'll see.
+//@todo review
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_lines)]
 pub async fn handle_connection<
     State: Clone + Send + Sync + 'static,
     CState: Clone + Send + Sync + 'static,
@@ -77,7 +79,7 @@ pub async fn handle_connection<
     let mut buffer_stream = BufReader::new(rh);
 
     if proxy {
-        addr = proxy_protocol(&mut buffer_stream, expected_port).await?
+        addr = proxy_protocol(&mut buffer_stream, expected_port).await?;
     }
 
     if ban_manager.check_banned(&addr).await {
@@ -97,12 +99,12 @@ pub async fn handle_connection<
 
     //@todo we should be printing the number of sessions issued out of the total supported.
     //Currently have 24 sessions connected out of 15,000 total. <1% capacity.
-    let connection_id = match id_manager.allocate_session_id().await {
-        Some(id) => id,
-        None => {
-            warn!("Sessions full");
-            return Ok(());
-        }
+
+    let connection_id = if let Some(id) = id_manager.allocate_session_id().await {
+        id
+    } else {
+        warn!("Sessions full");
+        return Ok(());
     };
 
     let connection = Arc::new(Connection::new(
@@ -338,10 +340,9 @@ pub async fn next_message(
                 // @todo maybe expose a function on the connection for this btw.
 
                 return Ok((method_string.to_owned(), MessageValue::StratumV1(msg)));
-            } else {
-                //@todo improper format
-                return Err(Error::MethodDoesntExist);
             }
+            //@todo improper format
+            return Err(Error::MethodDoesntExist);
         };
     }
 }
