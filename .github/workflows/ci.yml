@@ -65,7 +65,8 @@ jobs:
       - uses: Swatinem/rust-cache@90429b3dea365e9a1b0cb82d7f98aabf3089dc63
         with:
           key: ${{ matrix.rust }}
-      - run: cargo hack nextest run --no-capture --each-feature --profile ci
+      # - run: cargo hack nextest run --no-capture --each-feature --profile ci
+      - run: cargo nextest run --no-capture --features tcp,upstream --profile ci
         timeout-minutes: 15
 
   msrv:
@@ -82,9 +83,10 @@ jobs:
       - uses: taiki-e/install-action@d62eacb5625d90e0d62e2b664b76033f6f997dc4
         with:
           tool: cargo-hack
-      - run:
-          cargo hack build -vvv --workspace --feature-powerset --optional-deps
-          --ignore-private --no-dev-deps --version-range ..
+      # - run:
+      #     cargo hack build -vvv --workspace --feature-powerset --optional-deps
+      #     --ignore-private --no-dev-deps --version-range ..
+      - run: cargo hack build --features tcp,upstream
 
   tidy:
     runs-on: ubuntu-latest

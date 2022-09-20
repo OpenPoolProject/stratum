@@ -1,6 +1,6 @@
 #[cfg(feature = "upstream")]
 use {
-    futures::{channel::mspc::UnboundedReceiver, StreamExt},
+    futures::{channel::mpsc::UnboundedReceiver, StreamExt},
     serde_json::json,
 };
 

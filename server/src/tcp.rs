@@ -1,5 +1,5 @@
 #[cfg(feature = "upstream")]
-use crate::config::UpstreamConfig;
+use {crate::config::UpstreamConfig, crate::upstream::upstream_message_handler};
 
 pub use crate::ConnectionList;
 use crate::{
@@ -246,6 +246,8 @@ pub async fn handle_connection<
     Ok(())
 }
 
+//@todo pull this out into maybe something like "Frame/Codec etc"
+//Don't accept TcpStream, accept bytes? or generic reader
 pub async fn next_message(
     stream: &mut BufReader<ReadHalf<TcpStream>>,
 ) -> Result<(String, MessageValue)> {

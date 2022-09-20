@@ -9,7 +9,7 @@ mod websockets;
 mod upstream;
 
 #[cfg(feature = "upstream")]
-use {crate::config::UpstreamConfig, crate::upstream};
+use crate::config::UpstreamConfig;
 
 // mod api;
 mod ban_manager;
