@@ -12,9 +12,6 @@ pub enum Error {
     MethodDoesntExist,
     #[error("Can't break ExMessage header - Not complete")]
     BrokenExHeader,
-    #[error("Websocket error: {0}")]
-    #[cfg(feature = "websockets")]
-    Websocket(#[from] async_tungstenite::tungstenite::Error),
     #[error("Json Error: {0}")]
     Json(#[from] serde_json::error::Error),
     #[error("IO Error: {0}")]

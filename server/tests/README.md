@@ -6,4 +6,3 @@ There are a number of tests to ensure that our safe signaling processing is hand
 
 These tests have been marked as "ignored" so that they do not run during the normal testing suite `cargo test`. Instead, in order to run these tests, the following command is recomended: `cargo test -- --ignored`
 
-To test the ignored tests for websockets, the following command will work: `cargo test --features=websockets -- --ignored`
