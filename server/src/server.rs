@@ -1,9 +1,12 @@
+#[cfg(feature = "upstream")]
+use crate::UpstreamConfig;
+
 use crate::{
     global::Global,
     route::Endpoint,
     router::Router,
     types::{GlobalVars, ReadyIndicator},
-    BanManager, ConnectionList, Result, StratumServerBuilder, UpstreamConfig, VarDiffConfig,
+    BanManager, ConnectionList, Result, StratumServerBuilder, VarDiffConfig,
 };
 use async_std::{
     net::TcpListener,
@@ -12,11 +15,12 @@ use async_std::{
     task::JoinHandle,
 };
 use futures::StreamExt;
-use log::info;
+use tracing::info;
 // use metrics_exporter_prometheus::PrometheusBuilder;
 use signal_hook::consts::signal::*;
 use signal_hook_async_std::{Handle, Signals};
 //@todo maybe remove this with time dependency
+use extended_primitives::Buffer;
 use std::time::Instant;
 use stop_token::{future::FutureExt, stream::StreamExt as StopStreamExt, StopSource, StopToken};
 
@@ -27,11 +31,8 @@ use stop_token::{future::FutureExt, stream::StreamExt as StopStreamExt, StopSour
 // use crate::metrics::Metrics;
 
 use crate::id_manager::IDManager;
-#[cfg(not(feature = "websockets"))]
-use crate::tcp::handle_connection;
 
-#[cfg(feature = "websockets")]
-use crate::websockets::handle_connection;
+use crate::tcp::handle_connection;
 
 // #[derive(Clone)]
 pub struct StratumServer<State, CState>
@@ -49,8 +50,10 @@ where
     pub(crate) connection_list: Arc<ConnectionList<CState>>,
     pub(crate) ban_manager: Arc<BanManager>,
     pub(crate) router: Arc<Router<State, CState>>,
-    pub(crate) upstream_router: Arc<Router<State, CState>>,
     pub(crate) var_diff_config: VarDiffConfig,
+    #[cfg(feature = "upstream")]
+    pub(crate) upstream_router: Arc<Router<State, CState>>,
+    #[cfg(feature = "upstream")]
     pub(crate) upstream_config: UpstreamConfig,
     pub(crate) session_id_manager: Arc<IDManager>,
     //@todo maybe wrap this in something more friendly... Can use it in connection as well.
@@ -63,6 +66,7 @@ where
     //@todo I think revamp this a bit to include getting the correct server_id from our
     //homebase
     pub(crate) ready_indicator: ReadyIndicator,
+    pub(crate) shutdown_message: Option<Buffer>,
 }
 
 //@todo consider this signal for reloading upstream config?
@@ -73,7 +77,7 @@ where
 //@todo maybe move this somewhere else outside of this file.
 async fn handle_signals(mut signals: Signals, stop_source: Arc<Mutex<Option<StopSource>>>) {
     while let Some(signal) = signals.next().await {
-        log::warn!("{:?}", &signal);
+        tracing::warn!("{:?}", &signal);
         match signal {
             SIGTERM | SIGINT | SIGQUIT => {
                 // Shutdown the system;
@@ -123,6 +127,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     //@todo will probably change this "Endpoint" here to an upstream endpoint.
+    #[cfg(feature = "upstream")]
     pub fn add_upstream(&mut self, method: &str, ep: impl Endpoint<State, CState>) {
         //@todo review this code.
         let router = Arc::get_mut(&mut self.upstream_router)
@@ -183,7 +188,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         info!("Listening on {}", &listen_url);
 
-        let mut thread_list = Vec::new();
+        //@todo removing this to see if it's the cause of the memory leak. Would be ince to write
+        //some tests to see if this causes any leaked threads.
+        // let mut thread_list = Vec::new();
         let mut incoming_with_stop = incoming.timeout_at(self.stop_token.clone());
 
         while let Some(Ok(stream)) = incoming_with_stop.next().await {
@@ -209,16 +216,19 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             let initial_difficulty = self.initial_difficulty;
             let ban_manager = self.ban_manager.clone();
             let router = self.router.clone();
+            #[cfg(feature = "upstream")]
             let upstream_router = self.upstream_router.clone();
             let state = self.state.clone();
             let connection_state = CState::default();
 
             let var_diff_config = self.var_diff_config.clone();
+            #[cfg(feature = "upstream")]
             let upstream_config = self.upstream_config.clone();
             let global_vars = GlobalVars::new(self.id);
 
             //@todo should we pass the stop token in this?
-            let handle = task::spawn(async move {
+            // let handle = task::spawn(async move {
+            task::spawn(async move {
                 //First things first, since we get a ridiculous amount of no-data stream connections, we are
                 //going to peak 2 bytes off of this and if we get those 2 bytes we continue, otherwise we are
                 //burning it down with 0 logs baby.
@@ -227,7 +237,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 let mut check_bytes = [0u8; 4];
                 match stream.peek(&mut check_bytes).await {
                     Err(e) => {
-                        log::error!(
+                        tracing::error!(
                             "Trouble reading peak bytes from stream: {}. Exiting. Error: {}",
                             addr,
                             e
@@ -255,7 +265,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                     addr,
                     connection_list,
                     router,
+                    #[cfg(feature = "upstream")]
                     upstream_router,
+                    #[cfg(feature = "upstream")]
                     upstream_config,
                     state,
                     stream,
@@ -277,7 +289,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             //@TODO really need to fix this.
             //https://github.com/smol-rs/async-task/pull/19
             //@todo also see this: https://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/second-edition/ch20-06-graceful-shutdown-and-cleanup.html
-            thread_list.push(handle);
+            // thread_list.push(handle);
         }
 
         let start = Instant::now();
@@ -286,7 +298,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         //Before we return Ok here, we need to finish cleaning up the rest.
         //So what I'm thinking we do is iterate through miner list and shutdown everything.
-        self.connection_list.shutdown().await?;
+        //@todo magic number of 60 should be set somewhere
+        self.connection_list
+            .shutdown(self.shutdown_message.clone(), 60)
+            .await?;
 
         //I believe that shutdown here should basically trigger connect_list to self distruct.
         //That being said, if each handle_connection uses the same stop_token, then it won't even
@@ -307,10 +322,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         }
 
         //@TODO make this parrallel.
-        info!("Awaiting for all current connections to complete");
-        for thread in thread_list {
-            thread.await;
-        }
+        // info!("Awaiting for all current connections to complete");
+        // for thread in thread_list {
+        //     thread.await;
+        // }
 
         // Allow for signal threads to close. @todo check this in testing.
         info!("Awaiting for all signal handler to complete");

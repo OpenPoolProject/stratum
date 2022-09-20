@@ -1,15 +1,17 @@
+#[cfg(feature = "upstream")]
+use {
+    futures::{channel::mpsc::UnboundedReceiver, StreamExt},
+    serde_json::json,
+};
+
 use crate::{config::VarDiffConfig, format_difficulty, Miner, MinerList, Result};
 use async_std::sync::{Arc, Mutex, RwLock};
 use extended_primitives::Buffer;
-use futures::{
-    channel::mpsc::{UnboundedReceiver, UnboundedSender},
-    SinkExt, StreamExt,
-};
-use log::{debug, trace};
+use futures::{channel::mpsc::UnboundedSender, SinkExt};
 use serde::Serialize;
-use serde_json::json;
 use std::time::{Duration, SystemTime};
 use stop_token::{StopSource, StopToken};
+use tracing::{debug, trace};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -78,7 +80,9 @@ pub struct Connection<State> {
     pub user_info: Arc<Mutex<UserInfo>>,
 
     pub sender: Arc<Mutex<UnboundedSender<SendInformation>>>,
+    #[cfg(feature = "upstream")]
     pub upstream_sender: Arc<Mutex<UnboundedSender<String>>>,
+    #[cfg(feature = "upstream")]
     pub upstream_receiver:
         Arc<Mutex<UnboundedReceiver<serde_json::map::Map<String, serde_json::Value>>>>,
 
@@ -118,8 +122,10 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
     pub fn new(
         session_id: u32,
         sender: UnboundedSender<SendInformation>,
-        upstream_sender: UnboundedSender<String>,
-        upstream_receiver: UnboundedReceiver<serde_json::map::Map<String, serde_json::Value>>,
+        #[cfg(feature = "upstream")] upstream_sender: UnboundedSender<String>,
+        #[cfg(feature = "upstream")] upstream_receiver: UnboundedReceiver<
+            serde_json::map::Map<String, serde_json::Value>,
+        >,
         initial_difficulty: u64,
         var_diff_config: VarDiffConfig,
         state: State,
@@ -154,7 +160,9 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
             })),
             info: Arc::new(RwLock::new(ConnectionInfo::new())),
             sender: Arc::new(Mutex::new(sender)),
+            #[cfg(feature = "upstream")]
             upstream_sender: Arc::new(Mutex::new(upstream_sender)),
+            #[cfg(feature = "upstream")]
             upstream_receiver: Arc::new(Mutex::new(upstream_receiver)),
             difficulty: Arc::new(Mutex::new(initial_difficulty)),
             previous_difficulty: Arc::new(Mutex::new(initial_difficulty)),
@@ -221,6 +229,7 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
         Ok(())
     }
 
+    #[cfg(feature = "upstream")]
     pub async fn upstream_send<T: Serialize>(&self, message: T) -> Result<()> {
         //let last_active = self.stats.lock().await.last_active;
 
@@ -252,6 +261,7 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
         Ok(())
     }
 
+    #[cfg(feature = "upstream")]
     pub async fn upstream_result(&self) -> Result<(serde_json::Value, serde_json::Value)> {
         let mut upstream_receiver = self.upstream_receiver.lock().await;
 

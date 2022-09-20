@@ -1,7 +1,7 @@
 use async_std::sync::{Arc, Mutex};
 use extended_primitives::Buffer;
-use log::warn;
 use time::OffsetDateTime;
+use tracing::warn;
 use uuid::Uuid;
 
 use crate::{connection::MinerOptions, types::VarDiffBuffer};

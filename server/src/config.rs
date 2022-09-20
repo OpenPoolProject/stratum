@@ -10,6 +10,7 @@ pub struct VarDiffConfig {
     pub(crate) variance_percent: f64,
 }
 
+#[cfg(feature = "upstream")]
 #[derive(Clone, Debug, Default)]
 pub struct UpstreamConfig {
     pub(crate) enabled: bool,

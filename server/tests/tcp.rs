@@ -1,6 +1,5 @@
 pub mod common;
 
-#[cfg(not(feature = "websockets"))]
 #[async_std::test]
 async fn test_basic_server() {
     #[cfg(not(target_env = "msvc"))]
@@ -101,7 +100,6 @@ async fn test_basic_server() {
     assert_eq!(result, 1);
 }
 
-//#[cfg(not(feature = "websockets"))]
 //#[async_std::test]
 //async fn test_single_connection_shutdown() {
 //    common::init();

@@ -191,8 +191,6 @@ impl ExMessageGeneric {
 
 #[derive(Clone, Debug)]
 pub struct GlobalVars {
-    //@todo I would like to actually make this a u16 so that we never run out of servers, but we
-    //need to revisit that first.
     pub server_id: u8,
 }
 
