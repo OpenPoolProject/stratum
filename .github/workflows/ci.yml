@@ -56,10 +56,10 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: rust-src
-      - uses: taiki-e/install-action@e85ee51dd0ff4e1362366b809fb249d9a672f562
+      - uses: taiki-e/install-action@9f3710a281934a07c6a95a9dbac65dcc37b31101
         with:
           tool: cargo-hack
-      - uses: taiki-e/install-action@e85ee51dd0ff4e1362366b809fb249d9a672f562
+      - uses: taiki-e/install-action@9f3710a281934a07c6a95a9dbac65dcc37b31101
         with:
           tool: nextest
       - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@e6d535c99c374d0c3f6d8cd8086a57b43c6c700a
         with:
           persist-credentials: false
-      - uses: taiki-e/install-action@e85ee51dd0ff4e1362366b809fb249d9a672f562
+      - uses: taiki-e/install-action@9f3710a281934a07c6a95a9dbac65dcc37b31101
         with:
           tool: cargo-hack
       - run:
@@ -98,10 +98,10 @@ jobs:
         with:
           toolchain: nightly
           components: clippy,rustfmt
-      - uses: taiki-e/install-action@e85ee51dd0ff4e1362366b809fb249d9a672f562
+      - uses: taiki-e/install-action@9f3710a281934a07c6a95a9dbac65dcc37b31101
         with:
           tool: cargo-hack
-      - uses: taiki-e/install-action@e85ee51dd0ff4e1362366b809fb249d9a672f562
+      - uses: taiki-e/install-action@9f3710a281934a07c6a95a9dbac65dcc37b31101
         with:
           tool: cargo-minimal-versions
       - run: cargo fmt --all --check
@@ -173,10 +173,10 @@ jobs:
           toolchain: stable
           components: llvm-tools-preview
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@e85ee51dd0ff4e1362366b809fb249d9a672f562
+        uses: taiki-e/install-action@9f3710a281934a07c6a95a9dbac65dcc37b31101
         with:
           tool: cargo-llvm-cov
-      - uses: taiki-e/install-action@e85ee51dd0ff4e1362366b809fb249d9a672f562
+      - uses: taiki-e/install-action@9f3710a281934a07c6a95a9dbac65dcc37b31101
         with:
           tool: nextest
       - uses: Swatinem/rust-cache@v1
