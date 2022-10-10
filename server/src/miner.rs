@@ -170,13 +170,7 @@ impl Miner {
             new_diff = job_stats.current_difficulty * 2;
         }
 
-        if new_diff < self.options.min_diff {
-            new_diff = self.options.min_diff;
-        }
-
-        if new_diff > self.options.max_diff {
-            new_diff = self.options.max_diff;
-        }
+        new_diff = new_diff.clamp(self.options.min_diff, self.options.max_diff);
 
         if new_diff != job_stats.current_difficulty {
             *self.next_difficulty.lock().await = Some(new_diff);
