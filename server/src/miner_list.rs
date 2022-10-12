@@ -15,21 +15,21 @@ impl MinerList {
     }
 
     pub async fn add_miner(&self, session_id: u32, miner: Miner) {
-        self.miners.write().await.insert(session_id as u32, miner);
+        self.miners.write().await.insert(session_id, miner);
     }
 
     //Returns the just removed miner (Mainly for Event reporting purposes)
     //If the miner exists otherwise returns None.
     pub async fn remove_miner(&self, session_id: u32) -> Option<Miner> {
-        self.miners.write().await.remove(&(session_id as u32))
+        self.miners.write().await.remove(&(session_id))
     }
 
     pub async fn get_miner_by_id(&self, session_id: u32) -> Option<Miner> {
-        self.miners.read().await.get(&(session_id as u32)).cloned()
+        self.miners.read().await.get(&(session_id)).cloned()
     }
 
     pub async fn update_miner_by_session_id(&self, session_id: u32, miner: Miner) {
-        self.miners.write().await.insert(session_id as u32, miner);
+        self.miners.write().await.insert(session_id, miner);
     }
 }
 
