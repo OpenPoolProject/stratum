@@ -52,7 +52,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@8230315d06ad95c617244d2f265d237a1682d445
-      - uses: dtolnay/rust-toolchain@2e4fc08e24c79a982d0b6f4638011718d61c0eee
+      - uses: dtolnay/rust-toolchain@ba37adf8f94a7d9affce79bd3baff1b9e3189c33
         with:
           toolchain: ${{ matrix.rust }}
           components: rust-src
@@ -94,7 +94,7 @@ jobs:
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
       - uses: actions/checkout@8230315d06ad95c617244d2f265d237a1682d445
-      - uses: dtolnay/rust-toolchain@2e4fc08e24c79a982d0b6f4638011718d61c0eee
+      - uses: dtolnay/rust-toolchain@ba37adf8f94a7d9affce79bd3baff1b9e3189c33
         with:
           toolchain: nightly
           components: clippy,rustfmt
@@ -123,7 +123,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8230315d06ad95c617244d2f265d237a1682d445
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@2e4fc08e24c79a982d0b6f4638011718d61c0eee
+        uses: dtolnay/rust-toolchain@ba37adf8f94a7d9affce79bd3baff1b9e3189c33
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
@@ -147,7 +147,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8230315d06ad95c617244d2f265d237a1682d445
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@2e4fc08e24c79a982d0b6f4638011718d61c0eee
+        uses: dtolnay/rust-toolchain@ba37adf8f94a7d9affce79bd3baff1b9e3189c33
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
@@ -168,7 +168,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@8230315d06ad95c617244d2f265d237a1682d445
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@2e4fc08e24c79a982d0b6f4638011718d61c0eee
+        uses: dtolnay/rust-toolchain@ba37adf8f94a7d9affce79bd3baff1b9e3189c33
         with:
           toolchain: stable
           components: llvm-tools-preview
