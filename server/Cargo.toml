@@ -17,7 +17,7 @@ upstream = []
 
 # Futures
 async-std = { version = "1.12", features = ["attributes", "unstable"] }
-async-trait = "0.1.57"
+async-trait = "0.1.58"
 futures = "0.3.24"
 stop-token = "0.7.0"
 
