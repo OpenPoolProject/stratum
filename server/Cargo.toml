@@ -24,7 +24,7 @@ stop-token = "0.7.0"
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.87"
-extended-primitives = {version = "0.3.6"}
+extended-primitives = {version = "0.3.7"}
 encodings = "0.1.0"
 
 # Telemtry
