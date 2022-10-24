@@ -32,7 +32,7 @@ tracing = "0.1"
 
 # Primitives
 uuid = { version = "1.2.1", features = ["serde", "v4"] }
-time = "0.3.15"
+time = "0.3.16"
 
 # Utils
 thiserror = "1.0.37"
