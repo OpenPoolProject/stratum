@@ -84,9 +84,7 @@ async fn test_basic_server() {
 
     let client = async_std::task::spawn(async move {
         async_std::task::sleep(Duration::from_millis(200)).await;
-        let mut stream = TcpStream::connect(format!("0.0.0.0:{}", port))
-            .await
-            .unwrap();
+        let mut stream = TcpStream::connect(format!("0.0.0.0:{port}")).await.unwrap();
         let msg = "{\"method\":\"auth\"}";
 
         stream.write_all(msg.as_bytes()).await.unwrap();

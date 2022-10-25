@@ -31,7 +31,7 @@ impl<State> StratumRequest<State> {
             MessageValue::StratumV1(params) => {
                 let params = params
                     .get(name)
-                    .ok_or_else(|| serde::de::Error::custom(format!("expected {}", name)))?
+                    .ok_or_else(|| serde::de::Error::custom(format!("expected {name}")))?
                     .clone();
 
                 Ok(serde_json::from_value(params)?)
