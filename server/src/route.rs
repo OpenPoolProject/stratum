@@ -1,6 +1,7 @@
 use crate::{Connection, StratumRequest};
 use async_std::{future::Future, sync::Arc};
 use async_trait::async_trait;
+use tracing::error;
 
 pub(crate) type DynEndpoint<State, CState> = dyn Endpoint<State, CState>;
 
@@ -34,7 +35,15 @@ where
 
         match fut.await {
             Ok(res) => res.into(),
-            Err(_e) => {
+            Err(e) => {
+                error!(
+                    connection_id = connection.id().to_string(),
+                    error.cause_chain = ?e,
+                    error.message = %e,
+                    "Request failed disconnecting miner"
+                );
+
+                //@todo better response values here if we can.
                 connection.disconnect().await;
                 serde_json::Value::Null
             }
