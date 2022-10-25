@@ -91,8 +91,8 @@ impl ID {
 impl std::fmt::Display for ID {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ID::Num(ref e) => write!(f, "{}", e),
-            ID::Str(ref e) => write!(f, "{}", e),
+            ID::Num(ref e) => write!(f, "{e}"),
+            ID::Str(ref e) => write!(f, "{e}"),
             ID::Null(ref _e) => write!(f, "null"),
         }
     }

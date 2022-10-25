@@ -41,7 +41,7 @@ async fn test_signal_sigint_clean_shutdown_with_connection() {
         server.start().await
     });
 
-    let clients = common::generate_connections(1, &format!("0.0.0.0:{}", port), 5);
+    let clients = common::generate_connections(1, &format!("0.0.0.0:{port}"), 5);
 
     //Give the server time to register the hooks.
     async_std::task::sleep(Duration::from_secs(2)).await;
@@ -69,7 +69,7 @@ async fn test_signal_sigint_clean_shutdown_with_n_connections() {
         server.start().await
     });
 
-    let clients = common::generate_connections(10, &format!("0.0.0.0:{}", port), 5);
+    let clients = common::generate_connections(10, &format!("0.0.0.0:{port}"), 5);
 
     //Give the server time to register the hooks.
     async_std::task::sleep(Duration::from_secs(2)).await;
@@ -139,7 +139,7 @@ async fn test_signal_sigterm_clean_shutdown_with_connection() {
         server.start().await
     });
 
-    let clients = common::generate_connections(1, &format!("0.0.0.0:{}", port), 5);
+    let clients = common::generate_connections(1, &format!("0.0.0.0:{port}"), 5);
 
     //Give the server time to register the hooks.
     async_std::task::sleep(Duration::from_secs(2)).await;
@@ -167,7 +167,7 @@ async fn test_signal_sigterm_clean_shutdown_with_n_connections() {
         server.start().await
     });
 
-    let clients = common::generate_connections(10, &format!("0.0.0.0:{}", port), 5);
+    let clients = common::generate_connections(10, &format!("0.0.0.0:{port}"), 5);
 
     //Give the server time to register the hooks.
     async_std::task::sleep(Duration::from_secs(2)).await;
