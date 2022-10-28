@@ -2,7 +2,7 @@
 name = "stratum-server"
 version = "3.4.0"
 authors = ["Sean Kilgarriff sean@urkel.com"]
-rust-version = "1.59"
+rust-version = "1.60"
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 description = "The server code for the Rust Stratum implementation"
@@ -37,6 +37,7 @@ tracing = "0.1.37"
 uuid = { version = "1.2.1", features = ["serde", "v4"] }
 time = "0.3.16"
 
+
 # Utils
 thiserror = "1.0.37"
 bit-set = "0.5.3"
@@ -56,3 +57,5 @@ tracing-subscriber = {version = "0.3", features = ["env-filter"] }
 tag = false
 sign-commit = false
 pre-release-commit-message = "chore(server): release {{ version }}"
+
+# @todo bring back benchmarks here.
