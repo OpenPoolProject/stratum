@@ -1,6 +1,6 @@
 use async_std::sync::{Arc, Mutex};
+use chrono::{NaiveDateTime, Utc};
 use extended_primitives::Buffer;
-use time::OffsetDateTime;
 use tracing::warn;
 use uuid::Uuid;
 
@@ -34,6 +34,7 @@ impl Miner {
         options: Arc<MinerOptions>,
         difficulty: u64,
     ) -> Self {
+        let now = Utc::now().naive_utc();
         Miner {
             id,
             sid,
@@ -45,12 +46,11 @@ impl Miner {
             stats: Arc::new(Mutex::new(MinerStats {
                 accepted_shares: 0,
                 rejected_shares: 0,
-                last_active: OffsetDateTime::now_utc(),
+                last_active: now,
             })),
             job_stats: Arc::new(Mutex::new(JobStats {
-                last_timestamp: OffsetDateTime::now_utc().unix_timestamp(),
-                last_retarget: OffsetDateTime::now_utc().unix_timestamp()
-                    - options.retarget_time as i64 / 2,
+                last_timestamp: now.timestamp(),
+                last_retarget: now.timestamp() - options.retarget_time as i64 / 2,
                 vardiff_buf: VarDiffBuffer::new(),
                 last_retarget_share: 0,
                 current_difficulty: difficulty,
@@ -102,7 +102,7 @@ impl Miner {
     pub async fn valid_share(&self) {
         let mut stats = self.stats.lock().await;
         stats.accepted_shares += 1;
-        stats.last_active = OffsetDateTime::now_utc();
+        stats.last_active = Utc::now().naive_utc();
         drop(stats);
         // self.consider_ban().await; @todo
         // @todo if we want to wrap this in an option, lets make it options.
@@ -125,7 +125,7 @@ impl Miner {
     //@todo see if we can solve a lot of these recasting issues.
     //@todo wrap u64 with a custom difficulty type.
     async fn retarget(&self) {
-        let now = OffsetDateTime::now_utc().unix_timestamp();
+        let now = Utc::now().timestamp();
 
         let mut job_stats = self.job_stats.lock().await;
 
@@ -226,7 +226,7 @@ impl Miner {
 pub struct MinerStats {
     accepted_shares: u64,
     rejected_shares: u64,
-    last_active: OffsetDateTime,
+    last_active: NaiveDateTime,
 }
 
 //@todo probably move these over to types.

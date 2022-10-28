@@ -35,7 +35,7 @@ tracing = "0.1.37"
 
 # Primitives
 uuid = { version = "1.2.1", features = ["serde", "v4"] }
-time = "0.3.16"
+chrono = "0.4.22"
 
 
 # Utils
