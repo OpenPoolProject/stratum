@@ -192,6 +192,19 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: lcov.info
           fail_ci_if_error: true
+  bloat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@1f9a0c22da41e6ebfa534300ef656657ea2c6707
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@55c7845fad90d0ae8b2e83715cb900e5e861e8cb
+        with:
+          toolchain: stable
+      - name: Run cargo bloat
+        uses: orf/cargo-bloat-action@a4d9d71e47296bf4fdba433f6f0b54d7f3cf3ff0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          bloat_args: --release --example basic
 
   ci-success:
     name: ci
@@ -203,6 +216,7 @@ jobs:
       - docs
       - publish-dry-run
       - coverage
+      - bloat
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
