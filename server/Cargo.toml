@@ -35,7 +35,8 @@ tracing = "0.1.37"
 
 # Primitives
 uuid = { version = "1.2.1", features = ["serde", "v4"] }
-time = "0.3.16"
+# default-features only false until new release @note
+chrono = { version="0.4.22", default-features = false, features = ["clock"]}
 
 
 # Utils
