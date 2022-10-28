@@ -192,6 +192,37 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: lcov.info
           fail_ci_if_error: true
+  bloat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@1f9a0c22da41e6ebfa534300ef656657ea2c6707
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@55c7845fad90d0ae8b2e83715cb900e5e861e8cb
+        with:
+          toolchain:
+            stable
+            # @todo potentially switch these with Swatinem rust-cache see above.
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key:
+            bloat-${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock')
+            }}
+      - name: Cache cargo index
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key:
+            bloat-${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      - name: Run cargo bloat
+        # @todo For security, let's fork this into the OpenPoolProject/actions
+        # folder - the original (this is a fork) no longer works because it uses
+        # a 3rd parter server to cache builds that is no longer existant.
+        uses: Kobzol/cargo-bloat-action@85b93f37dec06662054e045b5cf1d79cfdb0d748
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          bloat_args: -p stratum-server --release --example basic
 
   ci-success:
     name: ci
@@ -203,6 +234,7 @@ jobs:
       - docs
       - publish-dry-run
       - coverage
+      - bloat
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
