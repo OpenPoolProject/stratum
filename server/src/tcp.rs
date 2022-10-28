@@ -11,19 +11,24 @@ use crate::{
     types::GlobalVars,
     BanManager, Error, Result,
 };
-use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
 use futures::{
     channel::mpsc::{unbounded, UnboundedReceiver},
-    io::{AsyncBufReadExt, AsyncReadExt, BufReader, ReadHalf, WriteHalf},
-    AsyncWriteExt, StreamExt,
+    StreamExt,
 };
-use std::net::SocketAddr;
-use stop_token::future::FutureExt as stopFutureExt;
-use tracing::{trace, warn};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
+use tokio::{
+    io::{AsyncBufReadExt, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader},
+    net::{
+        tcp::{OwnedReadHalf, OwnedWriteHalf, ReadHalf, WriteHalf},
+        TcpStream,
+    },
+};
+use tracing::{error, trace, warn};
 
 //@todo move this to parsing.
 pub async fn proxy_protocol(
-    buffer_stream: &mut BufReader<ReadHalf<TcpStream>>,
+    //@todo try using non-owned Read Half we fucked it up w/ generics so might work now.
+    buffer_stream: &mut BufReader<OwnedReadHalf>,
     expected_port: u16,
 ) -> Result<SocketAddr> {
     let mut buf = String::new();
@@ -74,7 +79,7 @@ pub async fn handle_connection<
     expected_port: u16,
     global_vars: GlobalVars,
 ) -> Result<()> {
-    let (rh, wh) = stream.split();
+    let (rh, wh) = stream.into_split();
 
     let mut buffer_stream = BufReader::new(rh);
 
@@ -119,7 +124,7 @@ pub async fn handle_connection<
         connection_state,
     ));
 
-    let stop_token = connection.get_stop_token();
+    let cancel_token = connection.get_cancel_token();
 
     #[cfg(feature = "upstream")]
     upstream_message_handler(
@@ -135,7 +140,7 @@ pub async fn handle_connection<
 
     let id = connection.id();
 
-    async_std::task::spawn(async move {
+    tokio::task::spawn(async move {
         match send_loop(rx, wh).await {
             //@todo we should make this conditional on the connection actually being legit, or we
             //can also check before we make a connection so we dodge all these nastiness
@@ -151,6 +156,8 @@ pub async fn handle_connection<
         .unwrap();
 
     loop {
+        //@todo we could possibly do something like Cancellation token and see miniRedis from tokyo
+        //where this would be a future, so we can put it into select!
         if connection.is_disconnected().await {
             trace!(
                 "Connection: {} disconnected. Breaking out of next_message loop",
@@ -161,71 +168,112 @@ pub async fn handle_connection<
 
         let timeout = connection.timeout().await;
 
-        let next_message = next_message(&mut buffer_stream)
-            .timeout(timeout)
-            .timeout_at(stop_token.clone())
-            .await;
+        tokio::select! {
+        //@todo try this suggestion later.
+        //If this returns first, it's either a Timeout, or successful message read.
+        //We should also try the "else" method here so we would match Ok(msg) = and then cancel
+        //match, and then the else would be a timeout message which would match Err(msg)
+        res = tokio::time::timeout(timeout, next_message(&mut buffer_stream)) => {
 
-        match next_message {
-            //@todo this would most likely be stop_token
-            Err(e) => tracing::error!(
-                "Connection: {} error in 'next_message' (stop_token) Error: {}",
-                connection.id(),
-                e
-            ),
-            Ok(msg) => {
-                //@todo this would most likely be timeout function
-                match msg {
+                    //Next_message Success
+                    if let Ok(result) = res {
+                    match result {
+                    Ok((method, values)) => {
+                        router
+                            .call(
+                                &method,
+                                values,
+                                state.clone(),
+                                connection.clone(),
+                                global_vars.clone(),
+                            )
+                            .await;
+                    },
                     Err(e) => {
-                        tracing::error!(
-                            "Connection: {} error in 'next_message' (timeout fn) Error: {}",
-                            connection.id(),
-                            e
+                        error!(
+                            "Connection: {} error in 'next_message' (decoding/reading) Error: {}",
+                            connection.id(), e
                         );
                         break;
+                }
+
                     }
-                    Ok(msg) => match msg {
-                        Err(e) => {
-                            tracing::error!(
-                                "Connection: {} error in 'next_message' (decoding/reading) Error: {}",
-                                connection.id(), e
-                            );
-                            break;
-                        }
-                        Ok((method, values)) => {
-                            router
-                                .call(
-                                    &method,
-                                    values,
-                                    state.clone(),
-                                    connection.clone(),
-                                    global_vars.clone(),
-                                )
-                                .await;
-                        }
-                    },
+
+                    } else {
+            error!(connection_id=connection.id().to_string(), timeout=timeout.as_secs(), "next_message timed out.");
+
                 }
             }
+        _ = cancel_token.cancelled() => {
+            error!(connection_id=connection.id().to_string(), "Message parsing canceled. Received Shutdown");
+            break;
         }
 
-        //@todo maybe do triple ??? instead?
-        //@todo I don't think we like the triple ??? actually because we want to break the loop and
-        //not automatically complete the function so we can do shutdown proceedures.
-        //Check to see if we did ? anywhere, and if so let's fix that.
-        // if let Ok(Ok(Ok((method, values)))) = next_message {
-        //     router
-        //         .call(
-        //             &method,
-        //             values,
-        //             state.clone(),
-        //             connection.clone(),
-        //             global_vars.clone(),
-        //         )
-        //         .await;
-        // } else {
-        //     break;
-        // }
+        }
     }
+
+    // let next_message = tokio::time::timeout(timeout, next_message(&mut buffer_stream))
+    //     .await;
+    //
+    // match next_message {
+    //     //@todo this would most likely be stop_token
+    //     Err(e) => tracing::error!(
+    //         "Connection: {} error in 'next_message' (stop_token) Error: {}",
+    //         connection.id(),
+    //         e
+    //     ),
+    //     Ok(msg) => {
+    //         //@todo this would most likely be timeout function
+    //         match msg {
+    //             Err(e) => {
+    //                 tracing::error!(
+    //                     "Connection: {} error in 'next_message' (timeout fn) Error: {}",
+    //                     connection.id(),
+    //                     e
+    //                 );
+    //                 break;
+    //             }
+    //             Ok(msg) => match msg {
+    //                 Err(e) => {
+    //                     tracing::error!(
+    //                         "Connection: {} error in 'next_message' (decoding/reading) Error: {}",
+    //                         connection.id(), e
+    //                     );
+    //                     break;
+    //                 }
+    //                 Ok((method, values)) => {
+    //                     router
+    //                         .call(
+    //                             &method,
+    //                             values,
+    //                             state.clone(),
+    //                             connection.clone(),
+    //                             global_vars.clone(),
+    //                         )
+    //                         .await;
+    //                 }
+    //             },
+    //         }
+    //     }
+    // }
+
+    //@todo maybe do triple ??? instead?
+    //@todo I don't think we like the triple ??? actually because we want to break the loop and
+    //not automatically complete the function so we can do shutdown proceedures.
+    //Check to see if we did ? anywhere, and if so let's fix that.
+    // if let Ok(Ok(Ok((method, values)))) = next_message {
+    //     router
+    //         .call(
+    //             &method,
+    //             values,
+    //             state.clone(),
+    //             connection.clone(),
+    //             global_vars.clone(),
+    //         )
+    //         .await;
+    // } else {
+    //     break;
+    // }
 
     //@todo on that note, let's go through this workflow as if we are a complete hack and see if we
     //can figure out if there are any bad spots.
@@ -246,7 +294,7 @@ pub async fn handle_connection<
 
 pub async fn send_loop(
     mut rx: UnboundedReceiver<SendInformation>,
-    mut rh: WriteHalf<TcpStream>,
+    mut rh: OwnedWriteHalf,
 ) -> Result<()> {
     while let Some(msg) = rx.next().await {
         match msg {

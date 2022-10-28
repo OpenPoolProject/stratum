@@ -1,8 +1,10 @@
-use async_std::sync::Mutex;
 use bit_set::BitSet;
+use tokio::sync::Mutex;
 
 const MAX_SESSION_INDEX_SERVER: u32 = 0x00FFFFFE;
 
+//@todo I think we are better off using a normal Mutex, and then wrapping this Struct with some
+//protection such as a tokio Mutex. That way we theoretically reduce the overhead.
 pub struct IDManager {
     pub server_id: u8,
     session_id_info: Mutex<SessionIDInfo>,

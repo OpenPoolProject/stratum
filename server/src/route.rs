@@ -1,6 +1,7 @@
 use crate::{Connection, StratumRequest};
-use async_std::{future::Future, sync::Arc};
 use async_trait::async_trait;
+use futures::Future;
+use std::sync::Arc;
 use tracing::error;
 
 pub(crate) type DynEndpoint<State, CState> = dyn Endpoint<State, CState>;

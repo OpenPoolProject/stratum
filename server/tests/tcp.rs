@@ -1,6 +1,6 @@
 pub mod common;
 
-#[async_std::test]
+#[tokio::test]
 async fn test_basic_server() {
     #[cfg(not(target_env = "msvc"))]
     use jemallocator::Jemalloc;
@@ -9,8 +9,8 @@ async fn test_basic_server() {
     #[global_allocator]
     static GLOBAL: Jemalloc = Jemalloc;
 
-    use async_std::{net::TcpStream, prelude::FutureExt, sync::Arc};
-    use futures::io::AsyncWriteExt;
+    use std::sync::Arc;
+    use tokio::{io::AsyncWriteExt, net::TcpStream};
     // use jemallocator::Jemalloc;
     use std::time::Duration;
     use stratum_server::{Connection, StratumRequest, StratumServer};
@@ -77,23 +77,27 @@ async fn test_basic_server() {
 
     server.add("auth", handle_auth);
 
-    let server = async_std::task::spawn(async move {
+    let server = tokio::spawn(async move {
         server.start().await.unwrap();
-        0
     });
 
-    let client = async_std::task::spawn(async move {
-        async_std::task::sleep(Duration::from_millis(200)).await;
+    let client = tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(200)).await;
         let mut stream = TcpStream::connect(format!("0.0.0.0:{port}")).await.unwrap();
         let msg = "{\"method\":\"auth\"}";
 
         stream.write_all(msg.as_bytes()).await.unwrap();
         stream.write_all(b"\n").await.unwrap();
-
-        1
     });
 
-    let result = server.race(client).await;
+    let result = tokio::select! {
+        _ = server => {
+           0
+        }
+        _ = client => {
+            1
+        }
+    };
 
     assert_eq!(result, 1);
 }

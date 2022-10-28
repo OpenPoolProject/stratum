@@ -8,21 +8,18 @@ use crate::{
     types::{GlobalVars, ReadyIndicator},
     BanManager, ConnectionList, Result, StratumServerBuilder, VarDiffConfig,
 };
-use async_std::{
-    net::TcpListener,
-    sync::{Arc, Mutex},
-    task,
-    task::JoinHandle,
-};
 use futures::StreamExt;
+use std::sync::Arc;
+use tokio::{net::TcpListener, task::JoinHandle};
+use tokio_stream::wrappers::TcpListenerStream;
 use tracing::info;
 // use metrics_exporter_prometheus::PrometheusBuilder;
 use signal_hook::consts::signal::*;
-use signal_hook_async_std::{Handle, Signals};
+use signal_hook_tokio::{Handle, Signals};
 //@todo maybe remove this with time dependency
 use extended_primitives::Buffer;
 use std::time::Instant;
-use stop_token::{future::FutureExt, stream::StreamExt as StopStreamExt, StopSource, StopToken};
+use tokio_util::sync::CancellationToken;
 
 //@todo make this not default, but api.
 // #[cfg(feature = "default")]
@@ -56,9 +53,7 @@ where
     #[cfg(feature = "upstream")]
     pub(crate) upstream_config: UpstreamConfig,
     pub(crate) session_id_manager: Arc<IDManager>,
-    //@todo maybe wrap this in something more friendly... Can use it in connection as well.
-    pub(crate) stop_source: Arc<Mutex<Option<StopSource>>>,
-    pub(crate) stop_token: StopToken,
+    pub(crate) cancel_token: CancellationToken,
     pub(crate) global_thread_list: Vec<JoinHandle<()>>,
     //@todo I think we can actually kill this now that I remember.
     //Likely why the nimiq server will occasionally get not ready for a long time.
@@ -75,16 +70,17 @@ where
 //     // Reopen the log file
 // }
 //@todo maybe move this somewhere else outside of this file.
-async fn handle_signals(mut signals: Signals, stop_source: Arc<Mutex<Option<StopSource>>>) {
+async fn handle_signals(mut signals: Signals, cancel_token: CancellationToken) {
     while let Some(signal) = signals.next().await {
         tracing::warn!("{:?}", &signal);
         match signal {
             SIGTERM | SIGINT | SIGQUIT => {
                 // Shutdown the system;
                 //@todo print the signal here
+                //@todo use extended signal information
                 info!("Received SIGINT. Initiating shutdown...");
-                *stop_source.lock().await = None;
-                info!("Stop token has been dropped");
+                cancel_token.cancel();
+                info!("CancellationToken has been canceled");
                 return;
             }
             _ => unreachable!(),
@@ -111,8 +107,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         let signals = Signals::new([SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
         let handle = signals.handle();
 
-        let signals_task =
-            async_std::task::spawn(handle_signals(signals, self.stop_source.clone()));
+        //@note we want to clone here because cancel will cancel all child tokens. If we set this
+        //as a child token, it will have no children itself
+        let signals_task = tokio::task::spawn(handle_signals(signals, self.cancel_token.clone()));
 
         info!("Initialization Complete");
 
@@ -138,39 +135,82 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     pub fn global(&mut self, global_name: &str, ep: impl Global<State, CState>) {
         let state = self.state.clone();
         let connection_list = self.connection_list.clone();
-        let stop_token = self.stop_token.clone();
+        let cancel_token = self.get_cancel_token();
 
-        let handle = async_std::task::Builder::new()
-            .name(global_name.to_string())
-            .spawn(async move {
-                let call = ep.call(state, connection_list).timeout_at(stop_token);
-                match call.await {
-                    Ok(()) => {}
-                    Err(_e) => {
-                        //@todo - This will only be relevant for when we have results returned by
-                        //Globals because currently this block will only be called if the stop
-                        //token is revoked. Re-enable this when that is implemented.
-                        //2. We should probably have a config setting that asks if we want to nuke everything if a
-                        //   global falls. I don't know if we should automatically nuke everything, but it should
-                        //   be a setting that is available. Maybe it's available on a per-global basis, but I
-                        //   think it's something we should absolutely know about.
-                        //   @
-                        // warn!(
-                        //     "Global thread id: {} name: {} was unexpected closed by the error: {}",
-                        //     async_std::task::current().id(),
-                        //     async_std::task::current().name().unwrap_or(""),
-                        //     e
-                        // );
-                        info!(
-                            "Global thread id: {} name: {} was closed",
-                            async_std::task::current().id(),
-                            async_std::task::current().name().unwrap_or("")
-                        );
-                    }
-                };
-            })
-            //@todo switch this to expect
-            .unwrap();
+        let handle = tokio::spawn(async move {
+            tokio::select! {
+                res = ep.call(state, connection_list) => {
+                    //@todo call does not return an Error. It should!
+                    // if let Err(e) = res {
+                    //     //@todo more indepth, lots of stuff to include here.
+                    //     error!("Global thread failed.");
+                    // }
+                }
+                _ = cancel_token.cancelled() => {
+                    //@todo
+                    info!("Global thread XYZ is shutting down from shutdown message.");
+                }
+
+            }
+            // let call = ep.call(state, connection_list).timeout_at(stop_token);
+            // match call.await {
+            //     Ok(()) => {}
+            //     Err(_e) => {
+            //         //@todo we can't do any of this until Tokio stablizes these APIs
+            //         //@todo - This will only be relevant for when we have results returned by
+            //         //Globals because currently this block will only be called if the stop
+            //         //token is revoked. Re-enable this when that is implemented.
+            //         //2. We should probably have a config setting that asks if we want to nuke everything if a
+            //         //   global falls. I don't know if we should automatically nuke everything, but it should
+            //         //   be a setting that is available. Maybe it's available on a per-global basis, but I
+            //         //   think it's something we should absolutely know about.
+            //         //   @
+            //         // warn!(
+            //         //     "Global thread id: {} name: {} was unexpected closed by the error: {}",
+            //         //     async_std::task::current().id(),
+            //         //     async_std::task::current().name().unwrap_or(""),
+            //         //     e
+            //         // );
+            //         // info!(
+            //         //     "Global thread id: {} name: {} was closed",
+            //         //     async_std::task::current().id(),
+            //         //     async_std::task::current().name().unwrap_or("")
+            //         // );
+            //     }
+            // }
+        });
+
+        // let handle = async_std::task::Builder::new()
+        //     .name(global_name.to_string())
+        //     .spawn(async move {
+        //         let call = ep.call(state, connection_list).timeout_at(stop_token);
+        //         match call.await {
+        //             Ok(()) => {}
+        //             Err(_e) => {
+        //                 //@todo - This will only be relevant for when we have results returned by
+        //                 //Globals because currently this block will only be called if the stop
+        //                 //token is revoked. Re-enable this when that is implemented.
+        //                 //2. We should probably have a config setting that asks if we want to nuke everything if a
+        //                 //   global falls. I don't know if we should automatically nuke everything, but it should
+        //                 //   be a setting that is available. Maybe it's available on a per-global basis, but I
+        //                 //   think it's something we should absolutely know about.
+        //                 //   @
+        //                 // warn!(
+        //                 //     "Global thread id: {} name: {} was unexpected closed by the error: {}",
+        //                 //     async_std::task::current().id(),
+        //                 //     async_std::task::current().name().unwrap_or(""),
+        //                 //     e
+        //                 // );
+        //                 info!(
+        //                     "Global thread id: {} name: {} was closed",
+        //                     async_std::task::current().id(),
+        //                     async_std::task::current().name().unwrap_or("")
+        //                 );
+        //             }
+        //         };
+        //     })
+        //     //@todo switch this to expect
+        //     .unwrap();
 
         self.global_thread_list.push(handle);
     }
@@ -184,16 +224,17 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         let listen_url = format!("{}:{}", &self.host, self.port);
 
         let listener = TcpListener::bind(&listen_url).await?;
-        let incoming = listener.incoming();
+
+        let mut incoming = TcpListenerStream::new(listener);
 
         info!("Listening on {}", &listen_url);
 
         //@todo removing this to see if it's the cause of the memory leak. Would be ince to write
         //some tests to see if this causes any leaked threads.
         // let mut thread_list = Vec::new();
-        let mut incoming_with_stop = incoming.timeout_at(self.stop_token.clone());
+        // let mut incoming_with_stop = incoming.timeout_at(self.stop_token.clone());
 
-        while let Some(Ok(stream)) = incoming_with_stop.next().await {
+        while let Some(stream) = incoming.next().await {
             let stream = match stream {
                 Ok(stream) => stream,
                 //@todo this needs to be handled a lot better, but for now I hope this solves our
@@ -228,7 +269,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
             //@todo should we pass the stop token in this?
             // let handle = task::spawn(async move {
-            task::spawn(async move {
+            tokio::task::spawn(async move {
                 //First things first, since we get a ridiculous amount of no-data stream connections, we are
                 //going to peak 2 bytes off of this and if we get those 2 bytes we continue, otherwise we are
                 //burning it down with 0 logs baby.
@@ -348,8 +389,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self.connection_list.clone()
     }
 
-    pub fn get_stop_token(&self) -> StopToken {
-        self.stop_token.clone()
+    pub fn get_cancel_token(&self) -> CancellationToken {
+        self.cancel_token.child_token()
     }
 }
 

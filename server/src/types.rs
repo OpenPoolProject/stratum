@@ -1,8 +1,8 @@
 use crate::{Error, Result};
-use async_std::sync::{Arc, Mutex};
 use extended_primitives::Buffer;
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{fmt, sync::Arc};
+use tokio::sync::Mutex;
 
 #[derive(Debug)]
 pub struct VarDiffBuffer {
