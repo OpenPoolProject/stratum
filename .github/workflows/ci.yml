@@ -1,8 +1,7 @@
 ---
 name: ci
 
-permissions:
-  contents: read
+permissions: write-all
 
 on:
   pull_request:
