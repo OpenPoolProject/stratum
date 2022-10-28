@@ -215,12 +215,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self.global_thread_list.push(handle);
     }
 
-    pub async fn start(&mut self) -> Result<()> {
-        //Initalize the recorder
-        init_metrics_recorder();
-
-        let (signal_handle, signal_task) = self.init().await?;
-
+    async fn handle_incoming(&mut self) -> Result<()> {
         let listen_url = format!("{}:{}", &self.host, self.port);
 
         let listener = TcpListener::bind(&listen_url).await?;
@@ -228,11 +223,6 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         let mut incoming = TcpListenerStream::new(listener);
 
         info!("Listening on {}", &listen_url);
-
-        //@todo removing this to see if it's the cause of the memory leak. Would be ince to write
-        //some tests to see if this causes any leaked threads.
-        // let mut thread_list = Vec::new();
-        // let mut incoming_with_stop = incoming.timeout_at(self.stop_token.clone());
 
         while let Some(stream) = incoming.next().await {
             let stream = match stream {
@@ -268,8 +258,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             let global_vars = GlobalVars::new(self.id);
 
             //@todo should we pass the stop token in this?
-            // let handle = task::spawn(async move {
-            tokio::task::spawn(async move {
+            let handle = tokio::task::spawn(async move {
                 //First things first, since we get a ridiculous amount of no-data stream connections, we are
                 //going to peak 2 bytes off of this and if we get those 2 bytes we continue, otherwise we are
                 //burning it down with 0 logs baby.
@@ -332,6 +321,29 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             //@todo also see this: https://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/second-edition/ch20-06-graceful-shutdown-and-cleanup.html
             // thread_list.push(handle);
         }
+
+        Ok(())
+    }
+
+    pub async fn start(&mut self) -> Result<()> {
+        //Initalize the recorder
+        init_metrics_recorder();
+
+        let (signal_handle, signal_task) = self.init().await?;
+
+        let cancel_token = self.cancel_token.clone();
+
+        tokio::select! {
+            _ = self.handle_incoming() => {
+                //@todo I think we want to handle errors here.
+                //This would be the listening erroring out.
+            },
+            _ = cancel_token.cancelled() => {}
+        }
+        //@todo removing this to see if it's the cause of the memory leak. Would be ince to write
+        //some tests to see if this causes any leaked threads.
+        // let mut thread_list = Vec::new();
+        // let mut incoming_with_stop = incoming.timeout_at(self.stop_token.clone());
 
         let start = Instant::now();
 
