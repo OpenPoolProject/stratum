@@ -132,14 +132,14 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         router.add(method, ep);
     }
 
-    pub fn global(&mut self, global_name: &str, ep: impl Global<State, CState>) {
+    pub fn global(&mut self, _global_name: &str, ep: impl Global<State, CState>) {
         let state = self.state.clone();
         let connection_list = self.connection_list.clone();
         let cancel_token = self.get_cancel_token();
 
         let handle = tokio::spawn(async move {
             tokio::select! {
-                res = ep.call(state, connection_list) => {
+                _res = ep.call(state, connection_list) => {
                     //@todo call does not return an Error. It should!
                     // if let Err(e) = res {
                     //     //@todo more indepth, lots of stuff to include here.
@@ -258,7 +258,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             let global_vars = GlobalVars::new(self.id);
 
             //@todo should we pass the stop token in this?
-            let handle = tokio::task::spawn(async move {
+            // let handle = tokio::task::spawn(async move {
+            tokio::task::spawn(async move {
                 //First things first, since we get a ridiculous amount of no-data stream connections, we are
                 //going to peak 2 bytes off of this and if we get those 2 bytes we continue, otherwise we are
                 //burning it down with 0 logs baby.
@@ -371,7 +372,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         //@TODO make this parrallel.
         info!("Awaiting for all current globals to complete");
         for thread in global_thread_list {
-            thread.await;
+            //@todo handle this better just report the error I think.
+            thread.await.unwrap();
         }
 
         //@TODO make this parrallel.
@@ -384,7 +386,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         info!("Awaiting for all signal handler to complete");
         signal_handle.close();
         info!("Awaiting for all signal task to complete");
-        signal_task.await;
+        //@todo handle this better, report the error.
+        signal_task.await.unwrap();
 
         //@todo lets get some better parsing here. Seconds and NS would be great
         info!("Shutdown complete in {} ns", start.elapsed().as_nanos());
