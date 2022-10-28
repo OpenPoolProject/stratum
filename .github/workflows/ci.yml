@@ -222,7 +222,7 @@ jobs:
         uses: Kobzol/cargo-bloat-action@85b93f37dec06662054e045b5cf1d79cfdb0d748
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          bloat_args: --release --example basic
+          bloat_args: -p stratum-server --release --example basic
 
   ci-success:
     name: ci
