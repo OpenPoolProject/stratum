@@ -3,8 +3,7 @@ use crate::{
     types::{GlobalVars, MessageValue},
     Connection, StratumRequest,
 };
-use async_std::sync::Arc;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use tracing::warn;
 
 pub struct Router<State, CState> {

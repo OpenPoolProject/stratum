@@ -7,14 +7,17 @@ use crate::{
     types::{GlobalVars, MessageValue},
     Error, Result,
 };
-use async_std::{net::TcpStream, sync::Arc};
 use futures::{
     channel::mpsc::{UnboundedReceiver, UnboundedSender},
-    io::{AsyncReadExt, BufReader, WriteHalf},
-    AsyncWriteExt, SinkExt, StreamExt,
+    SinkExt, StreamExt,
 };
+
 use serde_json::{Map, Value};
-use stop_token::future::FutureExt as stopFutureExt;
+use std::sync::Arc;
+use tokio::{
+    io::{AsyncWriteExt, BufReader},
+    net::{tcp::OwnedWriteHalf, TcpStream},
+};
 use tracing::{trace, warn};
 
 pub async fn upstream_message_handler<
@@ -32,10 +35,10 @@ pub async fn upstream_message_handler<
     if config.enabled {
         let upstream = TcpStream::connect(config.url).await?;
 
-        let (urh, uwh) = upstream.split();
+        let (urh, uwh) = upstream.into_split();
         let mut upstream_buffer_stream = BufReader::new(urh);
 
-        async_std::task::spawn(async move {
+        tokio::spawn(async move {
             match upstream_send_loop(urx, uwh).await {
                 //@todo not sure if we even want a info here, we need an ID tho.
                 Ok(_) => trace!("Upstream Send Loop is closing for connection"),
@@ -46,22 +49,28 @@ pub async fn upstream_message_handler<
             }
         });
 
-        async_std::task::spawn({
+        tokio::spawn({
             let state = state.clone();
             let connection = connection.clone();
-            let stop_token = connection.get_stop_token();
+            let stop_token = connection.get_cancel_token();
 
             async move {
                 loop {
                     // @todo actually think about a real timeout here as well.
-                    let next_message =
-                        next_message(&mut upstream_buffer_stream).timeout_at(stop_token.clone());
+                    let (method, values) = tokio::select! {
+                        msg = next_message(&mut upstream_buffer_stream) => {
+                        match msg {
+                                Ok(mv) => mv,
+                                Err(_) => {
+                                    break;
+                                }
+                            }
 
-                    let (method, values) = match next_message.await? {
-                        Ok(mv) => mv,
-                        Err(_) => {
+                        }
+                        _ = stop_token.cancelled() => {
                             break;
                         }
+
                     };
 
                     if method == "result" {
@@ -90,7 +99,7 @@ pub async fn upstream_message_handler<
 
 pub async fn upstream_send_loop(
     mut rx: UnboundedReceiver<String>,
-    mut rh: WriteHalf<TcpStream>,
+    mut rh: OwnedWriteHalf,
 ) -> Result<()> {
     while let Some(msg) = rx.next().await {
         rh.write_all(msg.as_bytes()).await?;

@@ -1,10 +1,10 @@
-use async_std::sync::{Arc, Mutex};
+use crate::{connection::MinerOptions, types::VarDiffBuffer};
 use chrono::{NaiveDateTime, Utc};
 use extended_primitives::Buffer;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::warn;
 use uuid::Uuid;
-
-use crate::{connection::MinerOptions, types::VarDiffBuffer};
 
 //A miner is essentially an individual worker unit. There can be multiple Miners on a single
 //connection which is why we needed to break it into these primitives.

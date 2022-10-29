@@ -1,7 +1,9 @@
 use crate::Miner;
-use async_std::sync::{Arc, RwLock};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::RwLock;
 
+//@todo investigate better types at this -> I belive there is an async replacement for
+//RwLockHashmap.
 #[derive(Debug, Clone)]
 pub struct MinerList {
     pub miners: Arc<RwLock<HashMap<u32, Miner>>>,

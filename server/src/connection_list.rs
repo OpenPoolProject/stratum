@@ -1,8 +1,8 @@
 pub use crate::connection::Connection;
 use crate::Result;
-use async_std::sync::{Arc, RwLock};
 use extended_primitives::Buffer;
-use std::{collections::HashMap, net::SocketAddr, time::Duration};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
+use tokio::sync::RwLock;
 use tracing::{info, warn};
 
 //@todo would love to get a data structure maybe stratumstats that is just recording all of the
@@ -11,6 +11,7 @@ use tracing::{info, warn};
 //Maybe total hashrate that we are processing at the moment.
 
 //@todo would be nice to track the number of agent connections on here.
+//@todo use improved RwLock<HashMap> libraries.
 #[derive(Default)]
 pub struct ConnectionList<CState: Clone + Sync + Send + 'static> {
     //@todo there are faster data structures than hashmap. Investigate using some of those.
@@ -86,7 +87,7 @@ impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
             }
             //@todo log
             //All miners have received the shutdown message, now we wait and then we remove.
-            async_std::task::sleep(Duration::from_secs(delay_seconds)).await;
+            tokio::time::sleep(Duration::from_secs(delay_seconds)).await;
         }
 
         info!(

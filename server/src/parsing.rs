@@ -4,8 +4,8 @@ use crate::{
     Error, Result, EX_MAGIC_NUMBER,
 };
 use extended_primitives::Buffer;
-use futures::io::{AsyncBufReadExt, AsyncReadExt};
 use serde_json::{Map, Value};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt};
 use tracing::trace;
 
 //@todo feature gate the EXMESSAGE and MAGIC stuff.

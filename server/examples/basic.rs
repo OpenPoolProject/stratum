@@ -1,5 +1,4 @@
-use async_std::{sync::Arc, task};
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 use stratum_server::{Connection, ConnectionList, StratumRequest, StratumServer};
 use tracing::subscriber::set_global_default;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Registry};
@@ -36,31 +35,30 @@ pub async fn handle_auth(
 pub async fn poll_global(_state: State, _connection_list: Arc<ConnectionList<ConnectionState>>) {
     loop {
         //Infite loop
-        async_std::task::sleep(Duration::from_secs(10)).await;
+        tokio::time::sleep(Duration::from_secs(10)).await;
     }
 }
 
-fn main() {
-    task::block_on(async {
-        let fmt_layer = fmt::layer();
-        let filter_layer = EnvFilter::try_from_default_env()
-            .or_else(|_| EnvFilter::try_new("info"))
-            .unwrap();
+#[tokio::main]
+async fn main() {
+    let fmt_layer = fmt::layer();
+    let filter_layer = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("info"))
+        .unwrap();
 
-        let subscriber = Registry::default().with(filter_layer).with(fmt_layer);
+    let subscriber = Registry::default().with(filter_layer).with(fmt_layer);
 
-        set_global_default(subscriber).expect("Failed to set subscriber");
-        let auth = AuthProvider {};
-        let state = State { auth };
-        // let port = find_port().await;
-        let mut server = StratumServer::builder(state, 1)
-            .with_host("0.0.0.0")
-            .with_port(0)
-            .build();
+    set_global_default(subscriber).expect("Failed to set subscriber");
+    let auth = AuthProvider {};
+    let state = State { auth };
+    // let port = find_port().await;
+    let mut server = StratumServer::builder(state, 1)
+        .with_host("0.0.0.0")
+        .with_port(0)
+        .build();
 
-        server.add("auth", handle_auth);
-        server.global("Poll Global", poll_global);
+    server.add("auth", handle_auth);
+    server.global("Poll Global", poll_global);
 
-        server.start().await.unwrap();
-    });
+    server.start().await.unwrap();
 }

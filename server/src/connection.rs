@@ -5,12 +5,15 @@ use {
 };
 
 use crate::{config::VarDiffConfig, format_difficulty, Miner, MinerList, Result};
-use async_std::sync::{Arc, Mutex, RwLock};
 use extended_primitives::Buffer;
 use futures::{channel::mpsc::UnboundedSender, SinkExt};
 use serde::Serialize;
-use std::time::{Duration, SystemTime};
-use stop_token::{StopSource, StopToken};
+use std::{
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
+use tokio::sync::{Mutex, RwLock};
+use tokio_util::sync::CancellationToken;
 use tracing::{debug, trace};
 use uuid::Uuid;
 
@@ -95,8 +98,7 @@ pub struct Connection<State> {
 
     pub needs_ban: Arc<Mutex<bool>>,
     pub state: Arc<Mutex<State>>,
-    pub stop_source: Arc<Mutex<Option<StopSource>>>,
-    pub stop_token: StopToken,
+    pub cancel_token: CancellationToken,
 
     //@todo probably redo this quite a bit but for now it works.
     //@todo if we make Miner send/safe etc then we can rmeove all of the Arc shit.
@@ -147,8 +149,9 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
             // share_time_max: 7.8,
         };
 
-        let stop_source = StopSource::new();
-        let stop_token = stop_source.token();
+        //@todo I question why we don't have this passed from the server, but let's just make sure
+        //we at least review that.
+        let cancel_token = CancellationToken::new();
 
         Connection {
             id,
@@ -170,8 +173,7 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
             options: Arc::new(options),
             needs_ban: Arc::new(Mutex::new(false)),
             state: Arc::new(Mutex::new(state)),
-            stop_source: Arc::new(Mutex::new(Some(stop_source))),
-            stop_token,
+            cancel_token,
             miner_list: MinerList::new(),
             connection_miner: Arc::new(Mutex::new(None)),
         }
@@ -277,7 +279,7 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
     pub async fn shutdown(&self) {
         self.info.write().await.state = ConnectionState::Disconnect;
 
-        *self.stop_source.lock().await = None;
+        self.cancel_token.cancel();
     }
 
     pub async fn disconnect(&self) {
@@ -494,7 +496,7 @@ impl<State: Clone + Send + Sync + 'static> Connection<State> {
     }
 
     //Consider making this pub(crate)? Although, I think it could be useful for other things.
-    pub fn get_stop_token(&self) -> StopToken {
-        self.stop_token.clone()
+    pub fn get_cancel_token(&self) -> CancellationToken {
+        self.cancel_token.clone()
     }
 }

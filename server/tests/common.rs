@@ -1,4 +1,6 @@
-use async_std::{net::TcpStream, sync::Arc, task::JoinHandle};
+use std::sync::Arc;
+use tokio::{net::TcpStream, task::JoinHandle};
+
 use portpicker::pick_unused_port;
 use signal_hook::{
     consts::{SIGINT, SIGTERM},
@@ -74,7 +76,7 @@ pub async fn handle_auth(
 pub async fn poll_global(_state: State, _connection_list: Arc<ConnectionList<ConnectionState>>) {
     loop {
         //Infite loop
-        async_std::task::sleep(Duration::from_secs(10)).await;
+        tokio::time::sleep(Duration::from_secs(10)).await;
     }
 }
 
@@ -112,15 +114,15 @@ pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<J
     let mut connections = Vec::new();
 
     for i in 0..num {
-        let client = async_std::task::spawn({
+        let client = tokio::task::spawn({
             let url = url.to_string();
             async move {
                 //Setup Costs
-                async_std::task::sleep(Duration::from_millis(200)).await;
+                tokio::time::sleep(Duration::from_millis(200)).await;
 
                 let _stream = TcpStream::connect(&url).await.unwrap();
 
-                async_std::task::sleep(Duration::from_secs(sleep_duration)).await;
+                tokio::time::sleep(Duration::from_secs(sleep_duration)).await;
 
                 i
             }

@@ -1,13 +1,15 @@
 pub use crate::connection::Connection;
-use async_std::sync::RwLock;
 use chrono::{Duration, NaiveDateTime, Utc};
 use std::{collections::HashMap, net::SocketAddr};
+//@todo I want to note that Tokio warns against just misc using their RwLock
+use tokio::sync::RwLock;
 
 #[derive(Default)]
 pub struct BanManager {
     pub ips: RwLock<HashMap<SocketAddr, NaiveDateTime>>,
 }
 
+//@todo Spawn this from BanManager::init().
 //@todo there is a memory leak here. We need to tell the server to run a function every 10 minutes
 //(whatever interval doesn't matter). To remove old IPs from this list. If a peer gets banned and
 //never connects again, then we will keep that IP in the background. Let's make a function called

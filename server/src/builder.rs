@@ -5,10 +5,9 @@ use crate::{
     config::VarDiffConfig, id_manager::IDManager, router::Router, types::ReadyIndicator,
     BanManager, ConnectionList, StratumServer,
 };
-use async_std::sync::{Arc, Mutex};
 use extended_primitives::Buffer;
-use std::marker::PhantomData;
-use stop_token::StopSource;
+use std::{marker::PhantomData, sync::Arc};
+use tokio_util::sync::CancellationToken;
 
 #[derive(Default)]
 pub struct StratumServerBuilder<State, CState> {
@@ -161,8 +160,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             None => self.port,
         };
 
-        let stop_source = StopSource::new();
-        let stop_token = stop_source.token();
+        let cancel_token = CancellationToken::new();
 
         StratumServer {
             id: self.server_id,
@@ -181,8 +179,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             upstream_config: self.upstream_config,
             var_diff_config: self.var_diff_config,
             session_id_manager: Arc::new(IDManager::new(self.server_id)),
-            stop_source: Arc::new(Mutex::new(Some(stop_source))),
-            stop_token,
+            cancel_token,
             global_thread_list: Vec::new(),
             ready_indicator: self.ready_indicator,
             shutdown_message: self.shutdown_message,

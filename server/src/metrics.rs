@@ -1,6 +1,6 @@
 use crate::MinerList;
-use async_std::sync::Arc;
 use prometheus::{register_gauge, Gauge};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Metrics<CState: Clone + Sync + Send + 'static> {

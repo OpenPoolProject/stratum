@@ -20,6 +20,7 @@ pub enum Error {
     MesssageSend(#[from] SendError),
     #[error("Address Parse Error: {0}")]
     AddrParseError(#[from] std::net::AddrParseError),
-    #[error("Timeout Error: {0}")]
-    TimedOut(#[from] stop_token::TimedOutError),
+    //@todo shutdown error.
+    // #[error("Timeout Error: {0}")]
+    // TimedOut(#[from] CancellationToken),
 }
