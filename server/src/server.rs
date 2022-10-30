@@ -9,15 +9,15 @@ use crate::{
     BanManager, ConnectionList, Result, StratumServerBuilder, VarDiffConfig,
 };
 use futures::StreamExt;
-use std::sync::Arc;
-use tokio::{net::TcpListener, task::JoinHandle};
+use std::{net::SocketAddr, sync::Arc};
+use tokio::task::JoinHandle;
 use tokio_stream::wrappers::TcpListenerStream;
 use tracing::info;
 // use metrics_exporter_prometheus::PrometheusBuilder;
+use crate::{id_manager::IDManager, tcp::handle_connection};
+use extended_primitives::Buffer;
 use signal_hook::consts::signal::*;
 use signal_hook_tokio::{Handle, Signals};
-//@todo maybe remove this with time dependency
-use extended_primitives::Buffer;
 use std::time::Instant;
 use tokio_util::sync::CancellationToken;
 
@@ -27,10 +27,6 @@ use tokio_util::sync::CancellationToken;
 
 // use crate::metrics::Metrics;
 
-use crate::id_manager::IDManager;
-
-use crate::tcp::handle_connection;
-
 // #[derive(Clone)]
 pub struct StratumServer<State, CState>
 where
@@ -38,8 +34,8 @@ where
     CState: Default + Clone + Send + Sync + 'static,
 {
     pub(crate) id: u8,
-    pub(crate) host: String,
-    pub(crate) port: u16,
+    pub(crate) listen_address: SocketAddr,
+    pub(crate) listener: TcpListenerStream,
     pub(crate) expected_port: u16,
     pub(crate) proxy: bool,
     pub(crate) initial_difficulty: u64,
@@ -63,6 +59,9 @@ where
     pub(crate) ready_indicator: ReadyIndicator,
     pub(crate) shutdown_message: Option<Buffer>,
 }
+
+//@todo we should check ulimits and report them just so that we know that we can handle the
+//max_connections that is set for the server. Use the new library we just imported.
 
 //@todo consider this signal for reloading upstream config?
 // SIGHUP => {
@@ -216,15 +215,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     async fn handle_incoming(&mut self) -> Result<()> {
-        let listen_url = format!("{}:{}", &self.host, self.port);
+        info!("Listening on {}", &self.listen_address);
 
-        let listener = TcpListener::bind(&listen_url).await?;
+        // let mut incoming = TcpListenerStream::new(self.listener);
 
-        let mut incoming = TcpListenerStream::new(listener);
-
-        info!("Listening on {}", &listen_url);
-
-        while let Some(stream) = incoming.next().await {
+        while let Some(stream) = self.listener.next().await {
             let stream = match stream {
                 Ok(stream) => stream,
                 //@todo this needs to be handled a lot better, but for now I hope this solves our
@@ -335,6 +330,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         let cancel_token = self.cancel_token.clone();
 
         tokio::select! {
+            //@todo we have to check if this cancel safe.
             _ = self.handle_incoming() => {
                 //@todo I think we want to handle errors here.
                 //This would be the listening erroring out.
@@ -407,6 +403,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     pub fn get_cancel_token(&self) -> CancellationToken {
         self.cancel_token.child_token()
     }
+
+    pub fn get_address(&self) -> SocketAddr {
+        self.listen_address
+    }
 }
 
 //Initalizes the prometheus metrics recorder.
@@ -417,10 +417,10 @@ pub fn init_metrics_recorder() {
     // metrics::set_boxed_recorder(Box::new(recorder));
 }
 
-impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static> Drop
-    for StratumServer<State, CState>
-{
-    fn drop(&mut self) {
-        info!("Dropping StratumSever with data `{}`!", self.host);
-    }
-}
+// impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static> Drop
+//     for StratumServer<State, CState>
+// {
+//     fn drop(&mut self) {
+//         info!("Dropping StratumSever with data `{}`!", self.host);
+//     }
+// }

@@ -5,8 +5,39 @@ use crate::{
 };
 use extended_primitives::Buffer;
 use serde_json::{Map, Value};
-use tokio::io::{AsyncBufReadExt, AsyncReadExt};
+use std::net::SocketAddr;
+use tokio::{
+    io::{AsyncBufReadExt, AsyncReadExt, BufReader},
+    net::tcp::OwnedReadHalf,
+};
 use tracing::trace;
+
+pub async fn proxy_protocol(
+    //@todo try using non-owned Read Half we fucked it up w/ generics so might work now.
+    buffer_stream: &mut BufReader<OwnedReadHalf>,
+    expected_port: u16,
+) -> Result<SocketAddr> {
+    let mut buf = String::new();
+
+    buffer_stream.read_line(&mut buf).await.unwrap();
+
+    //Buf will be of the format "PROXY TCP4 92.118.161.17 172.20.42.228 55867 8080\r\n"
+    //Trim the \r\n off
+    let buf = buf.trim();
+    //Might want to not be ascii whitespace and just normal here.
+    // let pieces = buf.split_ascii_whitespace();
+
+    let pieces: Vec<&str> = buf.split(' ').collect();
+
+    let attempted_port: u16 = pieces[5].parse().unwrap();
+
+    //Check that they were trying to connect to us.
+    if attempted_port != expected_port {
+        return Err(Error::StreamWrongPort);
+    }
+
+    Ok(format!("{}:{}", pieces[2], pieces[4]).parse()?)
+}
 
 //@todo feature gate the EXMESSAGE and MAGIC stuff.
 pub async fn next_message<T>(stream: &mut T) -> Result<(String, MessageValue)>

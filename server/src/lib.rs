@@ -34,7 +34,6 @@ pub use crate::{
     global::Global,
     miner::Miner,
     miner_list::MinerList,
-    parsing::next_message,
     request::StratumRequest,
     server::StratumServer,
     types::{ExMessageGeneric, MessageTypes, MessageValue, ReadyIndicator, EX_MAGIC_NUMBER, ID},

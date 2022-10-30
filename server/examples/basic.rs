@@ -55,7 +55,9 @@ async fn main() {
     let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
         .with_port(0)
-        .build();
+        .build()
+        .await
+        .expect("Could not start server");
 
     server.add("auth", handle_auth);
     server.global("Poll Global", poll_global);

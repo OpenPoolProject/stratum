@@ -5,6 +5,8 @@ use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
+//@todo performance test using a Sephamore for this similar to how Tokio does it in mini-redis
+
 //@todo would love to get a data structure maybe stratumstats that is just recording all of the
 //data and giving us some fucking baller output. Like shares/sec unit.
 //

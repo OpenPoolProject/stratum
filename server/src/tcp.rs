@@ -1,15 +1,14 @@
 #[cfg(feature = "upstream")]
 use {crate::config::UpstreamConfig, crate::upstream::upstream_message_handler};
 
-pub use crate::ConnectionList;
 use crate::{
     config::VarDiffConfig,
     connection::{Connection, SendInformation},
     id_manager::IDManager,
-    next_message,
+    parsing::{next_message, proxy_protocol},
     router::Router,
     types::GlobalVars,
-    BanManager, Error, Result,
+    BanManager, ConnectionList, Result,
 };
 use futures::{
     channel::mpsc::{unbounded, UnboundedReceiver},
@@ -17,47 +16,19 @@ use futures::{
 };
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-    net::{
-        tcp::{OwnedReadHalf, OwnedWriteHalf},
-        TcpStream,
-    },
+    io::{AsyncWriteExt, BufReader},
+    net::{tcp::OwnedWriteHalf, TcpStream},
 };
 use tracing::{error, trace, warn};
 
-//@todo move this to parsing.
-pub async fn proxy_protocol(
-    //@todo try using non-owned Read Half we fucked it up w/ generics so might work now.
-    buffer_stream: &mut BufReader<OwnedReadHalf>,
-    expected_port: u16,
-) -> Result<SocketAddr> {
-    let mut buf = String::new();
-
-    buffer_stream.read_line(&mut buf).await.unwrap();
-
-    //Buf will be of the format "PROXY TCP4 92.118.161.17 172.20.42.228 55867 8080\r\n"
-    //Trim the \r\n off
-    let buf = buf.trim();
-    //Might want to not be ascii whitespace and just normal here.
-    // let pieces = buf.split_ascii_whitespace();
-
-    let pieces: Vec<&str> = buf.split(' ').collect();
-
-    let attempted_port: u16 = pieces[5].parse().unwrap();
-
-    //Check that they were trying to connect to us.
-    if attempted_port != expected_port {
-        return Err(Error::StreamWrongPort);
-    }
-
-    Ok(format!("{}:{}", pieces[2], pieces[4]).parse()?)
-}
+//@todo I big think that I think we need to focus on today is catching attacks like open sockets
+//doing nothing, socketrs trying to flood, etc.
+//Let's make sure we have an entire folder of tests for "attacks" and make sure that we cover them
+//thoroughly.
 
 //@todo might make sene to wrap a lot of these into one param called "ConnectionConfig" and then
 //just pass that along, but we'll see.
 //@todo review
-#[allow(clippy::too_many_arguments)]
-#[allow(clippy::too_many_lines)]
 pub async fn handle_connection<
     State: Clone + Send + Sync + 'static,
     CState: Clone + Send + Sync + 'static,
@@ -96,7 +67,10 @@ pub async fn handle_connection<
         return Ok(());
     }
 
+    //@todo wrap all upstream shit in init_upstream();
+
     let (tx, rx) = unbounded();
+    // @todo we should have a function that returns this.
     #[cfg(feature = "upstream")]
     let (utx, urx) = unbounded();
     #[cfg(feature = "upstream")]

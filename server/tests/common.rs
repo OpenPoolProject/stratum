@@ -1,15 +1,20 @@
-use std::sync::Arc;
-use tokio::{net::TcpStream, task::JoinHandle};
-
-use portpicker::pick_unused_port;
 use signal_hook::{
     consts::{SIGINT, SIGTERM},
     low_level::raise,
 };
-use std::{sync::Once, time::Duration};
-use stratum_server::{Connection, ConnectionList, StratumRequest, StratumServer};
+use std::{
+    net::SocketAddr,
+    sync::{Arc, Once},
+    time::Duration,
+};
+use stratum_server::{Connection, ConnectionList, Result, StratumRequest, StratumServer};
+use tokio::{net::TcpStream, task::JoinHandle, time::sleep};
 use tracing::subscriber::set_global_default;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Registry};
+
+pub const STARTUP_TIME: Duration = Duration::from_secs(2);
+//@todo reduce this.
+pub const CONNECTION_DELAY: Duration = Duration::from_secs(1);
 
 pub fn init_telemetry() {
     let fmt_layer = fmt::layer();
@@ -20,10 +25,6 @@ pub fn init_telemetry() {
     let subscriber = Registry::default().with(filter_layer).with(fmt_layer);
 
     set_global_default(subscriber).expect("Failed to set subscriber");
-}
-
-pub async fn find_port() -> u16 {
-    pick_unused_port().expect("No ports free")
 }
 
 static LOGGER: Once = Once::new();
@@ -65,7 +66,7 @@ pub struct ConnectionState {}
 pub async fn handle_auth(
     req: StratumRequest<State>,
     _connection: Arc<Connection<ConnectionState>>,
-) -> Result<bool, std::io::Error> {
+) -> Result<bool> {
     let state = req.state();
 
     let login = state.auth.login().await;
@@ -80,47 +81,72 @@ pub async fn poll_global(_state: State, _connection_list: Arc<ConnectionList<Con
     }
 }
 
-pub async fn server_with_auth(port: u16) -> StratumServer<State, ConnectionState> {
+// pub async fn server_with_auth(port: u16) -> StratumServer<State, ConnectionState> {
+//     let auth = AuthProvider {};
+//     let state = State { auth };
+//     let mut server = StratumServer::builder(state, 1)
+//         .with_host("0.0.0.0")
+//         .with_port(port)
+//         .build()
+//         .await?;
+//
+//     server.add("auth", handle_auth);
+//
+//     server
+// }
+
+// pub async fn server_with_global(port: u16) -> StratumServer<State, ConnectionState> {
+//     let auth = AuthProvider {};
+//     let state = State { auth };
+//     // let port = find_port().await;
+//     let mut server = StratumServer::builder(state, 1)
+//         .with_host("0.0.0.0")
+//         .with_port(port)
+//         .build();
+//
+//     server.add("auth", handle_auth);
+//     server.global("Poll Global", poll_global);
+//
+//     server
+// }
+
+//@todo this JoinHandle should return a Result, and we should check to make sure its a shutdonw
+//error in the signal tests.
+pub async fn spawn_full_server() -> Result<(SocketAddr, JoinHandle<Result<()>>)> {
     let auth = AuthProvider {};
     let state = State { auth };
     // let port = find_port().await;
     let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
-        .with_port(port)
-        .build();
+        .with_port(0)
+        .build()
+        .await?;
 
-    server.add("auth", handle_auth);
-
-    server
-}
-
-pub async fn server_with_global(port: u16) -> StratumServer<State, ConnectionState> {
-    let auth = AuthProvider {};
-    let state = State { auth };
-    // let port = find_port().await;
-    let mut server = StratumServer::builder(state, 1)
-        .with_host("0.0.0.0")
-        .with_port(port)
-        .build();
+    let address = server.get_address();
 
     server.add("auth", handle_auth);
     server.global("Poll Global", poll_global);
 
-    server
+    let handle = tokio::spawn(async move { server.start().await });
+
+    sleep(STARTUP_TIME).await;
+
+    Ok((address, handle))
 }
 
 //@note these connections do not send any messages.
-pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<JoinHandle<usize>> {
+pub async fn generate_connections<A: Into<SocketAddr>>(
+    num: usize,
+    url: A,
+    sleep_duration: u64,
+) -> Vec<JoinHandle<usize>> {
+    let addrs = url.into();
     let mut connections = Vec::new();
 
     for i in 0..num {
         let client = tokio::task::spawn({
-            let url = url.to_string();
             async move {
-                //Setup Costs
-                tokio::time::sleep(Duration::from_millis(200)).await;
-
-                let _stream = TcpStream::connect(&url).await.unwrap();
+                let _stream = TcpStream::connect(addrs).await.unwrap();
 
                 tokio::time::sleep(Duration::from_secs(sleep_duration)).await;
 
@@ -130,6 +156,8 @@ pub fn generate_connections(num: usize, url: &str, sleep_duration: u64) -> Vec<J
 
         connections.push(client);
     }
+
+    sleep(CONNECTION_DELAY).await;
 
     connections
 }

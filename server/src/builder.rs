@@ -3,10 +3,12 @@ use crate::config::UpstreamConfig;
 
 use crate::{
     config::VarDiffConfig, id_manager::IDManager, router::Router, types::ReadyIndicator,
-    BanManager, ConnectionList, StratumServer,
+    BanManager, ConnectionList, Result, StratumServer,
 };
 use extended_primitives::Buffer;
 use std::{marker::PhantomData, sync::Arc};
+use tokio::net::TcpListener;
+use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Default)]
@@ -152,9 +154,14 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self
     }
 
-    pub fn build(self) -> StratumServer<State, CState> {
+    pub async fn build(self) -> Result<StratumServer<State, CState>> {
+        let listener = TcpListener::bind(format!("{}:{}", self.host, self.port)).await?;
+        //This will fail if unable to find a local port.
+        let listen_address = listener.local_addr()?;
         let connection_list = Arc::new(ConnectionList::new(self.max_connections));
+        let listener = TcpListenerStream::new(listener);
 
+        //@todo we should probably just allow this to be Option::None>
         let expected_port = match self.exported_port {
             Some(exported_port) => exported_port,
             None => self.port,
@@ -162,10 +169,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         let cancel_token = CancellationToken::new();
 
-        StratumServer {
+        Ok(StratumServer {
             id: self.server_id,
-            host: self.host,
-            port: self.port,
+            listener,
+            listen_address,
             expected_port,
             proxy: self.proxy,
             initial_difficulty: self.initial_difficulty,
@@ -183,6 +190,6 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             global_thread_list: Vec::new(),
             ready_indicator: self.ready_indicator,
             shutdown_message: self.shutdown_message,
-        }
+        })
     }
 }
