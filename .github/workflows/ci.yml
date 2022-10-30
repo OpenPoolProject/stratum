@@ -222,6 +222,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           bloat_args: -p stratum-server --release --example basic
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: EmbarkStudios/cargo-deny-action@v1
 
   ci-success:
     name: ci
@@ -234,6 +239,7 @@ jobs:
       - publish-dry-run
       - coverage
       - bloat
+      - cargo-deny
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
