@@ -1,16 +1,10 @@
-//@todo let's check to see if we can remove this.
-#![recursion_limit = "512"]
-
 #[warn(clippy::pedantic)]
-mod tcp;
-
 #[cfg(feature = "upstream")]
 mod upstream;
 
 #[cfg(feature = "upstream")]
 use crate::config::UpstreamConfig;
 
-// mod api;
 mod ban_manager;
 mod builder;
 mod config;
@@ -26,6 +20,7 @@ mod request;
 mod route;
 mod router;
 mod server;
+mod tcp;
 mod types;
 mod utils;
 
