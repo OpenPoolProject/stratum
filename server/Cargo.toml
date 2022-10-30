@@ -50,12 +50,15 @@ signal-hook-tokio = {version = "0.3.1", features = ["futures-v0_3"]}
 
 [dev-dependencies]
 tokio-test = "0.4.2"
+# @todo remove
 portpicker = "0.1.1"
+criterion = {version = "0.4", features = ["async_tokio"]}
 
 # Allocator @todo switch this to mimalloc
 jemallocator = "0.5.0"
 
 tracing-subscriber = {version = "0.3", features = ["env-filter"] }
+rlimit = "0.8.3"
 
 
 [package.metadata.release]
@@ -64,3 +67,7 @@ sign-commit = false
 pre-release-commit-message = "chore(server): release {{ version }}"
 
 # @todo bring back benchmarks here.
+[[bench]]
+name = "default"
+harness = false
+# required-features = ["benches"]
