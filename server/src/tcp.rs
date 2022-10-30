@@ -21,6 +21,41 @@ use tokio::{
 };
 use tracing::{error, trace, warn};
 
+//@note / @todo I think this is the play in that for each "protocol" we implement a Handler (does
+//message parsing and State management) and a "Connection" (different than our courrent one) which
+//wraps whatever medium we use to connect e.g. v1 - base tcp, v2 - noise, autonomy - brontide, e.g.
+//Then we can later make it generic so that we can re-implement these things for stuff like Nimiq
+//and websockets/etc.
+pub(crate) struct Handler<State, CState>
+where
+    CState: Send + Sync + Clone + 'static,
+{
+    pub(crate) id_manager: Arc<IDManager>,
+    pub(crate) ban_manager: Arc<BanManager>,
+    pub(crate) connection_list: Arc<ConnectionList<CState>>,
+    pub(crate) router: Arc<Router<State, CState>>,
+    pub(crate) state: State,
+    //@todo might make sense to rewrap this in a new struct (not Connection) Or rename Connection
+    //to Stratum Connection.
+    pub(crate) stream: TcpStream,
+    //@todo might want to have this link to "ConfigManager" so that A. we can get updates on config
+    //reloads, and B. makes it easier to transfer some of these threads.
+    pub(crate) var_diff_config: VarDiffConfig,
+    pub(crate) initial_difficulty: u64,
+    pub(crate) connection_state: CState,
+    pub(crate) proxy: bool,
+    pub(crate) expected_port: u16,
+    pub(crate) global_vars: GlobalVars,
+}
+
+impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static>
+    Handler<State, CState>
+{
+    pub(crate) async fn run(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
 //@todo I big think that I think we need to focus on today is catching attacks like open sockets
 //doing nothing, socketrs trying to flood, etc.
 //Let's make sure we have an entire folder of tests for "attacks" and make sure that we cover them

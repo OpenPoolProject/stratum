@@ -9,7 +9,10 @@ use crate::{
     BanManager, ConnectionList, Result, StratumServerBuilder, VarDiffConfig,
 };
 use futures::StreamExt;
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    net::{SocketAddr, TcpListener},
+    sync::Arc,
+};
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::TcpListenerStream;
 use tracing::info;
@@ -98,10 +101,12 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     async fn init(&self) -> Result<(Handle, JoinHandle<()>)> {
         info!("Initializing...");
 
-        // if cfg!(feature = "default") {
-        //     init_api_server(self.stop_token.clone(), self.ready_indicator.clone()).await?;
-        //     info!("API Server Initialized");
-        // }
+        if cfg!(feature = "api") {
+            let state = crate::api::ApiContext {};
+            let listener = TcpListener::bind("0.0.0.0:8080")?;
+            crate::api::init_api_server(state, listener).await?;
+            info!("API Server Initialized");
+        }
 
         let signals = Signals::new([SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
         let handle = signals.handle();

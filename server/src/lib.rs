@@ -5,6 +5,9 @@ mod upstream;
 #[cfg(feature = "upstream")]
 use crate::config::UpstreamConfig;
 
+#[cfg(feature = "api")]
+mod api;
+
 mod ban_manager;
 mod builder;
 mod config;

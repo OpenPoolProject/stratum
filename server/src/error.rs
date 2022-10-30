@@ -1,5 +1,6 @@
 use futures::channel::mpsc::SendError;
 
+//@todo transparent all of these
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Stratum User not authorized")]
@@ -20,6 +21,10 @@ pub enum Error {
     MesssageSend(#[from] SendError),
     #[error("Address Parse Error: {0}")]
     AddrParseError(#[from] std::net::AddrParseError),
+    //@todo double cehck this covers it, and doesn't just feature gate the tranpsarent part.
+    #[cfg(feature = "api")]
+    #[error(transparent)]
+    Hyper(#[from] hyper::Error),
     //@todo shutdown error.
     // #[error("Timeout Error: {0}")]
     // TimedOut(#[from] CancellationToken),
