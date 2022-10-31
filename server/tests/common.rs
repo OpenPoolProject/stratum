@@ -116,13 +116,14 @@ pub async fn spawn_full_server() -> Result<(SocketAddr, JoinHandle<Result<()>>)>
     let auth = AuthProvider {};
     let state = State { auth };
     // let port = find_port().await;
-    let mut server = StratumServer::builder(state, 1)
+    let builder = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
-        .with_port(0)
-        .with_api_host("0.0.0.0")
-        .with_api_port(0)
-        .build()
-        .await?;
+        .with_port(0);
+
+    #[cfg(feature = "api")]
+    let builder = builder.with_api_host("0.0.0.0").with_api_port(0);
+
+    let mut server = builder.build().await?;
 
     let address = server.get_address();
 
