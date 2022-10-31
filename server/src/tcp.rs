@@ -26,6 +26,7 @@ use tracing::{error, trace, warn};
 //wraps whatever medium we use to connect e.g. v1 - base tcp, v2 - noise, autonomy - brontide, e.g.
 //Then we can later make it generic so that we can re-implement these things for stuff like Nimiq
 //and websockets/etc.
+#[allow(dead_code)]
 pub(crate) struct Handler<State, CState>
 where
     CState: Send + Sync + Clone + 'static,
@@ -48,6 +49,7 @@ where
     pub(crate) global_vars: GlobalVars,
 }
 
+#[allow(dead_code)]
 impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static>
     Handler<State, CState>
 {
@@ -64,6 +66,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 //@todo might make sene to wrap a lot of these into one param called "ConnectionConfig" and then
 //just pass that along, but we'll see.
 //@todo review
+#[allow(clippy::too_many_arguments)]
 pub async fn handle_connection<
     State: Clone + Send + Sync + 'static,
     CState: Clone + Send + Sync + 'static,
