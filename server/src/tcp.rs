@@ -93,7 +93,7 @@ pub async fn handle_connection<
         addr = proxy_protocol(&mut buffer_stream, expected_port).await?;
     }
 
-    if ban_manager.check_banned(&addr).await {
+    if ban_manager.check_banned(&addr) {
         warn!(
             "Banned connection attempting to connect: {}. Connection closed",
             addr

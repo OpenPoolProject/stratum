@@ -9,10 +9,7 @@ use crate::{
     BanManager, ConnectionList, Result, StratumServerBuilder, VarDiffConfig,
 };
 use futures::StreamExt;
-use std::{
-    net::{SocketAddr, TcpListener},
-    sync::Arc,
-};
+use std::{net::SocketAddr, sync::Arc};
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::TcpListenerStream;
 use tracing::info;
@@ -23,10 +20,6 @@ use signal_hook::consts::signal::*;
 use signal_hook_tokio::{Handle, Signals};
 use std::time::Instant;
 use tokio_util::sync::CancellationToken;
-
-//@todo make this not default, but api.
-// #[cfg(feature = "default")]
-// use crate::api::init_api_server;
 
 // use crate::metrics::Metrics;
 
@@ -61,6 +54,8 @@ where
     //homebase
     pub(crate) ready_indicator: ReadyIndicator,
     pub(crate) shutdown_message: Option<Buffer>,
+    #[cfg(feature = "api")]
+    pub(crate) api: crate::api::Api,
 }
 
 //@todo we should check ulimits and report them just so that we know that we can handle the
@@ -100,13 +95,6 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     //Initialize the server before we want to start accepting any connections.
     async fn init(&self) -> Result<(Handle, JoinHandle<()>)> {
         info!("Initializing...");
-
-        if cfg!(feature = "api") {
-            let state = crate::api::ApiContext {};
-            let listener = TcpListener::bind("0.0.0.0:8080")?;
-            crate::api::init_api_server(state, listener).await?;
-            info!("API Server Initialized");
-        }
 
         let signals = Signals::new([SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
         let handle = signals.handle();
@@ -334,8 +322,12 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         let cancel_token = self.cancel_token.clone();
 
+        #[cfg(feature = "api")]
+        let api_handle = self.api.run(cancel_token.clone())?;
+
         tokio::select! {
             //@todo we have to check if this cancel safe.
+            //@todo fix handle_incoming...
             _ = self.handle_incoming() => {
                 //@todo I think we want to handle errors here.
                 //This would be the listening erroring out.
@@ -383,6 +375,13 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         //     thread.await;
         // }
 
+        #[cfg(feature = "api")]
+        {
+            info!("Waiting for Api handler to finish");
+            //@todo report the errors here
+            api_handle.await.unwrap().unwrap();
+        }
+
         // Allow for signal threads to close. @todo check this in testing.
         info!("Awaiting for all signal handler to complete");
         signal_handle.close();
@@ -397,7 +396,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     pub fn get_ready_indicator(&self) -> ReadyIndicator {
-        self.ready_indicator.clone()
+        self.ready_indicator.create_new()
     }
 
     // #[cfg(test)]
@@ -411,6 +410,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
     pub fn get_address(&self) -> SocketAddr {
         self.listen_address
+    }
+
+    #[cfg(feature = "api")]
+    pub fn get_api_address(&self) -> SocketAddr {
+        self.api.listen_address()
     }
 }
 

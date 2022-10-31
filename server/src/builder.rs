@@ -6,7 +6,7 @@ use crate::{
     BanManager, ConnectionList, Result, StratumServer,
 };
 use extended_primitives::Buffer;
-use std::{marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::CancellationToken;
@@ -47,7 +47,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             initial_difficulty: 16384,
             state,
             connection_state: PhantomData,
-            ready_indicator: ReadyIndicator::new(true),
+            ready_indicator: ReadyIndicator::new(false),
             var_diff_config: VarDiffConfig {
                 var_diff: false,
                 minimum_difficulty: 64,
@@ -169,6 +169,24 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         let cancel_token = CancellationToken::new();
 
+        let ban_manager = Arc::new(BanManager::new(
+            cancel_token.child_token(),
+            // 1 Hour, @todo come from settings
+            Duration::from_secs(60 * 60),
+        ));
+
+        #[cfg(feature = "api")]
+        let api = {
+            let state = crate::api::ApiContext {
+                ban_manager: ban_manager.clone(),
+                ready_indicator: self.ready_indicator.create_new(),
+            };
+
+            //@todo fix this - come from settings.
+            //@todo also pass in a port for metrics
+            crate::api::Api::build("0.0.0.0:8080".parse()?, state)?
+        };
+
         Ok(StratumServer {
             id: self.server_id,
             listener,
@@ -178,18 +196,23 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             initial_difficulty: self.initial_difficulty,
             connection_list,
             state: self.state,
-            ban_manager: Arc::new(BanManager::new()),
+            ban_manager,
             router: Arc::new(Router::new()),
-            #[cfg(feature = "upstream")]
-            upstream_router: Arc::new(Router::new()),
-            #[cfg(feature = "upstream")]
-            upstream_config: self.upstream_config,
             var_diff_config: self.var_diff_config,
             session_id_manager: Arc::new(IDManager::new(self.server_id)),
             cancel_token,
             global_thread_list: Vec::new(),
             ready_indicator: self.ready_indicator,
             shutdown_message: self.shutdown_message,
+
+            // #[cfg(feature = "api")]
+            // api: Arc::new(Mutex::new(api)),
+            #[cfg(feature = "api")]
+            api,
+            #[cfg(feature = "upstream")]
+            upstream_router: Arc::new(Router::new()),
+            #[cfg(feature = "upstream")]
+            upstream_config: self.upstream_config,
         })
     }
 }

@@ -1,8 +1,13 @@
 use crate::{Error, Result};
 use extended_primitives::Buffer;
 use serde::{Deserialize, Serialize};
-use std::{fmt, sync::Arc};
-use tokio::sync::Mutex;
+use std::{
+    fmt,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
 
 #[derive(Debug)]
 pub struct VarDiffBuffer {
@@ -53,24 +58,34 @@ impl VarDiffBuffer {
 
 pub const EX_MAGIC_NUMBER: u8 = 0x7F;
 
-#[derive(Clone, Default)]
-pub struct ReadyIndicator(Arc<Mutex<bool>>);
+// #[derive(Clone, Default)]
+// pub struct ReadyIndicator(Arc<Mutex<bool>>);
+
+//@todo testing this
+#[derive(Default, Clone)]
+pub struct ReadyIndicator(Arc<AtomicBool>);
 
 impl ReadyIndicator {
     pub fn new(ready: bool) -> Self {
-        ReadyIndicator(Arc::new(Mutex::new(ready)))
+        ReadyIndicator(Arc::new(AtomicBool::new(ready)))
     }
 
-    pub async fn ready(&self) {
-        *self.0.lock().await = true;
+    //@todo review this, no idea why we do this.
+    pub fn create_new(&self) -> Self {
+        Self(Arc::clone(&self.0))
     }
 
-    pub async fn not_ready(&self) {
-        *self.0.lock().await = false;
+    //@todo figure out if relaxed is ok
+    pub fn ready(&self) {
+        self.0.store(true, Ordering::Relaxed)
     }
 
-    pub async fn inner(&self) -> bool {
-        *self.0.lock().await
+    pub fn not_ready(&self) {
+        self.0.store(false, Ordering::Relaxed)
+    }
+
+    pub fn status(&self) -> bool {
+        self.0.load(Ordering::Relaxed)
     }
 }
 
