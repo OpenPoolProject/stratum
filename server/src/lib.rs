@@ -27,7 +27,7 @@ mod tcp;
 mod types;
 mod utils;
 
-pub(crate) use crate::ban_manager::{BanInfo, BanManager, BanManagerHandle};
+pub(crate) use crate::ban_manager::BanManager;
 
 pub use crate::{
     builder::StratumServerBuilder,

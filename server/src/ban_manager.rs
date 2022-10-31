@@ -19,7 +19,7 @@ struct MapEntry<V> {
 }
 
 #[derive(Serialize, Clone, Debug)]
-pub(crate) struct BanInfo {
+pub struct BanInfo {
     pub address: SocketAddr,
     pub score: u64,
 }
@@ -100,8 +100,9 @@ impl BanManager {
         }
     }
 
+    // #[cfg(feature = "api")]
     /// Returns a vector of referencing all values in the map.
-    pub(crate) fn temp_bans(&self) -> Vec<BanInfo> {
+    pub fn temp_bans(&self) -> Vec<BanInfo> {
         self.shared
             .temp_bans
             .iter()
@@ -141,7 +142,7 @@ async fn purge_ban_manager(shared: Arc<Shared>) {
     info!("Ban Manager shutting down.")
 }
 
-pub(crate) type BanManagerHandle = Arc<BanManager>;
+pub type BanManagerHandle = Arc<BanManager>;
 
 #[cfg(test)]
 mod tests {

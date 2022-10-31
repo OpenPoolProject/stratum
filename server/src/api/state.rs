@@ -1,4 +1,4 @@
-use crate::{BanManagerHandle, ReadyIndicator};
+use crate::{ban_manager::BanManagerHandle, ReadyIndicator};
 
 #[derive(Clone)]
 pub struct ApiContext {

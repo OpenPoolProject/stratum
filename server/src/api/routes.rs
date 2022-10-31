@@ -1,4 +1,4 @@
-use crate::{api::ApiContext, BanInfo};
+use crate::{api::ApiContext, ban_manager::BanInfo};
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 
