@@ -2,7 +2,7 @@ pub use crate::ConnectionList;
 use crate::{
     config::UpstreamConfig,
     connection::Connection,
-    next_message,
+    parsing::next_message,
     router::Router,
     types::{GlobalVars, MessageValue},
     Error, Result,

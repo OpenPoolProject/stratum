@@ -16,7 +16,9 @@ pub struct StratumServerBuilder<State, CState> {
     pub server_id: u8,
     pub host: String,
     pub port: u16,
+    #[cfg(feature = "api")]
     pub api_host: String,
+    #[cfg(feature = "api")]
     pub api_port: u16,
     pub exported_port: Option<u16>,
     pub max_connections: Option<usize>,
@@ -39,7 +41,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             server_id,
             host: String::from(""),
             port: 0,
+            #[cfg(feature = "api")]
             api_host: String::from("0.0.0.0"),
+            #[cfg(feature = "api")]
             api_port: 8888,
             exported_port: None,
             max_connections: None,
@@ -75,11 +79,13 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self
     }
 
+    #[cfg(feature = "api")]
     pub fn with_api_host(mut self, host: &str) -> Self {
         self.api_host = host.to_owned();
         self
     }
 
+    #[cfg(feature = "api")]
     pub fn with_api_port(mut self, port: u16) -> Self {
         self.api_port = port;
         self
@@ -182,9 +188,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 ready_indicator: self.ready_indicator.create_new(),
             };
 
-            //@todo fix this - come from settings.
+            let api_address = format!("{}:{}", self.api_host, self.api_port).parse()?;
+
             //@todo also pass in a port for metrics
-            crate::api::Api::build("0.0.0.0:8080".parse()?, state)?
+            crate::api::Api::build(api_address, state)?
         };
 
         Ok(StratumServer {

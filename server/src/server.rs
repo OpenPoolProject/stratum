@@ -9,6 +9,7 @@ use crate::{
     BanManager, ConnectionList, Result, StratumServerBuilder, VarDiffConfig,
 };
 use futures::StreamExt;
+use rlimit::Resource;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::TcpListenerStream;
@@ -95,6 +96,12 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     //Initialize the server before we want to start accepting any connections.
     async fn init(&self) -> Result<(Handle, JoinHandle<()>)> {
         info!("Initializing...");
+
+        //@todo let's wrap this to make sure it's aboe what we need otherwise adjust.
+        //Check that the system will support what we need.
+        let (hard, soft) = rlimit::getrlimit(Resource::NOFILE)?;
+
+        info!("Current Ulimit is set to {hard} hard limit, {soft} soft limit");
 
         let signals = Signals::new([SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
         let handle = signals.handle();
