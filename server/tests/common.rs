@@ -119,6 +119,8 @@ pub async fn spawn_full_server() -> Result<(SocketAddr, JoinHandle<Result<()>>)>
     let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
         .with_port(0)
+        .with_api_host("0.0.0.0")
+        .with_api_port(0)
         .build()
         .await?;
 
