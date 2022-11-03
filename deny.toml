@@ -196,7 +196,7 @@ highlight = "all"
 # The default lint level for `default` features for external crates that are not
 # members of the workspace. This can be overriden by allowing/denying `default`
 # on a crate-by-crate basis if desired.
-external-default-features = "allow"
+# external-default-features = "allow"
 # List of crates that are allowed. Use with care!
 allow = [
     #{ name = "ansi_term", version = "=0.11.0" },
