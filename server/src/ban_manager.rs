@@ -302,6 +302,7 @@ mod tests {
     use super::*;
     use tokio_test::assert_ok;
 
+    #[cfg_attr(coverage_nightly, no_coverage)]
     #[tokio::test]
     async fn single_ban_expires() {
         let cancel_token = CancellationToken::new();
@@ -322,6 +323,7 @@ mod tests {
         assert_eq!(temp_bans.len(), 0);
     }
 
+    #[cfg_attr(coverage_nightly, no_coverage)]
     #[tokio::test]
     async fn ban_extended() {
         let cancel_token = CancellationToken::new();
@@ -363,6 +365,7 @@ mod tests {
         Duration::from_millis(n)
     }
 
+    #[cfg_attr(coverage_nightly, no_coverage)]
     #[tokio::test]
     async fn graceful_shutdown() {
         let cancel_token = CancellationToken::new();

@@ -1,3 +1,4 @@
+#![cfg_attr(coverage_nightly, feature(no_coverage))]
 #[warn(clippy::pedantic)]
 #[cfg(feature = "upstream")]
 mod upstream;
