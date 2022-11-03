@@ -183,7 +183,7 @@ jobs:
         run: |
           cargo llvm-cov clean --workspace
           cargo llvm-cov nextest --profile ci --no-report --features tcp
-          cargo llvm-cov --no-run --lcov --output-path lcov.info
+          cargo llvm-cov report --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@e0fbd592d323cb2991fb586fdd260734fcb41fcb
