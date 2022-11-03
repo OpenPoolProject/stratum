@@ -52,13 +52,13 @@ pub struct BanInfo {
 }
 
 //@todo perma bans
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct BanManager {
     pub(crate) shared: Arc<Shared>,
     default_ban_length: Duration,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub(crate) struct Shared {
     pub(crate) state: Mutex<State>,
     pub(crate) cancel_token: CancellationToken,
@@ -130,10 +130,10 @@ async fn purge_expired_tasks(shared: Arc<Shared>) {
         }
     }
 
-    debug!("Purge background task shut down")
+    debug!("Purge background task shut down");
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub(crate) struct State {
     // pub(crate) expirations: DelayQueue<SocketAddr>,
     /// Tracks key TTLs.
@@ -171,10 +171,7 @@ impl State {
 impl BanManager {
     pub fn new(cancel_token: CancellationToken, default_ban_length: Duration) -> Self {
         let shared = Arc::new(Shared {
-            state: Mutex::new(State {
-                expirations: BTreeMap::new(),
-                next_id: 0,
-            }),
+            state: Mutex::new(State::default()),
             temp_bans: Arc::new(DashMap::new()),
             background_task: Notify::new(),
             cancel_token,
@@ -194,7 +191,7 @@ impl BanManager {
 
     //@todo figure out what score means
     pub fn add_ban<T: Into<Key>>(&self, key: T) {
-        self.add_ban_raw(&key.into(), 10, self.default_ban_length)
+        self.add_ban_raw(&key.into(), 10, self.default_ban_length);
     }
 
     //@todo add_ban generic that impls Into<Key>
@@ -221,8 +218,7 @@ impl BanManager {
         // to update its state.
         let notify = state
             .next_expiration()
-            .map(|expiration| expiration > expires_at)
-            .unwrap_or(true);
+            .map_or(true, |expiration| expiration > expires_at);
 
         // Track the expiration.
         state.expirations.insert((expires_at, id), key.clone());

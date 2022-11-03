@@ -1,13 +1,5 @@
 #![cfg_attr(coverage_nightly, feature(no_coverage))]
-#[warn(clippy::pedantic)]
-#[cfg(feature = "upstream")]
-mod upstream;
-
-#[cfg(feature = "upstream")]
-use crate::config::UpstreamConfig;
-
-#[cfg(feature = "api")]
-mod api;
+#![warn(clippy::pedantic)]
 
 mod ban_manager;
 mod builder;
@@ -27,6 +19,15 @@ mod server;
 mod tcp;
 mod types;
 mod utils;
+
+#[cfg(feature = "upstream")]
+mod upstream;
+
+#[cfg(feature = "upstream")]
+use crate::config::UpstreamConfig;
+
+#[cfg(feature = "api")]
+mod api;
 
 pub(crate) use crate::ban_manager::BanManager;
 
