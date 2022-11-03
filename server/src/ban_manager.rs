@@ -52,13 +52,11 @@ pub struct BanInfo {
 }
 
 //@todo perma bans
-#[derive(Default)]
 pub struct BanManager {
     pub(crate) shared: Arc<Shared>,
     default_ban_length: Duration,
 }
 
-#[derive(Default)]
 pub(crate) struct Shared {
     pub(crate) state: Mutex<State>,
     pub(crate) cancel_token: CancellationToken,

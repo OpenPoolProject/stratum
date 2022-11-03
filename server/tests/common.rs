@@ -19,7 +19,7 @@ pub const CONNECTION_DELAY: Duration = Duration::from_secs(1);
 pub fn init_telemetry() {
     let fmt_layer = fmt::layer();
     let filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("info"))
+        .or_else(|_| EnvFilter::try_new("stratum_server=trace"))
         .unwrap();
 
     let subscriber = Registry::default().with(filter_layer).with(fmt_layer);
