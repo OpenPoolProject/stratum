@@ -169,8 +169,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@55c7845fad90d0ae8b2e83715cb900e5e861e8cb
         with:
-          toolchain: stable
-          components: llvm-tools-preview
+          toolchain: nightly
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@dfd35942fe81dc0cab51f5676ca385dc57e4aebb
         with:
