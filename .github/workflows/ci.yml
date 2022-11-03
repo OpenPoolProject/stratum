@@ -61,7 +61,7 @@ jobs:
       - uses: taiki-e/install-action@dfd35942fe81dc0cab51f5676ca385dc57e4aebb
         with:
           tool: nextest
-      - uses: Swatinem/rust-cache@b8e72aae8381e4b9942ff10e8ec0fcd359dc5246
+      - uses: Swatinem/rust-cache@b5ec9edd911d3bf82c74038b0a28791e0aa24d6f
         with:
           key: ${{ matrix.rust }}
       - run: cargo hack nextest run --no-capture --each-feature --profile ci
@@ -125,7 +125,7 @@ jobs:
         uses: dtolnay/rust-toolchain@55c7845fad90d0ae8b2e83715cb900e5e861e8cb
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@b8e72aae8381e4b9942ff10e8ec0fcd359dc5246
+      - uses: Swatinem/rust-cache@b5ec9edd911d3bf82c74038b0a28791e0aa24d6f
       - name: Check documentation
         env:
           RUSTDOCFLAGS: -D warnings
@@ -149,7 +149,7 @@ jobs:
         uses: dtolnay/rust-toolchain@55c7845fad90d0ae8b2e83715cb900e5e861e8cb
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@b8e72aae8381e4b9942ff10e8ec0fcd359dc5246
+      - uses: Swatinem/rust-cache@b5ec9edd911d3bf82c74038b0a28791e0aa24d6f
       - uses: actions-rs/cargo@9e120dd99b0fbad1c065f686657e914e76bd7b72
         with:
           command: publish
@@ -178,7 +178,7 @@ jobs:
       - uses: taiki-e/install-action@dfd35942fe81dc0cab51f5676ca385dc57e4aebb
         with:
           tool: nextest
-      - uses: Swatinem/rust-cache@22c9328bcba27aa81a32b1bef27c7e3c78052531 # tag=v2
+      - uses: Swatinem/rust-cache@b5ec9edd911d3bf82c74038b0a28791e0aa24d6f # tag=v2
       - name: Generate code coverage
         run: |
           cargo llvm-cov clean --workspace
