@@ -41,7 +41,7 @@ where
     pub(crate) ban_manager: Arc<BanManager>,
     pub(crate) config_manager: ConfigManager,
     pub(crate) router: Arc<Router<State, CState>>,
-    pub(crate) session_id_manager: Arc<IDManager>,
+    pub(crate) session_id_manager: IDManager,
     pub(crate) cancel_token: CancellationToken,
     pub(crate) global_thread_list: Vec<JoinHandle<()>>,
     //@todo I think we can actually kill this now that I remember.

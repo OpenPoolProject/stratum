@@ -25,16 +25,15 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
 
     pub async fn call(
         &self,
-        method: &str,
         value: Frame,
         state: State,
         connection: Arc<Session<CState>>,
         global_vars: GlobalVars,
     ) {
-        let endpoint = match self.routes.get(method) {
+        let endpoint = match self.routes.get(value.method()) {
             Some(endpoint) => endpoint,
             None => {
-                warn!("Method {} was not found", method);
+                warn!("Method {} was not found", value.method());
                 return;
             }
         };
@@ -54,7 +53,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
         // } else {
         tracing::trace!(
             "Calling method: {} for connection: {}",
-            method,
+            value.method(),
             connection.id()
         );
         // }

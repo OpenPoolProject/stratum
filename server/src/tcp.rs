@@ -23,13 +23,12 @@ use tracing::{error, trace, warn};
 //wraps whatever medium we use to connect e.g. v1 - base tcp, v2 - noise, autonomy - brontide, e.g.
 //Then we can later make it generic so that we can re-implement these things for stuff like Nimiq
 //and websockets/etc.
-#[allow(dead_code)]
 pub(crate) struct Handler<State, CState>
 where
     CState: Send + Sync + Clone + 'static,
 {
     pub(crate) ban_manager: Arc<BanManager>,
-    pub(crate) id_manager: Arc<IDManager>,
+    pub(crate) id_manager: IDManager,
     pub(crate) session_list: Arc<SessionList<CState>>,
     pub(crate) router: Arc<Router<State, CState>>,
     pub(crate) state: State,
@@ -40,12 +39,9 @@ where
     pub(crate) global_vars: GlobalVars,
 }
 
-//@todo ensure to print out the result of this run.
-#[allow(dead_code)]
 impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static>
     Handler<State, CState>
 {
-    //@tood maybe make this just self, then can drop the clone on connection_state
     pub(crate) async fn run(mut self) -> Result<()> {
         if self.config_manager.proxy_protocol() {
             self.connection.proxy_protocol().await?;
@@ -58,16 +54,13 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         let (mut reader, tx) = self.connection.init();
 
         //@todo goal is get session not needing Arc Wrap.
-        let session = Arc::new(
-            Session::new(
-                self.id_manager.clone(),
-                tx,
-                self.config_manager.clone(),
-                self.cancel_token.child_token(),
-                self.connection_state.clone(),
-            )
-            .await?,
-        );
+        let session = Arc::new(Session::new(
+            self.id_manager.clone(),
+            tx,
+            self.config_manager.clone(),
+            self.cancel_token.child_token(),
+            self.connection_state.clone(),
+        )?);
 
         //@todo solve removing session from this (pros in drop here using connection.)
         self.session_list
@@ -88,17 +81,23 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 _ = self.cancel_token.cancelled() => {
                     // If a shutdown signal is received, return from `run`.
                     // This will result in the task terminating.
-                    return Ok(());
+                    break;
                 }
             };
 
-            // tokio::select! {
-            //     _ = cancel_token.cancelled() => {
-            // error!(connection_id=connection.id().to_string(), "Message parsing canceled. Received Shutdown");
-            // break;
-            //
-            //     }
-            // }
+            let Some(frame) = maybe_frame else {
+                break;
+            };
+
+            //Calls the Stratum method on the router.
+            self.router
+                .call(
+                    frame,
+                    self.state.clone(),
+                    session.clone(),
+                    self.global_vars.clone(),
+                )
+                .await;
         }
 
         trace!("Closing stream from: {}", session.id());
@@ -120,71 +119,6 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 //Let's make sure we have an entire folder of tests for "attacks" and make sure that we cover them
 //thoroughly.
 
-//@todo might make sene to wrap a lot of these into one param called "ConnectionConfig" and then
-//just pass that along, but we'll see.
-//@todo review
-// #[allow(clippy::too_many_arguments)]
-// pub async fn handle_connection<
-//     State: Clone + Send + Sync + 'static,
-//     CState: Clone + Send + Sync + 'static,
-// >(
-//     id_manager: Arc<IDManager>,
-//     ban_manager: Arc<BanManager>,
-//     mut addr: SocketAddr,
-//     connection_list: Arc<SessionList<CState>>,
-//     router: Arc<Router<State, CState>>,
-//
-//     #[cfg(feature = "upstream")] upstream_router: Arc<Router<State, CState>>,
-//     #[cfg(feature = "upstream")] upstream_config: UpstreamConfig,
-//     state: State,
-//     stream: TcpStream,
-//     var_diff_config: VarDiffConfig,
-//     initial_difficulty: u64,
-//     connection_state: CState,
-//     proxy: bool,
-//     expected_port: u16,
-//     global_vars: GlobalVars,
-// ) -> Result<()> {
-//     let (rh, wh) = stream.into_split();
-//
-//     let mut buffer_stream = BufReader::new(rh);
-//
-//     if proxy {
-//         addr = proxy_protocol(&mut buffer_stream, expected_port).await?;
-//     }
-//
-//     //@todo wrap all upstream shit in init_upstream();
-//
-//     let (tx, rx) = unbounded();
-//     // @todo we should have a function that returns this.
-//     #[cfg(feature = "upstream")]
-//     let (utx, urx) = unbounded();
-//     #[cfg(feature = "upstream")]
-//     let (urtx, urrx) = unbounded();
-//
-//     //@todo we should be printing the number of sessions issued out of the total supported.
-//     //Currently have 24 sessions connected out of 15,000 total. <1% capacity.
-//
-//     // let connection_id = if let Some(id) = id_manager.allocate_session_id().await {
-//     //     id
-//     // } else {
-//     //     warn!("Sessions full");
-//     //     return Ok(());
-//     // };
-//
-//     let cancel_token = connection.get_cancel_token();
-//
-//     let id = connection.id();
-//
-//     tokio::task::spawn(async move {
-//         match send_loop(rx, wh).await {
-//             //@todo we should make this conditional on the connection actually being legit, or we
-//             //can also check before we make a connection so we dodge all these nastiness
-//             Ok(_) => trace!("Send Loop is closing for connection: {}", id),
-//             Err(e) => warn!("Send loop is closed for connection: {}, Reason: {}", id, e),
-//         }
-//     });
-//
 //     //@todo handle this undwrap?
 //     connection_list
 //         .add_miner(addr, connection.clone())

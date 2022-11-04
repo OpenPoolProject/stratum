@@ -46,7 +46,11 @@ impl Api {
                 //@todo match these with the others so they are in health.
                 .route("/livez", get(routes::livez))
                 .route("/readyz", get(routes::readyz))
-                .route("/banned", get(routes::get_banned))
+                //@todo but we do probs want an "add banned"
+                .route(
+                    "/banned",
+                    get(routes::get_banned).post(routes::remove_banned),
+                )
                 .layer(
                     //@todo set these more explicitly so that we lock down the sercurity of this bad
                     //boy.

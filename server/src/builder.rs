@@ -201,7 +201,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             state: self.state,
             ban_manager,
             router: Arc::new(Router::new()),
-            session_id_manager: Arc::new(IDManager::new(self.server_id)),
+            session_id_manager: IDManager::new(self.server_id),
             cancel_token,
             global_thread_list: Vec::new(),
             ready_indicator: self.ready_indicator,

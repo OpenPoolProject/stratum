@@ -78,11 +78,10 @@ pub enum SendInformation {
 //pattern matching imo.
 //
 //@todo also think about these enums for connectgion sttatus like authenticated/subscribed etc.
-#[derive(Debug)]
 pub struct Session<State> {
     pub id: Uuid,
     pub session_id: u32,
-    pub id_manager: Arc<IDManager>,
+    pub id_manager: IDManager,
 
     pub info: Arc<RwLock<SessionInfo>>,
     pub user_info: Arc<Mutex<UserInfo>>,
@@ -126,8 +125,8 @@ pub struct MinerOptions {
 }
 
 impl<State: Clone + Send + Sync + 'static> Session<State> {
-    pub async fn new(
-        id_manager: Arc<IDManager>,
+    pub fn new(
+        id_manager: IDManager,
         sender: UnboundedSender<SendInformation>,
         config_manager: ConfigManager,
         cancel_token: CancellationToken,
@@ -137,7 +136,7 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
         // >,
         state: State,
     ) -> Result<Self> {
-        let session_id = id_manager.allocate_session_id().await?;
+        let session_id = id_manager.allocate_session_id()?;
         let id = Uuid::new_v4();
 
         debug!("Accepting new miner. ID: {}", &id);
@@ -211,7 +210,7 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
 
         trace!("Sending message: {}", msg_string.clone());
 
-        let sender = self.sender.lock().await;
+        let mut sender = self.sender.lock().await;
 
         //@todo this feels inefficient, maybe we do send bytes here.
         sender.send(SendInformation::Json(msg_string))?;

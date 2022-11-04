@@ -1,6 +1,6 @@
 use dashmap::{mapref::one::RefMut, DashMap};
 use parking_lot::Mutex;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
     fmt::Display,
@@ -12,11 +12,11 @@ use tokio::{
     time::{Duration, Instant},
 };
 use tokio_util::sync::CancellationToken;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::{Error, Result};
 
-#[derive(Hash, PartialEq, Eq, Debug, Clone, Serialize)]
+#[derive(Hash, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum Key {
     IP(IpAddr),
     Socket(SocketAddr),
@@ -41,6 +41,12 @@ impl Display for Key {
 impl From<SocketAddr> for Key {
     fn from(value: SocketAddr) -> Self {
         Key::Socket(value)
+    }
+}
+
+impl From<IpAddr> for Key {
+    fn from(value: IpAddr) -> Self {
+        Key::IP(value)
     }
 }
 
@@ -279,13 +285,17 @@ impl BanManager {
         }
     }
 
-    //@todo logging here.
-    pub fn remove_ban<T: Into<Key>>(&self, key: T) {
+    pub fn remove_ban<T: Into<Key>>(&self, key: T) -> Option<BanInfo> {
         let mut state = self.shared.state.lock();
+        let key = key.into();
 
-        if let Some((_, entry)) = self.shared.temp_bans.remove(&key.into()) {
+        if let Some((_, entry)) = self.shared.temp_bans.remove(&key) {
+            warn!("Manually unbanning: {key}. Make sure you know what you are doing!");
             state.expirations.remove(&(entry.expires_at, entry.id));
+            return Some(entry.data);
         }
+
+        None
     }
 
     // #[cfg(feature = "api")]
@@ -395,6 +405,6 @@ mod tests {
 
         tokio::time::sleep(ms(200)).await;
 
-        assert_ok!(ban_manager.check_banned(addr));
+        assert_err!(ban_manager.check_banned(addr));
     }
 }
