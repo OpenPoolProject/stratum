@@ -64,7 +64,8 @@ jobs:
       - uses: Swatinem/rust-cache@b8e72aae8381e4b9942ff10e8ec0fcd359dc5246
         with:
           key: ${{ matrix.rust }}
-      - run: cargo hack nextest run --no-capture --each-feature --profile ci
+      # - run: cargo hack nextest run --no-capture --each-feature --profile ci
+      - run: cargo nextest run --no-capture --all-features --profile ci
         timeout-minutes: 15
 
   msrv:
@@ -181,7 +182,7 @@ jobs:
       - name: Generate code coverage
         run: |
           cargo llvm-cov clean --workspace
-          cargo llvm-cov nextest --profile ci --no-report --features tcp
+          cargo llvm-cov nextest --profile ci --no-report --all-features
           cargo llvm-cov report --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
