@@ -35,7 +35,7 @@ where
         let fut = (self)(req, connection.clone());
 
         match fut.await {
-            Ok(res) => res.into(),
+            Ok(response) => response.into(),
             Err(e) => {
                 error!(
                     connection_id = connection.id().to_string(),

@@ -18,8 +18,9 @@ pub struct Connection {
     reader: BufReader<OwnedReadHalf>,
     cancel_token: CancellationToken,
 
+    //@todo implement this, but move to it Reader.
     // The buffer for reading frames.
-    buffer: BytesMut,
+    _buffer: BytesMut,
     pub(crate) address: SocketAddr,
 }
 
@@ -34,7 +35,7 @@ impl Connection {
             writer: write_half,
             reader: BufReader::new(read_half),
             cancel_token,
-            buffer: BytesMut::new(),
+            _buffer: BytesMut::new(),
         })
     }
 

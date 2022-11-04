@@ -8,7 +8,6 @@ use crate::{
     config::ConfigManager, format_difficulty, id_manager::IDManager, Miner, MinerList, Result,
 };
 use extended_primitives::Buffer;
-use futures::SinkExt;
 use serde::Serialize;
 use std::{
     sync::Arc,
@@ -210,7 +209,7 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
 
         trace!("Sending message: {}", msg_string.clone());
 
-        let mut sender = self.sender.lock().await;
+        let sender = self.sender.lock().await;
 
         //@todo this feels inefficient, maybe we do send bytes here.
         sender.send(SendInformation::Json(msg_string))?;
@@ -220,7 +219,7 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
     }
 
     pub async fn send_text(&self, message: String) -> Result<()> {
-        let mut sender = self.sender.lock().await;
+        let sender = self.sender.lock().await;
 
         sender.send(SendInformation::Text(message))?;
 
@@ -228,7 +227,7 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
     }
 
     pub async fn send_raw(&self, message: Buffer) -> Result<()> {
-        let mut sender = self.sender.lock().await;
+        let sender = self.sender.lock().await;
 
         sender.send(SendInformation::Raw(message))?;
 
@@ -499,9 +498,9 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
         }
     }
 
-    pub(crate) fn get_cancel_token(&self) -> CancellationToken {
-        self.cancel_token.child_token()
-    }
+    // pub(crate) fn get_cancel_token(&self) -> CancellationToken {
+    //     self.cancel_token.child_token()
+    // }
 }
 
 //@todo giant todo

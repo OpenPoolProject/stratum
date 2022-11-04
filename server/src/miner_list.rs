@@ -2,6 +2,7 @@ use crate::Miner;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 
+//Use dashmap
 //@todo investigate better types at this -> I belive there is an async replacement for
 //RwLockHashmap.
 #[derive(Debug, Clone)]
@@ -10,6 +11,7 @@ pub struct MinerList {
 }
 
 impl MinerList {
+    #[must_use]
     pub fn new() -> Self {
         MinerList {
             miners: Arc::new(RwLock::new(HashMap::new())),

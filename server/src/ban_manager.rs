@@ -14,7 +14,7 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, warn};
 
-use crate::{Error, Result};
+use crate::{ConfigManager, Error, Result};
 
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub enum Key {
@@ -75,7 +75,7 @@ pub struct BanInfo {
 //@todo perma bans
 pub struct BanManager {
     pub(crate) shared: Arc<Shared>,
-    default_ban_length: Duration,
+    config: ConfigManager,
 }
 
 pub(crate) struct Shared {
@@ -188,7 +188,7 @@ impl State {
 //4. Allow for not just IPs to be banned, but usernames, and usnermae/workernames combinations.
 //- For the above can we switch to using an Enum as the hashmpa key
 impl BanManager {
-    pub fn new(cancel_token: CancellationToken, default_ban_length: Duration) -> Self {
+    pub fn new(config: ConfigManager, cancel_token: CancellationToken) -> Self {
         let shared = Arc::new(Shared {
             state: Mutex::new(State::default()),
             temp_bans: Arc::new(DashMap::new()),
@@ -198,10 +198,7 @@ impl BanManager {
 
         tokio::spawn(purge_expired_tasks(shared.clone()));
         // 1 hour
-        BanManager {
-            shared,
-            default_ban_length,
-        }
+        BanManager { shared, config }
     }
 
     pub fn check_banned<T: Into<Key>>(&self, key: T) -> Result<()> {
@@ -213,9 +210,13 @@ impl BanManager {
         }
     }
 
+    //@todo have a check function so that we A. don't ban loopback_etc, and B. don't ban
+    //whitelisted or our own IPs.
+
     //@todo figure out what score means
     pub fn add_ban<T: Into<Key>>(&self, key: T) {
-        self.add_ban_raw(&key.into(), 10, self.default_ban_length);
+        // if self.config.current_config().bans.whitelisted_ips
+        self.add_ban_raw(&key.into(), 10, self.config.default_ban_duration());
     }
 
     //@todo add_ban generic that impls Into<Key>
@@ -322,6 +323,8 @@ pub type Handle = Arc<BanManager>;
 mod tests {
     use std::str::FromStr;
 
+    use crate::Config;
+
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
     use tokio_test::{assert_err, assert_ok};
@@ -330,7 +333,9 @@ mod tests {
     #[tokio::test]
     async fn single_ban_expires() {
         let cancel_token = CancellationToken::new();
-        let ban_manager = BanManager::new(cancel_token, ms(1));
+        let mut config = Config::default();
+        config.bans.default_ban_duration = ms(1);
+        let ban_manager = BanManager::new(ConfigManager::new(config), cancel_token);
 
         let bad_miner: SocketAddr = assert_ok!("163.244.101.203:3841".parse());
 
@@ -351,7 +356,9 @@ mod tests {
     #[tokio::test]
     async fn ban_extended() {
         let cancel_token = CancellationToken::new();
-        let ban_manager = BanManager::new(cancel_token, Duration::from_secs(100));
+        let mut config = Config::default();
+        config.bans.default_ban_duration = Duration::from_secs(100);
+        let ban_manager = BanManager::new(ConfigManager::new(config), cancel_token);
 
         // tokio::time::pause();
 
@@ -393,7 +400,9 @@ mod tests {
     #[tokio::test]
     async fn graceful_shutdown() {
         let cancel_token = CancellationToken::new();
-        let ban_manager = BanManager::new(cancel_token.child_token(), ms(100));
+        let mut config = Config::default();
+        config.bans.default_ban_duration = ms(100);
+        let ban_manager = BanManager::new(ConfigManager::new(config), cancel_token.child_token());
 
         let addr = assert_ok!(SocketAddr::from_str("163.244.101.203:3821"));
 

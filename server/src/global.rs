@@ -7,7 +7,7 @@ use std::sync::Arc;
 pub trait Global<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static>:
     Send + Sync + 'static
 {
-    async fn call(&self, state: State, connection_list: Arc<SessionList<CState>>);
+    async fn call(&self, state: State, session_list: Arc<SessionList<CState>>);
 }
 
 #[async_trait]
@@ -18,8 +18,8 @@ where
     F: Send + Sync + 'static + Fn(State, Arc<SessionList<CState>>) -> Fut,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    async fn call(&self, state: State, connection_list: Arc<SessionList<CState>>) {
-        let fut = (self)(state.clone(), connection_list.clone());
+    async fn call(&self, state: State, session_list: Arc<SessionList<CState>>) {
+        let fut = (self)(state.clone(), session_list.clone());
 
         fut.await;
     }

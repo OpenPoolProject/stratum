@@ -1,5 +1,6 @@
-const MAX_DIFF: u64 = 9223372036854775808;
+const MAX_DIFF: u64 = 9_223_372_036_854_775_808;
 
+#[must_use]
 pub fn format_difficulty(diff: u64) -> u64 {
     if diff >= MAX_DIFF {
         return MAX_DIFF;

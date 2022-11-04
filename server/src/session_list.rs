@@ -1,7 +1,7 @@
 pub use crate::session::Session;
 use crate::{ConfigManager, Result};
 use extended_primitives::Buffer;
-use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
@@ -22,6 +22,7 @@ pub struct SessionList<CState: Clone + Sync + Send + 'static> {
 }
 
 impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
+    #[must_use]
     pub fn new(config_manager: ConfigManager) -> Self {
         SessionList {
             miners: RwLock::new(HashMap::new()),
@@ -71,35 +72,24 @@ impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
         }
     }
 
-    pub async fn shutdown(&self, msg: Option<Buffer>, delay_seconds: u64) -> Result<()> {
-        // First we send the miners a message (if provided), and give them a few seconds to
-        // reconnect to the new proxy.
-        // @todo move this into a separate function since we will want to call this without always
-        // shutting down (via API)
+    pub async fn shutdown_msg(&self, msg: Option<Buffer>) -> Result<()> {
+        // @todo use this for deluge
         if let Some(msg) = msg {
             info!(
                 "Session List sending {} miners reconnect message.",
                 self.miners.read().await.len()
             );
             for miner in self.miners.read().await.values() {
-                //@todo we don't want to throw as it would prevent other miners from getting the
-                //message.
-                //@todo log error here btw.
-                match miner.send_raw(msg.clone()).await {
-                    Ok(_) => {}
-                    //@todo fix this, causing recursion limits
-                    // Err(_) => warn!(connection_id = %miner.id, "Failed to send shutdown message"),
-                    Err(_) => warn!("Failed to send shutdown message"),
+                if let Err(e) = miner.send_raw(msg.clone()).await {
+                    warn!(connection_id = %miner.id, cause = %e, "Failed to send shutdown message");
                 }
             }
-            //@todo log
-            //All miners have received the shutdown message, now we wait and then we remove.
-            //@todo let's implement this in a backoff rather than what we ware doing.
-            //So that way we can call this, finish shutting down, and then wait for it to finally
-            //finish.
-            // tokio::time::sleep(Duration::from_secs(delay_seconds)).await;
         }
 
+        Ok(())
+    }
+
+    pub async fn shutdown(&self) {
         info!(
             "Session List shutting down {} miners",
             self.miners.read().await.len()
@@ -109,7 +99,5 @@ impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
         for miner in self.miners.read().await.values() {
             miner.shutdown().await;
         }
-
-        Ok(())
     }
 }

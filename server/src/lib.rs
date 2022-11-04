@@ -1,5 +1,10 @@
 #![cfg_attr(coverage_nightly, feature(no_coverage))]
 #![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
+//@todo fix this.
+#![allow(clippy::missing_errors_doc)]
+//@todo fix this.
+#![allow(clippy::missing_panics_doc)]
 
 mod ban_manager;
 mod builder;

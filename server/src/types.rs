@@ -1,5 +1,3 @@
-use crate::{Error, Result};
-use extended_primitives::Buffer;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt,
@@ -49,7 +47,7 @@ impl VarDiffBuffer {
 
         let mut total: i64 = 0;
         for i in 0..count {
-            total += self.data[i]
+            total += self.data[i];
         }
 
         (total as f64) / (count as f64)

@@ -12,18 +12,18 @@ use crate::{
 };
 use futures::StreamExt;
 use rlimit::Resource;
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::TcpListenerStream;
 use tracing::info;
 // use metrics_exporter_prometheus::PrometheusBuilder;
 use crate::id_manager::IDManager;
 use extended_primitives::Buffer;
-use signal_hook::consts::signal::*;
+use signal_hook::consts::signal::{SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 use signal_hook_tokio::{Handle, Signals};
 use std::time::Instant;
 use tokio_util::sync::CancellationToken;
-use tracing::error;
+use tracing::{error, warn};
 
 // use crate::metrics::Metrics;
 
@@ -96,7 +96,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     //Initialize the server before we want to start accepting any connections.
-    async fn init(&self) -> Result<(Handle, JoinHandle<()>)> {
+    fn init(&self) -> Result<(Handle, JoinHandle<()>)> {
         info!("Initializing...");
 
         //@todo let's wrap this to make sure it's aboe what we need otherwise adjust.
@@ -267,7 +267,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         //Initalize the recorder
         init_metrics_recorder();
 
-        let (signal_handle, signal_task) = self.init().await?;
+        let (signal_handle, signal_task) = self.init()?;
 
         let cancel_token = self.cancel_token.clone();
 
@@ -285,12 +285,31 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         let start = Instant::now();
 
-        //Before we return Ok here, we need to finish cleaning up the rest.
-        //So what I'm thinking we do is iterate through miner list and shutdown everything.
-        //@todo magic number of 60 should be set somewhere
-        self.session_list
-            .shutdown(self.shutdown_message.clone(), 60)
-            .await?;
+        //Session Shutdowns
+        {
+            self.session_list
+                .shutdown_msg(self.shutdown_message.clone())
+                .await?;
+
+            let mut backoff = 1;
+            loop {
+                let connected_miners = self.session_list.len().await;
+                if connected_miners == 0 {
+                    break;
+                }
+
+                if backoff > 64 {
+                    warn!("{connected_miners} remaining, force shutting down now");
+                    self.session_list.shutdown().await;
+                    break;
+                }
+
+                info!("Waiting for all miners to disconnect, {connected_miners} remaining");
+                tokio::time::sleep(Duration::from_secs(backoff)).await;
+
+                backoff *= 2;
+            }
+        }
 
         let global_thread_list = self.global_thread_list.drain(..);
 

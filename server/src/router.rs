@@ -30,12 +30,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
         connection: Arc<Session<CState>>,
         global_vars: GlobalVars,
     ) {
-        let endpoint = match self.routes.get(value.method()) {
-            Some(endpoint) => endpoint,
-            None => {
+        let Some(endpoint) = self.routes.get(value.method()) else {
                 warn!("Method {} was not found", value.method());
                 return;
-            }
         };
 
         // if log::log_enabled!(log::Level::Trace) {

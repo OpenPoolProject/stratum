@@ -2,21 +2,12 @@
 use {crate::config::UpstreamConfig, crate::upstream::upstream_message_handler};
 
 use crate::{
-    id_manager::IDManager,
-    router::Router,
-    session::{SendInformation, Session},
-    types::GlobalVars,
-    BanManager, ConfigManager, Connection, Error, Result, SessionList,
+    id_manager::IDManager, router::Router, session::Session, types::GlobalVars, BanManager,
+    ConfigManager, Connection, Result, SessionList,
 };
-use futures::StreamExt;
-use std::{net::SocketAddr, sync::Arc};
-use tokio::{
-    io::{AsyncWriteExt, BufReader},
-    net::{tcp::OwnedWriteHalf, TcpStream},
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
-};
+use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, trace, warn};
+use tracing::trace;
 
 //@note / @todo I think this is the play in that for each "protocol" we implement a Handler (does
 //message parsing and State management) and a "Connection" (different than our courrent one) which

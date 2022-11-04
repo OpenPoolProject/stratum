@@ -9,7 +9,7 @@ use crate::{
     BanManager, Config, ConfigManager, Result, SessionList, StratumServer,
 };
 use extended_primitives::Buffer;
-use std::{marker::PhantomData, sync::Arc, time::Duration};
+use std::{marker::PhantomData, sync::Arc};
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::CancellationToken;
@@ -39,7 +39,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     pub fn new(state: State, server_id: u8) -> Self {
         Self {
             server_id,
-            host: String::from(""),
+            host: String::new(),
             port: 0,
             #[cfg(feature = "api")]
             api_host: String::from("0.0.0.0"),
@@ -70,79 +70,94 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         }
     }
 
+    #[must_use]
     pub fn with_host(mut self, host: &str) -> Self {
         self.host = host.to_owned();
         self
     }
 
+    #[must_use]
     pub fn with_port(mut self, port: u16) -> Self {
         self.port = port;
         self
     }
 
     #[cfg(feature = "api")]
+    #[must_use]
     pub fn with_api_host(mut self, host: &str) -> Self {
         self.api_host = host.to_owned();
         self
     }
 
     #[cfg(feature = "api")]
+    #[must_use]
     pub fn with_api_port(mut self, port: u16) -> Self {
         self.api_port = port;
         self
     }
 
+    #[must_use]
     pub fn with_max_connections(mut self, max_connections: usize) -> Self {
         self.connection_config.max_connections = Some(max_connections);
         self
     }
 
+    #[must_use]
     pub fn with_proxy(mut self, value: bool) -> Self {
         self.connection_config.proxy_protocol = value;
         self
     }
 
+    #[must_use]
     pub fn with_var_diff(mut self, value: bool) -> Self {
         self.var_diff_config.var_diff = value;
         self
     }
 
+    #[must_use]
     pub fn with_minimum_difficulty(mut self, difficulty: u64) -> Self {
         self.var_diff_config.minimum_difficulty = difficulty;
         self
     }
 
+    #[must_use]
     pub fn with_maximum_difficulty(mut self, difficulty: u64) -> Self {
         self.var_diff_config.maximum_difficulty = difficulty;
         self
     }
 
+    #[must_use]
     pub fn with_retarget_time(mut self, time: u64) -> Self {
         self.var_diff_config.retarget_time = time;
         self
     }
 
+    #[must_use]
     pub fn with_target_time(mut self, time: u64) -> Self {
         self.var_diff_config.target_time = time;
         self
     }
 
+    #[must_use]
     pub fn with_variance_percent(mut self, percent: f64) -> Self {
         self.var_diff_config.variance_percent = percent;
         self
     }
 
+    #[must_use]
     pub fn with_initial_difficulty(mut self, difficulty: u64) -> Self {
         self.var_diff_config.initial_difficulty = difficulty;
         self
     }
 
+    #[must_use]
     pub fn with_ready_indicator(mut self, ready_indicator: ReadyIndicator) -> Self {
         self.ready_indicator = ready_indicator;
         self
     }
 
     #[cfg(feature = "upstream")]
+    #[must_use]
     pub fn with_upstream(mut self, url: &str) -> Self {
         self.upstream_config = UpstreamConfig {
             enabled: true,
@@ -151,6 +166,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self
     }
 
+    #[must_use]
     pub fn with_shutdown_message(mut self, msg: Buffer) -> Self {
         self.shutdown_message = Some(msg);
         self
@@ -160,7 +176,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         let config = Config {
             connection: self.connection_config,
             difficulty: self.var_diff_config,
-            bans: Default::default(),
+            bans: crate::config::BanManagerConfig::default(),
         };
 
         let config_manager = ConfigManager::new(config);
@@ -174,9 +190,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         let cancel_token = CancellationToken::new();
         //@todo accept configManager here.
         let ban_manager = Arc::new(BanManager::new(
+            config_manager.clone(),
             cancel_token.child_token(),
-            // 1 Hour, @todo come from settings
-            Duration::from_secs(60 * 60),
         ));
 
         #[cfg(feature = "api")]
