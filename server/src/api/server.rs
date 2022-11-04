@@ -1,4 +1,4 @@
-use crate::{api::ApiContext, Result};
+use crate::{api::Context, Result};
 use std::net::{SocketAddr, TcpListener};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
@@ -16,14 +16,14 @@ use tower_http::cors::CorsLayer;
 pub struct Api {
     pub(crate) info: SocketAddr,
     pub(crate) listener: Option<TcpListener>,
-    pub(crate) state: ApiContext,
+    pub(crate) state: Context,
     // pub(crate) listener:
     //     Option<Server<AddrIncoming, axum::routing::IntoMakeService<axum::Router<ApiContext>>>>,
     // pub(crate) listener: Option<TcpListener>,
 }
 
 impl Api {
-    pub fn build(addr: SocketAddr, state: ApiContext) -> Result<Self> {
+    pub fn build(addr: SocketAddr, state: Context) -> Result<Self> {
         let tcp = TcpListener::bind(addr)?;
         let info = tcp.local_addr()?;
 

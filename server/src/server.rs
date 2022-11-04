@@ -2,7 +2,7 @@
 use crate::UpstreamConfig;
 
 use crate::{
-    ban_manager::BanManagerHandle,
+    ban_manager,
     global::Global,
     route::Endpoint,
     router::Router,
@@ -420,7 +420,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self.listen_address
     }
 
-    pub fn get_ban_manager(&self) -> BanManagerHandle {
+    pub fn get_ban_manager(&self) -> ban_manager::Handle {
         self.ban_manager.clone()
     }
 

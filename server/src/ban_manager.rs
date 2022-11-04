@@ -286,7 +286,7 @@ impl Drop for BanManager {
     }
 }
 
-pub type BanManagerHandle = Arc<BanManager>;
+pub type Handle = Arc<BanManager>;
 
 #[cfg(test)]
 mod tests {

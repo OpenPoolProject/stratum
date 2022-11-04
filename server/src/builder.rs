@@ -183,7 +183,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         #[cfg(feature = "api")]
         let api = {
-            let state = crate::api::ApiContext {
+            let state = crate::api::Context {
                 ban_manager: ban_manager.clone(),
                 ready_indicator: self.ready_indicator.create_new(),
             };
