@@ -1,5 +1,5 @@
-pub use crate::connection::Connection;
-use crate::Result;
+pub use crate::session::Session;
+use crate::{ConfigManager, Result};
 use extended_primitives::Buffer;
 use std::{collections::HashMap, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
@@ -15,21 +15,21 @@ use tracing::{info, warn};
 //@todo would be nice to track the number of agent connections on here.
 //@todo use improved RwLock<HashMap> libraries.
 #[derive(Default)]
-pub struct ConnectionList<CState: Clone + Sync + Send + 'static> {
+pub struct SessionList<CState: Clone + Sync + Send + 'static> {
     //@todo there are faster data structures than hashmap. Investigate using some of those.
-    pub miners: RwLock<HashMap<SocketAddr, Arc<Connection<CState>>>>,
-    pub max_connections: Option<usize>,
+    pub miners: RwLock<HashMap<SocketAddr, Arc<Session<CState>>>>,
+    pub(crate) config_manager: ConfigManager,
 }
 
-impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
-    pub fn new(max_connections: Option<usize>) -> Self {
-        ConnectionList {
+impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
+    pub fn new(config_manager: ConfigManager) -> Self {
+        SessionList {
             miners: RwLock::new(HashMap::new()),
-            max_connections,
+            config_manager,
         }
     }
 
-    pub async fn add_miner(&self, addr: SocketAddr, miner: Arc<Connection<CState>>) -> Result<()> {
+    pub async fn add_miner(&self, addr: SocketAddr, miner: Arc<Session<CState>>) -> Result<()> {
         self.miners.write().await.insert(addr, miner);
         // gauge!(
         //     "stratum.num_connections",
@@ -46,7 +46,7 @@ impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
         // );
     }
 
-    pub async fn get_all_miners(&self) -> Vec<Arc<Connection<CState>>> {
+    pub async fn get_all_miners(&self) -> Vec<Arc<Session<CState>>> {
         self.miners.read().await.values().cloned().collect()
     }
 
@@ -59,7 +59,12 @@ impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
     }
 
     pub async fn is_full(&self) -> bool {
-        if let Some(max) = self.max_connections {
+        if let Some(max) = self
+            .config_manager
+            .current_config()
+            .connection
+            .max_connections
+        {
             self.len().await >= max
         } else {
             false
@@ -73,7 +78,7 @@ impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
         // shutting down (via API)
         if let Some(msg) = msg {
             info!(
-                "Connection List sending {} miners reconnect message.",
+                "Session List sending {} miners reconnect message.",
                 self.miners.read().await.len()
             );
             for miner in self.miners.read().await.values() {
@@ -89,11 +94,14 @@ impl<CState: Clone + Sync + Send + 'static> ConnectionList<CState> {
             }
             //@todo log
             //All miners have received the shutdown message, now we wait and then we remove.
-            tokio::time::sleep(Duration::from_secs(delay_seconds)).await;
+            //@todo let's implement this in a backoff rather than what we ware doing.
+            //So that way we can call this, finish shutting down, and then wait for it to finally
+            //finish.
+            // tokio::time::sleep(Duration::from_secs(delay_seconds)).await;
         }
 
         info!(
-            "Connection List shutting down {} miners",
+            "Session List shutting down {} miners",
             self.miners.read().await.len()
         );
 

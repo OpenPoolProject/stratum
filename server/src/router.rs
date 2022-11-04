@@ -1,7 +1,7 @@
 use crate::{
     route::{DynEndpoint, Endpoint},
-    types::{GlobalVars, MessageValue},
-    Connection, StratumRequest,
+    types::GlobalVars,
+    Frame, Session, StratumRequest,
 };
 use std::{collections::HashMap, sync::Arc};
 use tracing::warn;
@@ -26,9 +26,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
     pub async fn call(
         &self,
         method: &str,
-        value: MessageValue,
+        value: Frame,
         state: State,
-        connection: Arc<Connection<CState>>,
+        connection: Arc<Session<CState>>,
         global_vars: GlobalVars,
     ) {
         let endpoint = match self.routes.get(method) {

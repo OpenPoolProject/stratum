@@ -1,4 +1,4 @@
-use crate::{connection::MinerOptions, types::VarDiffBuffer};
+use crate::{session::MinerOptions, types::VarDiffBuffer};
 use chrono::{NaiveDateTime, Utc};
 use extended_primitives::Buffer;
 use std::sync::Arc;

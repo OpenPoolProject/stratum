@@ -9,7 +9,7 @@ description = "The server code for the Rust Stratum implementation"
 repository = "https://github.com/OpenPoolProject/stratum"
 
 [features]
-default = ["tcp", "api"]
+default = ["tcp", "api", "v1"]
 api = ["axum", "hyper", "tower-http"]
 tcp = []
 upstream = []
@@ -47,6 +47,7 @@ uuid = { version = "1.2.1", features = ["serde", "v4"] }
 # difficult.
 # default-features only false until new release @note
 chrono = { version="0.4.22", default-features = false, features = ["clock"]}
+bytes = "1.2.1"
 
 # Utils
 thiserror = "1.0.37"

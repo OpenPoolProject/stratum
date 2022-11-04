@@ -3,6 +3,7 @@ use parking_lot::Mutex;
 use serde::Serialize;
 use std::{
     collections::BTreeMap,
+    fmt::Display,
     net::{IpAddr, SocketAddr},
     sync::Arc,
 };
@@ -13,6 +14,8 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use tracing::debug;
 
+use crate::{Error, Result};
+
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Serialize)]
 pub enum Key {
     IP(IpAddr),
@@ -21,6 +24,18 @@ pub enum Key {
     Account(String),
     // Account(Username)
     Worker(String),
+}
+
+impl Display for Key {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Key::IP(ip) => write!(f, "IP: {ip}"),
+            Key::Socket(socket) => write!(f, "Socket: {socket}"),
+            Key::Account(account) => write!(f, "Account: {account}"),
+            //@todo do this better when its account, workername
+            Key::Worker(worker) => write!(f, "Worker: {worker}"),
+        }
+    }
 }
 
 impl From<SocketAddr> for Key {
@@ -183,8 +198,13 @@ impl BanManager {
         }
     }
 
-    pub fn check_banned<T: Into<Key>>(&self, key: T) -> bool {
-        self.shared.temp_bans.contains_key(&key.into())
+    pub fn check_banned<T: Into<Key>>(&self, key: T) -> Result<()> {
+        let key = key.into();
+        if self.shared.temp_bans.contains_key(&key) {
+            Err(Error::ConnectionBanned(key))
+        } else {
+            Ok(())
+        }
     }
 
     //@todo figure out what score means
@@ -294,7 +314,7 @@ mod tests {
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
-    use tokio_test::assert_ok;
+    use tokio_test::{assert_err, assert_ok};
 
     #[cfg_attr(coverage_nightly, no_coverage)]
     #[tokio::test]
@@ -369,12 +389,12 @@ mod tests {
 
         ban_manager.add_ban(addr);
 
-        assert!(ban_manager.check_banned(addr));
+        assert_err!(ban_manager.check_banned(addr));
 
         cancel_token.cancel();
 
         tokio::time::sleep(ms(200)).await;
 
-        assert!(ban_manager.check_banned(addr));
+        assert_ok!(ban_manager.check_banned(addr));
     }
 }

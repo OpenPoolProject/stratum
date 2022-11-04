@@ -1,3 +1,4 @@
+use crate::{Error, Result};
 use bit_set::BitSet;
 use tokio::sync::Mutex;
 
@@ -5,11 +6,13 @@ const MAX_SESSION_INDEX_SERVER: u32 = 0x00FFFFFE;
 
 //@todo I think we are better off using a normal Mutex, and then wrapping this Struct with some
 //protection such as a tokio Mutex. That way we theoretically reduce the overhead.
+#[derive(Debug)]
 pub struct IDManager {
     pub server_id: u8,
     session_id_info: Mutex<SessionIDInfo>,
 }
 
+#[derive(Debug)]
 struct SessionIDInfo {
     count: u32,
     idx: u32,
@@ -32,9 +35,11 @@ impl IDManager {
         self.session_id_info.lock().await.count > MAX_SESSION_INDEX_SERVER
     }
 
-    pub async fn allocate_session_id(&self) -> Option<u32> {
+    //@todo we should be printing the number of sessions issued out of the total supported.
+    //Currently have 24 sessions connected out of 15,000 total. <1% capacity.
+    pub async fn allocate_session_id(&self) -> Result<u32> {
         if self.is_full().await {
-            return None;
+            return Err(Error::SessionIDsExhausted);
         }
 
         let mut info = self.session_id_info.lock().await;
@@ -54,7 +59,7 @@ impl IDManager {
 
         let session_id: u32 = ((self.server_id as u32) << 24) | info.idx;
 
-        Some(session_id)
+        Ok(session_id)
     }
 
     pub async fn remove_session_id(&self, session_id: u32) {

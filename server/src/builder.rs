@@ -2,8 +2,11 @@
 use crate::config::UpstreamConfig;
 
 use crate::{
-    config::VarDiffConfig, id_manager::IDManager, router::Router, types::ReadyIndicator,
-    BanManager, ConnectionList, Result, StratumServer,
+    config::{ConnectionConfig, DifficultyConfig},
+    id_manager::IDManager,
+    router::Router,
+    types::ReadyIndicator,
+    BanManager, Config, ConfigManager, Result, SessionList, StratumServer,
 };
 use extended_primitives::Buffer;
 use std::{marker::PhantomData, sync::Arc, time::Duration};
@@ -20,13 +23,10 @@ pub struct StratumServerBuilder<State, CState> {
     pub api_host: String,
     #[cfg(feature = "api")]
     pub api_port: u16,
-    pub exported_port: Option<u16>,
-    pub max_connections: Option<usize>,
-    pub proxy: bool,
-    pub var_diff_config: VarDiffConfig,
+    pub connection_config: ConnectionConfig,
+    pub var_diff_config: DifficultyConfig,
     #[cfg(feature = "upstream")]
     pub upstream_config: UpstreamConfig,
-    pub initial_difficulty: u64,
     pub state: State,
     pub connection_state: PhantomData<CState>,
     pub ready_indicator: ReadyIndicator,
@@ -45,17 +45,18 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             api_host: String::from("0.0.0.0"),
             #[cfg(feature = "api")]
             api_port: 8888,
-            exported_port: None,
-            max_connections: None,
-            proxy: false,
-            initial_difficulty: 16384,
+            connection_config: ConnectionConfig {
+                proxy_protocol: false,
+                max_connections: None,
+            },
             state,
             connection_state: PhantomData,
             ready_indicator: ReadyIndicator::new(false),
-            var_diff_config: VarDiffConfig {
+            var_diff_config: DifficultyConfig {
+                initial_difficulty: 16384,
                 var_diff: false,
                 minimum_difficulty: 64,
-                maximum_difficulty: 4611686018427387904,
+                maximum_difficulty: 4_611_686_018_427_387_904,
                 retarget_time: 300,
                 target_time: 10,
                 variance_percent: 30.0,
@@ -92,12 +93,12 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     pub fn with_max_connections(mut self, max_connections: usize) -> Self {
-        self.max_connections = Some(max_connections);
+        self.connection_config.max_connections = Some(max_connections);
         self
     }
 
     pub fn with_proxy(mut self, value: bool) -> Self {
-        self.proxy = value;
+        self.connection_config.proxy_protocol = value;
         self
     }
 
@@ -132,12 +133,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     pub fn with_initial_difficulty(mut self, difficulty: u64) -> Self {
-        self.initial_difficulty = difficulty;
-        self
-    }
-
-    pub fn with_expected_port(mut self, port: u16) -> Self {
-        self.exported_port = Some(port);
+        self.var_diff_config.initial_difficulty = difficulty;
         self
     }
 
@@ -161,20 +157,22 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     pub async fn build(self) -> Result<StratumServer<State, CState>> {
+        let config = Config {
+            connection: self.connection_config,
+            difficulty: self.var_diff_config,
+            bans: Default::default(),
+        };
+
+        let config_manager = ConfigManager::new(config);
+
         let listener = TcpListener::bind(format!("{}:{}", self.host, self.port)).await?;
         //This will fail if unable to find a local port.
         let listen_address = listener.local_addr()?;
-        let connection_list = Arc::new(ConnectionList::new(self.max_connections));
         let listener = TcpListenerStream::new(listener);
 
-        //@todo we should probably just allow this to be Option::None>
-        let expected_port = match self.exported_port {
-            Some(exported_port) => exported_port,
-            None => self.port,
-        };
-
+        let session_list = Arc::new(SessionList::new(config_manager.clone()));
         let cancel_token = CancellationToken::new();
-
+        //@todo accept configManager here.
         let ban_manager = Arc::new(BanManager::new(
             cancel_token.child_token(),
             // 1 Hour, @todo come from settings
@@ -198,14 +196,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             id: self.server_id,
             listener,
             listen_address,
-            expected_port,
-            proxy: self.proxy,
-            initial_difficulty: self.initial_difficulty,
-            connection_list,
+            session_list,
+            config_manager,
             state: self.state,
             ban_manager,
             router: Arc::new(Router::new()),
-            var_diff_config: self.var_diff_config,
             session_id_manager: Arc::new(IDManager::new(self.server_id)),
             cancel_token,
             global_thread_list: Vec::new(),
