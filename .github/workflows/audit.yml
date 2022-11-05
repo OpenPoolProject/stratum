@@ -31,7 +31,7 @@ jobs:
         uses: dtolnay/rust-toolchain@55c7845fad90d0ae8b2e83715cb900e5e861e8cb
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@b5ec9edd911d3bf82c74038b0a28791e0aa24d6f
+      - uses: Swatinem/rust-cache@ccdddcc049ade70033bdfbaaf5faacbd36db0529
       - uses: actions-rs/audit-check@35b7b53b1e25b55642157ac01b4adceb5b9ebef3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
