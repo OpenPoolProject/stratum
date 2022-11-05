@@ -1,5 +1,5 @@
-#[cfg(feature = "upstream")]
-use {crate::config::UpstreamConfig, crate::upstream::upstream_message_handler};
+// #[cfg(feature = "upstream")]
+// use {crate::config::UpstreamConfig, crate::upstream::upstream_message_handler};
 
 use crate::{
     id_manager::IDManager, router::Router, session::Session, types::GlobalVars, BanManager,
@@ -20,7 +20,7 @@ where
 {
     pub(crate) ban_manager: Arc<BanManager>,
     pub(crate) id_manager: IDManager,
-    pub(crate) session_list: Arc<SessionList<CState>>,
+    pub(crate) session_list: SessionList<CState>,
     pub(crate) router: Arc<Router<State, CState>>,
     pub(crate) state: State,
     pub(crate) connection_state: CState,

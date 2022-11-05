@@ -1,8 +1,8 @@
-#[cfg(feature = "upstream")]
-use {
-    futures::{channel::mpsc::UnboundedReceiver, StreamExt},
-    serde_json::json,
-};
+// #[cfg(feature = "upstream")]
+// use {
+//     futures::{channel::mpsc::UnboundedReceiver, StreamExt},
+//     serde_json::json,
+// };
 
 use crate::{
     config::ConfigManager, format_difficulty, id_manager::IDManager, Miner, MinerList, Result,
@@ -86,11 +86,11 @@ pub struct Session<State> {
     pub user_info: Arc<Mutex<UserInfo>>,
 
     pub sender: Arc<Mutex<UnboundedSender<SendInformation>>>,
-    #[cfg(feature = "upstream")]
-    pub upstream_sender: Arc<Mutex<UnboundedSender<String>>>,
-    #[cfg(feature = "upstream")]
-    pub upstream_receiver:
-        Arc<Mutex<UnboundedReceiver<serde_json::map::Map<String, serde_json::Value>>>>,
+    // #[cfg(feature = "upstream")]
+    // pub upstream_sender: Arc<Mutex<UnboundedSender<String>>>,
+    // #[cfg(feature = "upstream")]
+    // pub upstream_receiver:
+    //     Arc<Mutex<UnboundedReceiver<serde_json::map::Map<String, serde_json::Value>>>>,
 
     //@todo one thing we could do here that I luike quite a bit is to just make this a tuple.
     //(old, new)
@@ -166,10 +166,10 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
             })),
             info: Arc::new(RwLock::new(SessionInfo::new())),
             sender: Arc::new(Mutex::new(sender)),
-            #[cfg(feature = "upstream")]
-            upstream_sender: Arc::new(Mutex::new(upstream_sender)),
-            #[cfg(feature = "upstream")]
-            upstream_receiver: Arc::new(Mutex::new(upstream_receiver)),
+            // #[cfg(feature = "upstream")]
+            // upstream_sender: Arc::new(Mutex::new(upstream_sender)),
+            // #[cfg(feature = "upstream")]
+            // upstream_receiver: Arc::new(Mutex::new(upstream_receiver)),
             difficulty: Arc::new(Mutex::new(config.difficulty.initial_difficulty)),
             previous_difficulty: Arc::new(Mutex::new(config.difficulty.initial_difficulty)),
             next_difficulty: Arc::new(Mutex::new(None)),
@@ -234,50 +234,50 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
         Ok(())
     }
 
-    #[cfg(feature = "upstream")]
-    pub async fn upstream_send<T: Serialize>(&self, message: T) -> Result<()> {
-        //let last_active = self.stats.lock().await.last_active;
+    // #[cfg(feature = "upstream")]
+    // pub async fn upstream_send<T: Serialize>(&self, message: T) -> Result<()> {
+    //     //let last_active = self.stats.lock().await.last_active;
+    //
+    //     //let last_active_ago = Utc::now().naive_utc() - last_active;
+    //
+    //     ////@todo rewrite this comment
+    //     ////If the miner has not been active (sending shares) for 5 minutes, we disconnect this dude.
+    //     ////@todo before live, check this guy. Also should come from options.
+    //     ////@todo make the last_active thing a config.
+    //     //if last_active_ago > Duration::seconds(600) {
+    //     //    warn!(
+    //     //        "Miner: {} not active since {}. Disconnecting",
+    //     //        self.id, last_active
+    //     //    );
+    //     //    self.ban().await;
+    //     //    return Ok(());
+    //     //}
+    //
+    //     let msg_string = serde_json::to_string(&message)?;
+    //
+    //     debug!("Sending message: {}", msg_string.clone());
+    //
+    //     let mut upstream_sender = self.upstream_sender.lock().await;
+    //
+    //     //@todo this feels inefficient, maybe we do send bytes here.
+    //     upstream_sender.send(msg_string).await?;
+    //     // stream.write_all(b"\n").await?;
+    //
+    //     Ok(())
+    // }
 
-        //let last_active_ago = Utc::now().naive_utc() - last_active;
-
-        ////@todo rewrite this comment
-        ////If the miner has not been active (sending shares) for 5 minutes, we disconnect this dude.
-        ////@todo before live, check this guy. Also should come from options.
-        ////@todo make the last_active thing a config.
-        //if last_active_ago > Duration::seconds(600) {
-        //    warn!(
-        //        "Miner: {} not active since {}. Disconnecting",
-        //        self.id, last_active
-        //    );
-        //    self.ban().await;
-        //    return Ok(());
-        //}
-
-        let msg_string = serde_json::to_string(&message)?;
-
-        debug!("Sending message: {}", msg_string.clone());
-
-        let mut upstream_sender = self.upstream_sender.lock().await;
-
-        //@todo this feels inefficient, maybe we do send bytes here.
-        upstream_sender.send(msg_string).await?;
-        // stream.write_all(b"\n").await?;
-
-        Ok(())
-    }
-
-    #[cfg(feature = "upstream")]
-    pub async fn upstream_result(&self) -> Result<(serde_json::Value, serde_json::Value)> {
-        let mut upstream_receiver = self.upstream_receiver.lock().await;
-
-        let values = match upstream_receiver.next().await {
-            Some(values) => values,
-            //@todo return error here.
-            None => return Ok((json!(false), serde_json::Value::Null)),
-        };
-
-        Ok((values["result"].clone(), values["error"].clone()))
-    }
+    // #[cfg(feature = "upstream")]
+    // pub async fn upstream_result(&self) -> Result<(serde_json::Value, serde_json::Value)> {
+    //     let mut upstream_receiver = self.upstream_receiver.lock().await;
+    //
+    //     let values = match upstream_receiver.next().await {
+    //         Some(values) => values,
+    //         //@todo return error here.
+    //         None => return Ok((json!(false), serde_json::Value::Null)),
+    //     };
+    //
+    //     Ok((values["result"].clone(), values["error"].clone()))
+    // }
 
     pub async fn shutdown(&self) {
         self.info.write().await.state = SessionState::Disconnect;

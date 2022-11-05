@@ -1,5 +1,5 @@
-#[cfg(feature = "upstream")]
-use crate::config::UpstreamConfig;
+// #[cfg(feature = "upstream")]
+// use crate::config::UpstreamConfig;
 
 use crate::{
     config::{ConnectionConfig, DifficultyConfig},
@@ -25,8 +25,8 @@ pub struct StratumServerBuilder<State, CState> {
     pub api_port: u16,
     pub connection_config: ConnectionConfig,
     pub var_diff_config: DifficultyConfig,
-    #[cfg(feature = "upstream")]
-    pub upstream_config: UpstreamConfig,
+    // #[cfg(feature = "upstream")]
+    // pub upstream_config: UpstreamConfig,
     pub state: State,
     pub connection_state: PhantomData<CState>,
     pub ready_indicator: ReadyIndicator,
@@ -61,11 +61,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 target_time: 10,
                 variance_percent: 30.0,
             },
-            #[cfg(feature = "upstream")]
-            upstream_config: UpstreamConfig {
-                enabled: false,
-                url: String::from(""),
-            },
+            // #[cfg(feature = "upstream")]
+            // upstream_config: UpstreamConfig {
+            //     enabled: false,
+            //     url: String::from(""),
+            // },
             shutdown_message: None,
         }
     }
@@ -156,15 +156,15 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self
     }
 
-    #[cfg(feature = "upstream")]
-    #[must_use]
-    pub fn with_upstream(mut self, url: &str) -> Self {
-        self.upstream_config = UpstreamConfig {
-            enabled: true,
-            url: url.to_string(),
-        };
-        self
-    }
+    // #[cfg(feature = "upstream")]
+    // #[must_use]
+    // pub fn with_upstream(mut self, url: &str) -> Self {
+    //     self.upstream_config = UpstreamConfig {
+    //         enabled: true,
+    //         url: url.to_string(),
+    //     };
+    //     self
+    // }
 
     #[must_use]
     pub fn with_shutdown_message(mut self, msg: Buffer) -> Self {
@@ -186,7 +186,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         let listen_address = listener.local_addr()?;
         let listener = TcpListenerStream::new(listener);
 
-        let session_list = Arc::new(SessionList::new(config_manager.clone()));
+        let session_list = SessionList::new(config_manager.clone());
         let cancel_token = CancellationToken::new();
         //@todo accept configManager here.
         let ban_manager = Arc::new(BanManager::new(
@@ -226,10 +226,10 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             // api: Arc::new(Mutex::new(api)),
             #[cfg(feature = "api")]
             api,
-            #[cfg(feature = "upstream")]
-            upstream_router: Arc::new(Router::new()),
-            #[cfg(feature = "upstream")]
-            upstream_config: self.upstream_config,
+            // #[cfg(feature = "upstream")]
+            // upstream_router: Arc::new(Router::new()),
+            // #[cfg(feature = "upstream")]
+            // upstream_config: self.upstream_config,
         })
     }
 }

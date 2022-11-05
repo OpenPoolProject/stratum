@@ -26,11 +26,11 @@ mod tcp;
 mod types;
 mod utils;
 
-#[cfg(feature = "upstream")]
-mod upstream;
+// #[cfg(feature = "upstream")]
+// mod upstream;
 
-#[cfg(feature = "upstream")]
-use crate::config::UpstreamConfig;
+// #[cfg(feature = "upstream")]
+// use crate::config::UpstreamConfig;
 
 #[cfg(feature = "api")]
 mod api;

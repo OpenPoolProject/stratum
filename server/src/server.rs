@@ -1,5 +1,5 @@
-#[cfg(feature = "upstream")]
-use crate::UpstreamConfig;
+// #[cfg(feature = "upstream")]
+// use crate::UpstreamConfig;
 
 use crate::{
     ban_manager,
@@ -37,7 +37,7 @@ where
     pub(crate) listen_address: SocketAddr,
     pub(crate) listener: TcpListenerStream,
     pub(crate) state: State,
-    pub(crate) session_list: Arc<SessionList<CState>>,
+    pub(crate) session_list: SessionList<CState>,
     pub(crate) ban_manager: Arc<BanManager>,
     pub(crate) config_manager: ConfigManager,
     pub(crate) router: Arc<Router<State, CState>>,
@@ -53,10 +53,10 @@ where
     pub(crate) shutdown_message: Option<Buffer>,
     #[cfg(feature = "api")]
     pub(crate) api: crate::api::Api,
-    #[cfg(feature = "upstream")]
-    pub(crate) upstream_router: Arc<Router<State, CState>>,
-    #[cfg(feature = "upstream")]
-    pub(crate) upstream_config: UpstreamConfig,
+    // #[cfg(feature = "upstream")]
+    // pub(crate) upstream_router: Arc<Router<State, CState>>,
+    // #[cfg(feature = "upstream")]
+    // pub(crate) upstream_config: UpstreamConfig,
 }
 
 //@todo I like the idea of Topology - Shows which services are running and which are not.
@@ -125,13 +125,13 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     //@todo will probably change this "Endpoint" here to an upstream endpoint.
-    #[cfg(feature = "upstream")]
-    pub fn add_upstream(&mut self, method: &str, ep: impl Endpoint<State, CState>) {
-        //@todo review this code.
-        let router = Arc::get_mut(&mut self.upstream_router)
-            .expect("Registering routes is not possible after the Server has started");
-        router.add(method, ep);
-    }
+    // #[cfg(feature = "upstream")]
+    // pub fn add_upstream(&mut self, method: &str, ep: impl Endpoint<State, CState>) {
+    //     //@todo review this code.
+    //     let router = Arc::get_mut(&mut self.upstream_router)
+    //         .expect("Registering routes is not possible after the Server has started");
+    //     router.add(method, ep);
+    // }
 
     pub fn global(&mut self, _global_name: &str, ep: impl Global<State, CState>) {
         let state = self.state.clone();
@@ -351,7 +351,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     // #[cfg(test)]
-    pub fn get_miner_list(&self) -> Arc<SessionList<CState>> {
+    pub fn get_miner_list(&self) -> SessionList<CState> {
         self.session_list.clone()
     }
 
