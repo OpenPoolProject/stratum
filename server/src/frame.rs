@@ -3,8 +3,8 @@ use crate::ID;
 use serde::Deserialize;
 
 pub enum Frame {
-    #[cfg(feature = "btcagent")]
-    ExMessage(ExMessage),
+    // #[cfg(feature = "btcagent")]
+    // ExMessage(ExMessage),
 
     // #[cfg(feature = "v1")]
     // V1(serde_json::map::Map<String, serde_json::Value>),
