@@ -26,6 +26,7 @@ pub struct Miner {
 }
 
 impl Miner {
+    #[must_use]
     pub fn new(
         id: Uuid,
         client: Option<String>,
