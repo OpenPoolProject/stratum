@@ -55,7 +55,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload analysis results to GitHub
-        uses: github/codeql-action/upload-sarif@26df9a9a4f747a1433f983165f01a25bea09a255
+        uses: github/codeql-action/upload-sarif@bab5a146ac6d7a082c88e24391b2b1fc4ac67ec0
         with:
           sarif_file: rust-clippy-results.sarif
           wait-for-processing: true
