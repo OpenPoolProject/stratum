@@ -298,6 +298,7 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
         *self.needs_ban.lock().await
     }
 
+    #[must_use]
     pub fn id(&self) -> Uuid {
         self.id
     }
@@ -309,8 +310,8 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
 
         let worker = Miner::new(
             worker_id,
-            conn_info.client.to_owned(),
-            user_info.worker_name.to_owned(),
+            conn_info.client.clone(),
+            user_info.worker_name.clone(),
             Buffer::from(session_id.to_le_bytes().to_vec()),
             self.options.clone(),
             format_difficulty(*self.difficulty.lock().await),
@@ -346,7 +347,8 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
         self.miner_list.remove_miner(session_id).await
     }
 
-    pub async fn get_worker_list(&self) -> MinerList {
+    #[must_use]
+    pub fn get_worker_list(&self) -> MinerList {
         self.miner_list.clone()
     }
 
@@ -422,6 +424,7 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
         }
     }
 
+    #[must_use]
     pub fn get_session_id(&self) -> u32 {
         self.session_id
     }

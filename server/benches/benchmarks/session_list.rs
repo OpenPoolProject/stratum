@@ -1,14 +1,14 @@
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, Criterion};
 use stratum_server::SessionList;
 
 // This is a struct that tells Criterion.rs to use the "futures" crate's current-thread executor
-use criterion::async_executor::AsyncExecutor;
+// use criterion::async_executor::AsyncExecutor;
 
 #[derive(Clone, Default)]
 pub struct ConnectionState {}
 
 // Here we have an async function to benchmark
-async fn do_something(session_list: SessionList<ConnectionState>) {
+async fn do_something(_session_list: SessionList<ConnectionState>) {
     // Do something async with the size
     // session_list.add_miner()
 }

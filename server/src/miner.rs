@@ -162,9 +162,8 @@ impl Miner {
         if avg > self.options.target_time as f64 {
             if (avg / self.options.target_time as f64) <= 1.5 {
                 return;
-            } else {
-                new_diff = job_stats.current_difficulty / 2;
             }
+            new_diff = job_stats.current_difficulty / 2;
         } else if (avg / self.options.target_time as f64) >= 0.7 {
             return;
         } else {
