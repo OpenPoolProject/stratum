@@ -29,15 +29,15 @@ jobs:
       security-events: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@5e53a6998f4b1305aa150682211e74ec0d8d2dda
+        uses: step-security/harden-runner@b4401455ef773683d2da2e176e3539cce0fabdc7
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout code
-        uses: actions/checkout@1f9a0c22da41e6ebfa534300ef656657ea2c6707
+        uses: actions/checkout@bf085276cecdb0cc76fbbe0687a5a0e786646936
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746 #@v1
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1
         with:
           profile: minimal
           toolchain: stable
@@ -55,7 +55,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload analysis results to GitHub
-        uses: github/codeql-action/upload-sarif@40542d38bc4936c2ca7da883aeb050a6081b4b31
+        uses: github/codeql-action/upload-sarif@9dac9f748a23bc6702673c2ca9f5c9edff8db684
         with:
           sarif_file: rust-clippy-results.sarif
           wait-for-processing: true

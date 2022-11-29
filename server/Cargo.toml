@@ -22,7 +22,7 @@ v2 = []
 # Futures
 # @todo after full implementation, see if we can peel back some features here to
 # the minimal required.
-tokio = { version = "1.21.2", features = ["full"] }
+tokio = { version = "1.22.0", features = ["full"] }
 async-trait = "0.1.58"
 futures = "0.3.25"
 tokio-util = { version = "0.7.4", features = ["time"]}
@@ -35,18 +35,18 @@ tower-http = { version = "0.3.4", features = ["cors"], optional = true}
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.87"
+serde_json = "1.0.89"
 extended-primitives = {version = "0.3.8"}
 
 # Telemtry
 tracing = "0.1.37"
 
 # Primitives
-uuid = { version = "1.2.1", features = ["serde", "v4"] }
+uuid = { version = "1.2.2", features = ["serde", "v4"] }
 # @todo we can probably drop this btw - our time requirements are not super
 # difficult.
 # default-features only false until new release @note
-chrono = { version="0.4.22", default-features = false, features = ["clock"]}
+chrono = { version="0.4.23", default-features = false, features = ["clock"]}
 bytes = "1.2.1"
 
 # Utils

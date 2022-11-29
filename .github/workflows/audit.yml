@@ -21,17 +21,17 @@ jobs:
       issues: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@5e53a6998f4b1305aa150682211e74ec0d8d2dda
+        uses: step-security/harden-runner@b4401455ef773683d2da2e176e3539cce0fabdc7
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
-        uses: actions/checkout@1f9a0c22da41e6ebfa534300ef656657ea2c6707
+        uses: actions/checkout@bf085276cecdb0cc76fbbe0687a5a0e786646936
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@55c7845fad90d0ae8b2e83715cb900e5e861e8cb
+        uses: dtolnay/rust-toolchain@e645b0cf01249a964ec099494d38d2da0f0b349f
         with:
           toolchain: stable
-      - uses: Swatinem/rust-cache@b8e72aae8381e4b9942ff10e8ec0fcd359dc5246
+      - uses: Swatinem/rust-cache@359a70e43a0bb8a13953b04a90f76428b4959bb6
       - uses: actions-rs/audit-check@35b7b53b1e25b55642157ac01b4adceb5b9ebef3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
