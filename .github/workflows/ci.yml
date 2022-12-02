@@ -83,7 +83,9 @@ jobs:
         with:
           tool: cargo-hack
       - run:
-          cargo hack build -vvv --workspace --feature-powerset --optional-deps
+          # cargo hack build -vvv --workspace --feature-powerset --optional-deps
+          # --ignore-private --no-dev-deps --version-range ..
+          cargo hack build -vvv --workspace --all-features --optional-deps
           --ignore-private --no-dev-deps --version-range ..
 
   tidy:
