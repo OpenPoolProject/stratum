@@ -25,6 +25,8 @@ pub struct UserInfo {
     pub worker_name: Option<String>,
 }
 
+//@todo remove
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct SessionInfo {
     pub agent: bool,
@@ -125,6 +127,8 @@ pub struct MinerOptions {
 }
 
 impl<State: Clone + Send + Sync + 'static> Session<State> {
+    //@todo remove this if/when we
+    #[allow(clippy::needless_pass_by_value)]
     pub fn new(
         id_manager: IDManager,
         sender: UnboundedSender<SendInformation>,

@@ -5,6 +5,10 @@
 #![allow(clippy::missing_errors_doc)]
 //@todo fix this.
 #![allow(clippy::missing_panics_doc)]
+//@todo remove eventually
+#![allow(clippy::cast_lossless)]
+//@todo remove eventually
+#![allow(clippy::cast_precision_loss)]
 
 mod ban_manager;
 mod builder;

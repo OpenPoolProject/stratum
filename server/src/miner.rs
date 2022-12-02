@@ -136,14 +136,14 @@ impl Miner {
 
         //@todo set the retarget share amount in self.options as well.
         let stats = self.stats.lock().await;
-        if !(((stats.accepted_shares - job_stats.last_retarget_share as u64) >= 30)
+        if !(((stats.accepted_shares - job_stats.last_retarget_share) >= 30)
             || (now - job_stats.last_retarget) >= self.options.retarget_time as u128)
         {
             return;
         }
 
         job_stats.last_retarget = now;
-        job_stats.last_retarget_share = stats.accepted_shares as i64;
+        job_stats.last_retarget_share = stats.accepted_shares;
 
         // let variance = self.options.target_time * (self.options.variance_percent as f64 / 100.0);
         // let time_min = self.options.target_time as f64 * 0.40;
@@ -233,7 +233,7 @@ pub struct MinerStats {
 #[derive(Debug)]
 pub struct JobStats {
     last_timestamp: u128,
-    last_retarget_share: i64,
+    last_retarget_share: u64,
     last_retarget: u128,
     vardiff_buf: VarDiffBuffer,
     current_difficulty: u64,
