@@ -1,106 +1,107 @@
 pub mod common;
 
-#[tokio::test]
-async fn test_basic_server() {
-    #[cfg(not(target_env = "msvc"))]
-    use jemallocator::Jemalloc;
-
-    #[cfg(not(target_env = "msvc"))]
-    #[global_allocator]
-    static GLOBAL: Jemalloc = Jemalloc;
-
-    use std::sync::Arc;
-    use tokio::{io::AsyncWriteExt, net::TcpStream};
-    // use jemallocator::Jemalloc;
-    use std::time::Duration;
-    use stratum_server::{Connection, StratumRequest, StratumServer};
-
-    // pub use common::init;
-
-    //@todo note: We might be suffering from this: https://github.com/rust-lang/cargo/issues/7916 AND https://github.com/rust-lang/cargo/issues/1796
-    //Due to the fact that we are including async-std twice, only with a different feature in the
-    //development mode. This is not a huge deal, but it's probably important to monitor the status on
-    //the above issues.
-
-    //@todo use ONCE here from std::sync:Once -> See the test I linked in Proq.
-    //@todo use future.race btw, this will call whichever function first.
-    //
-    //@todo move handle_auth and the server setup to common.
-    //@todo also should probs just select! instead of race?
-    //
-    //@todo test for the 10 minute delay killing. We can do this by making sure that the 10 minute
-    //stale timing is configurable.
-    //@todo test 2 connections, dropping one, and then testing that there is 1 left (to ensure we don't
-    //drop everything).
-    //@todo test 1 connection and dropping.
-
-    // #[cfg(not(target_env = "msvc"))]
-    // #[global_allocator]
-    // static GLOBAL: Jemalloc = Jemalloc;
-
-    pub async fn handle_auth(
-        req: StratumRequest<State>,
-        _connection: Arc<Connection<ConnectionState>>,
-    ) -> Result<bool, std::io::Error> {
-        let state = req.state();
-
-        let login = state.auth.login().await;
-
-        Ok(login)
-    }
-
-    #[derive(Clone)]
-    pub struct AuthProvider {}
-
-    impl AuthProvider {
-        pub async fn login(&self) -> bool {
-            true
-        }
-    }
-
-    #[derive(Clone)]
-    pub struct State {
-        auth: AuthProvider,
-    }
-
-    #[derive(Clone, Default)]
-    pub struct ConnectionState {}
-    common::init();
-
-    let auth = AuthProvider {};
-    let state = State { auth };
-    let port = common::find_port().await;
-    let mut server = StratumServer::builder(state, 1)
-        .with_host("0.0.0.0")
-        .with_port(port)
-        .build();
-
-    server.add("auth", handle_auth);
-
-    let server = tokio::spawn(async move {
-        server.start().await.unwrap();
-    });
-
-    let client = tokio::spawn(async move {
-        tokio::time::sleep(Duration::from_millis(200)).await;
-        let mut stream = TcpStream::connect(format!("0.0.0.0:{port}")).await.unwrap();
-        let msg = "{\"method\":\"auth\"}";
-
-        stream.write_all(msg.as_bytes()).await.unwrap();
-        stream.write_all(b"\n").await.unwrap();
-    });
-
-    let result = tokio::select! {
-        _ = server => {
-           0
-        }
-        _ = client => {
-            1
-        }
-    };
-
-    assert_eq!(result, 1);
-}
+// #[tokio::test]
+// async fn test_basic_server() {
+//     //@todo remove this because we
+//     #[cfg(not(target_env = "msvc"))]
+//     use jemallocator::Jemalloc;
+//
+//     #[cfg(not(target_env = "msvc"))]
+//     #[global_allocator]
+//     static GLOBAL: Jemalloc = Jemalloc;
+//
+//     use std::sync::Arc;
+//     use tokio::{io::AsyncWriteExt, net::TcpStream};
+//     // use jemallocator::Jemalloc;
+//     use std::time::Duration;
+//     use stratum_server::{Connection, StratumRequest, StratumServer};
+//
+//     // pub use common::init;
+//
+//     //@todo note: We might be suffering from this: https://github.com/rust-lang/cargo/issues/7916 AND https://github.com/rust-lang/cargo/issues/1796
+//     //Due to the fact that we are including async-std twice, only with a different feature in the
+//     //development mode. This is not a huge deal, but it's probably important to monitor the status on
+//     //the above issues.
+//
+//     //@todo use ONCE here from std::sync:Once -> See the test I linked in Proq.
+//     //@todo use future.race btw, this will call whichever function first.
+//     //
+//     //@todo move handle_auth and the server setup to common.
+//     //@todo also should probs just select! instead of race?
+//     //
+//     //@todo test for the 10 minute delay killing. We can do this by making sure that the 10 minute
+//     //stale timing is configurable.
+//     //@todo test 2 connections, dropping one, and then testing that there is 1 left (to ensure we don't
+//     //drop everything).
+//     //@todo test 1 connection and dropping.
+//
+//     // #[cfg(not(target_env = "msvc"))]
+//     // #[global_allocator]
+//     // static GLOBAL: Jemalloc = Jemalloc;
+//
+//     pub async fn handle_auth(
+//         req: StratumRequest<State>,
+//         _connection: Arc<Connection<ConnectionState>>,
+//     ) -> Result<bool, std::io::Error> {
+//         let state = req.state();
+//
+//         let login = state.auth.login().await;
+//
+//         Ok(login)
+//     }
+//
+//     #[derive(Clone)]
+//     pub struct AuthProvider {}
+//
+//     impl AuthProvider {
+//         pub async fn login(&self) -> bool {
+//             true
+//         }
+//     }
+//
+//     #[derive(Clone)]
+//     pub struct State {
+//         auth: AuthProvider,
+//     }
+//
+//     #[derive(Clone, Default)]
+//     pub struct ConnectionState {}
+//     common::init();
+//
+//     let auth = AuthProvider {};
+//     let state = State { auth };
+//     let port = common::find_port().await;
+//     let mut server = StratumServer::builder(state, 1)
+//         .with_host("0.0.0.0")
+//         .with_port(port)
+//         .build();
+//
+//     server.add("auth", handle_auth);
+//
+//     let server = tokio::spawn(async move {
+//         server.start().await.unwrap();
+//     });
+//
+//     let client = tokio::spawn(async move {
+//         tokio::time::sleep(Duration::from_millis(200)).await;
+//         let mut stream = TcpStream::connect(format!("0.0.0.0:{port}")).await.unwrap();
+//         let msg = "{\"method\":\"auth\"}";
+//
+//         stream.write_all(msg.as_bytes()).await.unwrap();
+//         stream.write_all(b"\n").await.unwrap();
+//     });
+//
+//     let result = tokio::select! {
+//         _ = server => {
+//            0
+//         }
+//         _ = client => {
+//             1
+//         }
+//     };
+//
+//     assert_eq!(result, 1);
+// }
 
 //#[async_std::test]
 //async fn test_single_connection_shutdown() {

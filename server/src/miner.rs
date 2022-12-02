@@ -1,5 +1,4 @@
-use crate::{connection::MinerOptions, types::VarDiffBuffer};
-use chrono::{NaiveDateTime, Utc};
+use crate::{session::MinerOptions, types::VarDiffBuffer, utils};
 use extended_primitives::Buffer;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -26,6 +25,7 @@ pub struct Miner {
 }
 
 impl Miner {
+    #[must_use]
     pub fn new(
         id: Uuid,
         client: Option<String>,
@@ -34,7 +34,7 @@ impl Miner {
         options: Arc<MinerOptions>,
         difficulty: u64,
     ) -> Self {
-        let now = Utc::now().naive_utc();
+        let now = utils::now();
         Miner {
             id,
             sid,
@@ -49,8 +49,8 @@ impl Miner {
                 last_active: now,
             })),
             job_stats: Arc::new(Mutex::new(JobStats {
-                last_timestamp: now.timestamp(),
-                last_retarget: now.timestamp() - options.retarget_time as i64 / 2,
+                last_timestamp: now,
+                last_retarget: now - (options.retarget_time as u128 * 1000) / 2,
                 vardiff_buf: VarDiffBuffer::new(),
                 last_retarget_share: 0,
                 current_difficulty: difficulty,
@@ -102,7 +102,7 @@ impl Miner {
     pub async fn valid_share(&self) {
         let mut stats = self.stats.lock().await;
         stats.accepted_shares += 1;
-        stats.last_active = Utc::now().naive_utc();
+        stats.last_active = utils::now();
         drop(stats);
         // self.consider_ban().await; @todo
         // @todo if we want to wrap this in an option, lets make it options.
@@ -125,7 +125,7 @@ impl Miner {
     //@todo see if we can solve a lot of these recasting issues.
     //@todo wrap u64 with a custom difficulty type.
     async fn retarget(&self) {
-        let now = Utc::now().timestamp();
+        let now = utils::now();
 
         let mut job_stats = self.job_stats.lock().await;
 
@@ -136,14 +136,14 @@ impl Miner {
 
         //@todo set the retarget share amount in self.options as well.
         let stats = self.stats.lock().await;
-        if !(((stats.accepted_shares - job_stats.last_retarget_share as u64) >= 30)
-            || (now - job_stats.last_retarget) >= self.options.retarget_time as i64)
+        if !(((stats.accepted_shares - job_stats.last_retarget_share) >= 30)
+            || (now - job_stats.last_retarget) >= self.options.retarget_time as u128)
         {
             return;
         }
 
         job_stats.last_retarget = now;
-        job_stats.last_retarget_share = stats.accepted_shares as i64;
+        job_stats.last_retarget_share = stats.accepted_shares;
 
         // let variance = self.options.target_time * (self.options.variance_percent as f64 / 100.0);
         // let time_min = self.options.target_time as f64 * 0.40;
@@ -161,9 +161,8 @@ impl Miner {
         if avg > self.options.target_time as f64 {
             if (avg / self.options.target_time as f64) <= 1.5 {
                 return;
-            } else {
-                new_diff = job_stats.current_difficulty / 2;
             }
+            new_diff = job_stats.current_difficulty / 2;
         } else if (avg / self.options.target_time as f64) >= 0.7 {
             return;
         } else {
@@ -226,16 +225,16 @@ impl Miner {
 pub struct MinerStats {
     accepted_shares: u64,
     rejected_shares: u64,
-    last_active: NaiveDateTime,
+    last_active: u128,
 }
 
 //@todo probably move these over to types.
 //@todo maybe rename this as vardiff stats.
 #[derive(Debug)]
 pub struct JobStats {
-    last_timestamp: i64,
-    last_retarget_share: i64,
-    last_retarget: i64,
+    last_timestamp: u128,
+    last_retarget_share: u64,
+    last_retarget: u128,
     vardiff_buf: VarDiffBuffer,
     current_difficulty: u64,
 }

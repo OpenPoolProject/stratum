@@ -2,14 +2,15 @@
 name = "stratum-server"
 version = "3.4.0"
 authors = ["Sean Kilgarriff sean@urkel.com"]
-rust-version = "1.60"
+rust-version = "1.65"
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 description = "The server code for the Rust Stratum implementation"
 repository = "https://github.com/OpenPoolProject/stratum"
 
 [features]
-default = ["tcp"]
+default = ["tcp", "api", "v1"]
+api = ["axum", "hyper", "tower-http"]
 tcp = []
 upstream = []
 btcagent = []
@@ -24,33 +25,41 @@ v2 = []
 tokio = { version = "1.22.0", features = ["full"] }
 async-trait = "0.1.59"
 futures = "0.3.25"
-tokio-util = "0.7.4"
+tokio-util = { version = "0.7.4", features = ["time"]}
 tokio-stream = { version = "0.1.11", features = ["net"]}
+
+# API
+axum = { version = "0.6.1", optional = true}
+hyper = { version = "0.14.20", optional = true}
+tower-http = { version = "0.3.4", features = ["cors"], optional = true}
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.89"
 extended-primitives = {version = "0.3.8"}
-encodings = "0.1.0"
 
 # Telemtry
 tracing = "0.1.37"
 
 # Primitives
 uuid = { version = "1.2.2", features = ["serde", "v4"] }
-# default-features only false until new release @note
-chrono = { version="0.4.23", default-features = false, features = ["clock"]}
+bytes = "1.2.1"
 
 # Utils
 thiserror = "1.0.37"
 bit-set = "0.5.3"
+
 # @todo I believe we can replace this, but let's see
 signal-hook = "0.3.14"
 signal-hook-tokio = {version = "0.3.1", features = ["futures-v0_3"]}
+dashmap = {version = "5.4.0"}
+rlimit = "0.8.3"
+parking_lot = "0.12"
 
 [dev-dependencies]
+tokio = { version = "1", features = ["test-util"] }
 tokio-test = "0.4.2"
-portpicker = "0.1.1"
+criterion = {version = "0.4", features = ["async_tokio"]}
 
 # Allocator @todo switch this to mimalloc
 jemallocator = "0.5.0"
@@ -64,3 +73,7 @@ sign-commit = false
 pre-release-commit-message = "chore(server): release {{ version }}"
 
 # @todo bring back benchmarks here.
+[[bench]]
+name = "default"
+harness = false
+# required-features = ["benches"]

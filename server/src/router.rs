@@ -1,7 +1,7 @@
 use crate::{
     route::{DynEndpoint, Endpoint},
-    types::{GlobalVars, MessageValue},
-    Connection, StratumRequest,
+    types::GlobalVars,
+    Frame, Session, StratumRequest,
 };
 use std::{collections::HashMap, sync::Arc};
 use tracing::warn;
@@ -25,18 +25,14 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
 
     pub async fn call(
         &self,
-        method: &str,
-        value: MessageValue,
+        value: Frame,
         state: State,
-        connection: Arc<Connection<CState>>,
+        connection: Arc<Session<CState>>,
         global_vars: GlobalVars,
     ) {
-        let endpoint = match self.routes.get(method) {
-            Some(endpoint) => endpoint,
-            None => {
-                warn!("Method {} was not found", method);
+        let Some(endpoint) = self.routes.get(value.method()) else {
+                warn!("Method {} was not found", value.method());
                 return;
-            }
         };
 
         // if log::log_enabled!(log::Level::Trace) {
@@ -54,7 +50,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
         // } else {
         tracing::trace!(
             "Calling method: {} for connection: {}",
-            method,
+            value.method(),
             connection.id()
         );
         // }

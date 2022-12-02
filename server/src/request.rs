@@ -1,8 +1,11 @@
-use crate::types::{ExMessageGeneric, GlobalVars, MessageValue, ID};
+use crate::{
+    types::{GlobalVars, ID},
+    Frame,
+};
 
 pub struct StratumRequest<State> {
     pub(crate) state: State,
-    pub(crate) values: MessageValue,
+    pub(crate) values: Frame,
     pub(crate) global_vars: GlobalVars,
 }
 
@@ -16,45 +19,31 @@ impl<State> StratumRequest<State> {
         &self.global_vars
     }
 
-    pub fn get_ex_message(&self) -> Option<ExMessageGeneric> {
-        match &self.values {
-            MessageValue::StratumV1(_) => None,
-            MessageValue::ExMessage(msg) => Some(msg.clone()),
-        }
-    }
+    // pub fn get_ex_message(&self) -> Option<ExMessageGeneric> {
+    //     match &self.values {
+    //         MessageValue::StratumV1(_) => None,
+    //         MessageValue::ExMessage(msg) => Some(msg.clone()),
+    //     }
+    // }
 
     pub fn get_json<T: serde::de::DeserializeOwned>(
         &self,
-        name: &str,
+        _name: &str,
     ) -> Result<T, serde_json::Error> {
         match &self.values {
-            MessageValue::StratumV1(params) => {
-                let params = params
-                    .get(name)
-                    .ok_or_else(|| serde::de::Error::custom(format!("expected {name}")))?
-                    .clone();
-
-                Ok(serde_json::from_value(params)?)
-            }
-            MessageValue::ExMessage(_) => Err(serde::de::Error::custom(
-                "wrong message type request".to_string(),
-            )),
+            Frame::V1(request) => Ok(serde_json::from_value(request.params.clone())?),
+            // MessageValue::ExMessage(_) => Err(serde::de::Error::custom(
+            //     "wrong message type request".to_string(),
+            // )),
         }
     }
 
     pub fn get_id(&self) -> Result<ID, serde_json::Error> {
         match &self.values {
-            MessageValue::StratumV1(params) => {
-                let params = params
-                    .get("id")
-                    .ok_or_else(|| serde::de::Error::custom(format!("expected {}", "id")))?
-                    .clone();
-
-                Ok(serde_json::from_value(params)?)
-            }
-            MessageValue::ExMessage(_) => Err(serde::de::Error::custom(
-                "wrong message type request".to_string(),
-            )),
+            Frame::V1(request) => Ok(request.id.clone()),
+            // MessageValue::ExMessage(_) => Err(serde::de::Error::custom(
+            //     "wrong message type request".to_string(),
+            // )),
         }
     }
 }

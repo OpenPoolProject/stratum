@@ -1,12 +1,17 @@
-#[cfg(feature = "upstream")]
-use crate::config::UpstreamConfig;
+// #[cfg(feature = "upstream")]
+// use crate::config::UpstreamConfig;
 
 use crate::{
-    config::VarDiffConfig, id_manager::IDManager, router::Router, types::ReadyIndicator,
-    BanManager, ConnectionList, StratumServer,
+    config::{ConnectionConfig, DifficultyConfig},
+    id_manager::IDManager,
+    router::Router,
+    types::ReadyIndicator,
+    BanManager, Config, ConfigManager, Result, SessionList, StratumServer,
 };
 use extended_primitives::Buffer;
 use std::{marker::PhantomData, sync::Arc};
+use tokio::net::TcpListener;
+use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Default)]
@@ -14,15 +19,14 @@ pub struct StratumServerBuilder<State, CState> {
     pub server_id: u8,
     pub host: String,
     pub port: u16,
+    #[cfg(feature = "api")]
     pub api_host: String,
+    #[cfg(feature = "api")]
     pub api_port: u16,
-    pub exported_port: Option<u16>,
-    pub max_connections: Option<usize>,
-    pub proxy: bool,
-    pub var_diff_config: VarDiffConfig,
-    #[cfg(feature = "upstream")]
-    pub upstream_config: UpstreamConfig,
-    pub initial_difficulty: u64,
+    pub connection_config: ConnectionConfig,
+    pub var_diff_config: DifficultyConfig,
+    // #[cfg(feature = "upstream")]
+    // pub upstream_config: UpstreamConfig,
     pub state: State,
     pub connection_state: PhantomData<CState>,
     pub ready_indicator: ReadyIndicator,
@@ -35,154 +39,197 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     pub fn new(state: State, server_id: u8) -> Self {
         Self {
             server_id,
-            host: String::from(""),
+            host: String::new(),
             port: 0,
+            #[cfg(feature = "api")]
             api_host: String::from("0.0.0.0"),
+            #[cfg(feature = "api")]
             api_port: 8888,
-            exported_port: None,
-            max_connections: None,
-            proxy: false,
-            initial_difficulty: 16384,
+            connection_config: ConnectionConfig {
+                proxy_protocol: false,
+                max_connections: None,
+            },
             state,
             connection_state: PhantomData,
-            ready_indicator: ReadyIndicator::new(true),
-            var_diff_config: VarDiffConfig {
+            ready_indicator: ReadyIndicator::new(false),
+            var_diff_config: DifficultyConfig {
+                initial_difficulty: 16384,
                 var_diff: false,
                 minimum_difficulty: 64,
-                maximum_difficulty: 4611686018427387904,
+                maximum_difficulty: 4_611_686_018_427_387_904,
                 retarget_time: 300,
                 target_time: 10,
                 variance_percent: 30.0,
             },
-            #[cfg(feature = "upstream")]
-            upstream_config: UpstreamConfig {
-                enabled: false,
-                url: String::from(""),
-            },
+            // #[cfg(feature = "upstream")]
+            // upstream_config: UpstreamConfig {
+            //     enabled: false,
+            //     url: String::from(""),
+            // },
             shutdown_message: None,
         }
     }
 
+    #[must_use]
     pub fn with_host(mut self, host: &str) -> Self {
         self.host = host.to_owned();
         self
     }
 
+    #[must_use]
     pub fn with_port(mut self, port: u16) -> Self {
         self.port = port;
         self
     }
 
+    #[cfg(feature = "api")]
+    #[must_use]
     pub fn with_api_host(mut self, host: &str) -> Self {
         self.api_host = host.to_owned();
         self
     }
 
+    #[cfg(feature = "api")]
+    #[must_use]
     pub fn with_api_port(mut self, port: u16) -> Self {
         self.api_port = port;
         self
     }
 
+    #[must_use]
     pub fn with_max_connections(mut self, max_connections: usize) -> Self {
-        self.max_connections = Some(max_connections);
+        self.connection_config.max_connections = Some(max_connections);
         self
     }
 
+    #[must_use]
     pub fn with_proxy(mut self, value: bool) -> Self {
-        self.proxy = value;
+        self.connection_config.proxy_protocol = value;
         self
     }
 
+    #[must_use]
     pub fn with_var_diff(mut self, value: bool) -> Self {
         self.var_diff_config.var_diff = value;
         self
     }
 
+    #[must_use]
     pub fn with_minimum_difficulty(mut self, difficulty: u64) -> Self {
         self.var_diff_config.minimum_difficulty = difficulty;
         self
     }
 
+    #[must_use]
     pub fn with_maximum_difficulty(mut self, difficulty: u64) -> Self {
         self.var_diff_config.maximum_difficulty = difficulty;
         self
     }
 
+    #[must_use]
     pub fn with_retarget_time(mut self, time: u64) -> Self {
         self.var_diff_config.retarget_time = time;
         self
     }
 
+    #[must_use]
     pub fn with_target_time(mut self, time: u64) -> Self {
         self.var_diff_config.target_time = time;
         self
     }
 
+    #[must_use]
     pub fn with_variance_percent(mut self, percent: f64) -> Self {
         self.var_diff_config.variance_percent = percent;
         self
     }
 
+    #[must_use]
     pub fn with_initial_difficulty(mut self, difficulty: u64) -> Self {
-        self.initial_difficulty = difficulty;
+        self.var_diff_config.initial_difficulty = difficulty;
         self
     }
 
-    pub fn with_expected_port(mut self, port: u16) -> Self {
-        self.exported_port = Some(port);
-        self
-    }
-
+    #[must_use]
     pub fn with_ready_indicator(mut self, ready_indicator: ReadyIndicator) -> Self {
         self.ready_indicator = ready_indicator;
         self
     }
 
-    #[cfg(feature = "upstream")]
-    pub fn with_upstream(mut self, url: &str) -> Self {
-        self.upstream_config = UpstreamConfig {
-            enabled: true,
-            url: url.to_string(),
-        };
-        self
-    }
+    // #[cfg(feature = "upstream")]
+    // #[must_use]
+    // pub fn with_upstream(mut self, url: &str) -> Self {
+    //     self.upstream_config = UpstreamConfig {
+    //         enabled: true,
+    //         url: url.to_string(),
+    //     };
+    //     self
+    // }
 
+    #[must_use]
     pub fn with_shutdown_message(mut self, msg: Buffer) -> Self {
         self.shutdown_message = Some(msg);
         self
     }
 
-    pub fn build(self) -> StratumServer<State, CState> {
-        let connection_list = Arc::new(ConnectionList::new(self.max_connections));
-
-        let expected_port = match self.exported_port {
-            Some(exported_port) => exported_port,
-            None => self.port,
+    pub async fn build(self) -> Result<StratumServer<State, CState>> {
+        let config = Config {
+            connection: self.connection_config,
+            difficulty: self.var_diff_config,
+            bans: crate::config::BanManagerConfig::default(),
         };
 
-        let cancel_token = CancellationToken::new();
+        let config_manager = ConfigManager::new(config);
 
-        StratumServer {
+        let listener = TcpListener::bind(format!("{}:{}", self.host, self.port)).await?;
+        //This will fail if unable to find a local port.
+        let listen_address = listener.local_addr()?;
+        let listener = TcpListenerStream::new(listener);
+
+        let session_list = SessionList::new(config_manager.clone());
+        let cancel_token = CancellationToken::new();
+        //@todo accept configManager here.
+        let ban_manager = Arc::new(BanManager::new(
+            config_manager.clone(),
+            cancel_token.child_token(),
+        ));
+
+        #[cfg(feature = "api")]
+        let api = {
+            let state = crate::api::Context {
+                ban_manager: ban_manager.clone(),
+                ready_indicator: self.ready_indicator.create_new(),
+            };
+
+            let api_address = format!("{}:{}", self.api_host, self.api_port).parse()?;
+
+            //@todo also pass in a port for metrics
+            crate::api::Api::build(api_address, state)?
+        };
+
+        Ok(StratumServer {
             id: self.server_id,
-            host: self.host,
-            port: self.port,
-            expected_port,
-            proxy: self.proxy,
-            initial_difficulty: self.initial_difficulty,
-            connection_list,
+            listener,
+            listen_address,
+            session_list,
+            config_manager,
             state: self.state,
-            ban_manager: Arc::new(BanManager::new()),
+            ban_manager,
             router: Arc::new(Router::new()),
-            #[cfg(feature = "upstream")]
-            upstream_router: Arc::new(Router::new()),
-            #[cfg(feature = "upstream")]
-            upstream_config: self.upstream_config,
-            var_diff_config: self.var_diff_config,
-            session_id_manager: Arc::new(IDManager::new(self.server_id)),
+            session_id_manager: IDManager::new(self.server_id),
             cancel_token,
             global_thread_list: Vec::new(),
             ready_indicator: self.ready_indicator,
             shutdown_message: self.shutdown_message,
-        }
+
+            // #[cfg(feature = "api")]
+            // api: Arc::new(Mutex::new(api)),
+            #[cfg(feature = "api")]
+            api,
+            // #[cfg(feature = "upstream")]
+            // upstream_router: Arc::new(Router::new()),
+            // #[cfg(feature = "upstream")]
+            // upstream_config: self.upstream_config,
+        })
     }
 }

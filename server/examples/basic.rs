@@ -1,5 +1,5 @@
 use std::{sync::Arc, time::Duration};
-use stratum_server::{Connection, ConnectionList, StratumRequest, StratumServer};
+use stratum_server::{Session, SessionList, StratumRequest, StratumServer};
 use tracing::subscriber::set_global_default;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Registry};
 
@@ -23,7 +23,7 @@ pub struct ConnectionState {}
 //@todo test returning a message, so that we can assert eq in the main test.
 pub async fn handle_auth(
     req: StratumRequest<State>,
-    _connection: Arc<Connection<ConnectionState>>,
+    _connection: Arc<Session<ConnectionState>>,
 ) -> Result<bool, std::io::Error> {
     let state = req.state();
 
@@ -32,7 +32,7 @@ pub async fn handle_auth(
     Ok(login)
 }
 
-pub async fn poll_global(_state: State, _connection_list: Arc<ConnectionList<ConnectionState>>) {
+pub async fn poll_global(_state: State, _connection_list: SessionList<ConnectionState>) {
     loop {
         //Infite loop
         tokio::time::sleep(Duration::from_secs(10)).await;
@@ -55,7 +55,9 @@ async fn main() {
     let mut server = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
         .with_port(0)
-        .build();
+        .build()
+        .await
+        .expect("Could not start server");
 
     server.add("auth", handle_auth);
     server.global("Poll Global", poll_global);

@@ -1,14 +1,17 @@
-use crate::{Error, Result};
-use extended_primitives::Buffer;
 use serde::{Deserialize, Serialize};
-use std::{fmt, sync::Arc};
-use tokio::sync::Mutex;
+use std::{
+    fmt,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
 
 #[derive(Debug)]
 pub struct VarDiffBuffer {
     pub(crate) pos: usize,
     pub(crate) used: usize,
-    pub(crate) data: [i64; 90],
+    pub(crate) data: [u128; 90],
 }
 
 impl VarDiffBuffer {
@@ -20,7 +23,7 @@ impl VarDiffBuffer {
         }
     }
 
-    pub(crate) fn append(&mut self, time: i64) {
+    pub(crate) fn append(&mut self, time: u128) {
         self.data[self.pos] = time;
         self.pos += 1;
         self.pos %= 90;
@@ -42,9 +45,9 @@ impl VarDiffBuffer {
             count = self.pos;
         }
 
-        let mut total: i64 = 0;
+        let mut total: u128 = 0;
         for i in 0..count {
-            total += self.data[i]
+            total += self.data[i];
         }
 
         (total as f64) / (count as f64)
@@ -53,24 +56,37 @@ impl VarDiffBuffer {
 
 pub const EX_MAGIC_NUMBER: u8 = 0x7F;
 
-#[derive(Clone, Default)]
-pub struct ReadyIndicator(Arc<Mutex<bool>>);
+// #[derive(Clone, Default)]
+// pub struct ReadyIndicator(Arc<Mutex<bool>>);
+
+//@todo testing this
+#[derive(Default, Clone)]
+pub struct ReadyIndicator(Arc<AtomicBool>);
 
 impl ReadyIndicator {
+    #[must_use]
     pub fn new(ready: bool) -> Self {
-        ReadyIndicator(Arc::new(Mutex::new(ready)))
+        ReadyIndicator(Arc::new(AtomicBool::new(ready)))
     }
 
-    pub async fn ready(&self) {
-        *self.0.lock().await = true;
+    #[must_use]
+    pub fn create_new(&self) -> Self {
+        //@todo review this, no idea why we do this.
+        Self(Arc::clone(&self.0))
     }
 
-    pub async fn not_ready(&self) {
-        *self.0.lock().await = false;
+    //@todo figure out if relaxed is ok
+    pub fn ready(&self) {
+        self.0.store(true, Ordering::Relaxed);
     }
 
-    pub async fn inner(&self) -> bool {
-        *self.0.lock().await
+    pub fn not_ready(&self) {
+        self.0.store(false, Ordering::Relaxed);
+    }
+
+    #[must_use]
+    pub fn status(&self) -> bool {
+        self.0.load(Ordering::Relaxed)
     }
 }
 
@@ -83,6 +99,7 @@ pub enum ID {
 }
 
 impl ID {
+    #[must_use]
     pub fn null() -> ID {
         ID::Null(serde_json::Value::Null)
     }
@@ -95,97 +112,6 @@ impl std::fmt::Display for ID {
             ID::Str(ref e) => write!(f, "{e}"),
             ID::Null(ref _e) => write!(f, "null"),
         }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum MessageValue {
-    StratumV1(serde_json::map::Map<String, serde_json::Value>),
-    ExMessage(ExMessageGeneric),
-}
-
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub enum MessageTypes {
-    RegisterWorker,
-    SubmitShare,
-    SubmitShareWithTime,
-    SubmitShareWithVersion,
-    SubmitShareWithTimeAndVersion,
-    UnregisterWorker,
-    MiningSetDiff,
-
-    Unknown(u8),
-}
-
-impl MessageTypes {
-    pub fn from_u8(cmd: u8) -> Self {
-        match cmd {
-            0x01 => MessageTypes::RegisterWorker,
-            0x02 => MessageTypes::SubmitShare,
-            0x03 => MessageTypes::SubmitShareWithTime,
-            0x04 => MessageTypes::UnregisterWorker,
-            0x05 => MessageTypes::MiningSetDiff,
-            //@note not sure why these are so far after the originals. Makes me think there are
-            //other messages we are missing here, but can figure that out later.
-            0x12 => MessageTypes::SubmitShareWithVersion,
-            0x13 => MessageTypes::SubmitShareWithTimeAndVersion,
-            _ => MessageTypes::Unknown(cmd),
-        }
-    }
-}
-
-impl fmt::Display for MessageTypes {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            MessageTypes::RegisterWorker => write!(f, "exMessageRegisterWorker"),
-            MessageTypes::SubmitShare => write!(f, "exMessageSubmitShare"),
-            MessageTypes::SubmitShareWithTime => write!(f, "exMessageSubmitShare"),
-            MessageTypes::UnregisterWorker => write!(f, "exMessageUnregisterWorker"),
-            MessageTypes::MiningSetDiff => write!(f, "exMessageMiningSetDiff"),
-            MessageTypes::SubmitShareWithVersion => write!(f, "exMessageSubmitShare"),
-            MessageTypes::SubmitShareWithTimeAndVersion => write!(f, "exMessageSubmitShare"),
-            _ => write!(f, ""),
-        }
-    }
-}
-
-// ex-message: BTC Agent Messages
-//   magic_number	uint8_t		magic number for Ex-Message, always 0x7F
-//   type/cmd		uint8_t		message type
-//   length			uint16_t	message length (include header self)
-//   message_body	uint8_t[]	message body
-#[derive(Clone, Debug)]
-pub struct ExMessageGeneric {
-    pub magic_number: u8,
-    pub cmd: MessageTypes,
-    pub length: u16,
-    pub body: Buffer,
-}
-
-impl ExMessageGeneric {
-    pub fn from_buffer(buffer: &mut Buffer) -> Result<Self> {
-        let magic_number = buffer.read_u8().map_err(|_| Error::BrokenExHeader)?;
-        let cmd = buffer.read_u8().map_err(|_| Error::BrokenExHeader)?;
-        let length = buffer.read_u16().map_err(|_| Error::BrokenExHeader)?;
-
-        let body = buffer.clone();
-
-        let cmd = MessageTypes::from_u8(cmd);
-
-        if length as usize != body.len() {
-            return Err(Error::BrokenExHeader);
-        }
-
-        if let MessageTypes::Unknown(_) = cmd {
-            return Err(Error::BrokenExHeader);
-        }
-
-        Ok(ExMessageGeneric {
-            magic_number,
-            cmd,
-            length,
-            body,
-        })
     }
 }
 

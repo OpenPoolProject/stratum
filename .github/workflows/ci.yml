@@ -64,7 +64,8 @@ jobs:
       - uses: Swatinem/rust-cache@359a70e43a0bb8a13953b04a90f76428b4959bb6
         with:
           key: ${{ matrix.rust }}
-      - run: cargo hack nextest run --no-capture --each-feature --profile ci
+      # - run: cargo hack nextest run --no-capture --each-feature --profile ci
+      - run: cargo nextest run --no-capture --all-features --profile ci
         timeout-minutes: 15
 
   msrv:
@@ -82,8 +83,10 @@ jobs:
         with:
           tool: cargo-hack
       - run:
-          cargo hack build -vvv --workspace --feature-powerset --optional-deps
-          --ignore-private --no-dev-deps --version-range ..
+          # cargo hack build -vvv --workspace --feature-powerset --optional-deps
+          # --ignore-private --no-dev-deps --version-range ..
+          cargo hack build -vvv --workspace --all-features --ignore-private
+          --no-dev-deps --version-range ..
 
   tidy:
     runs-on: ubuntu-latest
@@ -169,8 +172,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@e645b0cf01249a964ec099494d38d2da0f0b349f
         with:
-          toolchain: stable
-          components: llvm-tools-preview
+          toolchain: nightly
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@36e7fe7dbe0007970d57a2eed2c3c186840164d9
         with:
@@ -182,8 +184,8 @@ jobs:
       - name: Generate code coverage
         run: |
           cargo llvm-cov clean --workspace
-          cargo llvm-cov nextest --profile ci --no-report --features tcp
-          cargo llvm-cov --no-run --lcov --output-path lcov.info
+          cargo llvm-cov nextest --profile ci --no-report --all-features
+          cargo llvm-cov report --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@e0fbd592d323cb2991fb586fdd260734fcb41fcb
@@ -222,6 +224,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           bloat_args: -p stratum-server --release --example basic
+  cargo-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: EmbarkStudios/cargo-deny-action@v1
 
   ci-success:
     name: ci
@@ -234,6 +241,7 @@ jobs:
       - publish-dry-run
       - coverage
       - bloat
+      - cargo-deny
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner

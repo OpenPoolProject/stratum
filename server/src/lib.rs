@@ -1,48 +1,58 @@
-//@todo let's check to see if we can remove this.
-#![recursion_limit = "512"]
+#![cfg_attr(coverage_nightly, feature(no_coverage))]
+#![warn(clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
+//@todo fix this.
+#![allow(clippy::missing_errors_doc)]
+//@todo fix this.
+#![allow(clippy::missing_panics_doc)]
+//@todo remove eventually
+#![allow(clippy::cast_lossless)]
+//@todo remove eventually
+#![allow(clippy::cast_precision_loss)]
 
-#[warn(clippy::pedantic)]
-mod tcp;
-
-#[cfg(feature = "upstream")]
-mod upstream;
-
-#[cfg(feature = "upstream")]
-use crate::config::UpstreamConfig;
-
-// mod api;
 mod ban_manager;
 mod builder;
 mod config;
 mod connection;
-mod connection_list;
 mod error;
+mod frame;
 mod global;
 mod id_manager;
 mod miner;
 mod miner_list;
-mod parsing;
 mod request;
 mod route;
 mod router;
 mod server;
+mod session;
+mod session_list;
+mod tcp;
 mod types;
 mod utils;
 
+// #[cfg(feature = "upstream")]
+// mod upstream;
+
+// #[cfg(feature = "upstream")]
+// use crate::config::UpstreamConfig;
+
+#[cfg(feature = "api")]
+mod api;
+
+pub(crate) use crate::{ban_manager::BanManager, connection::Connection, frame::Frame};
+
 pub use crate::{
-    ban_manager::BanManager,
     builder::StratumServerBuilder,
-    config::VarDiffConfig,
-    connection::Connection,
-    connection_list::ConnectionList,
+    config::{Config, ConfigManager, ConnectionConfig, DifficultyConfig},
     error::Error,
     global::Global,
     miner::Miner,
     miner_list::MinerList,
-    parsing::next_message,
     request::StratumRequest,
     server::StratumServer,
-    types::{ExMessageGeneric, MessageTypes, MessageValue, ReadyIndicator, EX_MAGIC_NUMBER, ID},
+    session::Session,
+    session_list::SessionList,
+    types::{ReadyIndicator, EX_MAGIC_NUMBER, ID},
     utils::format_difficulty,
 };
 
