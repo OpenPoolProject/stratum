@@ -42,7 +42,7 @@ impl Api {
 
         let listener = self.listener.take();
         if let Some(listener) = listener {
-            let app = Router::with_state(self.state.clone())
+            let app = Router::new()
                 //@todo match these with the others so they are in health.
                 .route("/livez", get(routes::livez))
                 .route("/readyz", get(routes::readyz))
@@ -57,7 +57,8 @@ impl Api {
                     CorsLayer::new()
                         .allow_origin("*".parse::<HeaderValue>().unwrap())
                         .allow_methods([Method::GET]),
-                );
+                )
+                .with_state(self.state.clone());
 
             let server = axum::Server::from_tcp(listener)?
                 .serve(app.into_make_service())
