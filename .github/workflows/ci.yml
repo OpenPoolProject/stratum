@@ -85,8 +85,8 @@ jobs:
       - run:
           # cargo hack build -vvv --workspace --feature-powerset --optional-deps
           # --ignore-private --no-dev-deps --version-range ..
-          cargo hack build -vvv --workspace --all-features --optional-deps
-          --ignore-private --no-dev-deps --version-range ..
+          cargo hack build -vvv --workspace --all-features --ignore-private
+          --no-dev-deps --version-range ..
 
   tidy:
     runs-on: ubuntu-latest
