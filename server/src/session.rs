@@ -113,6 +113,7 @@ pub struct Session<State> {
 //@todo just turn this into VardiffConfig
 #[derive(Debug, Default)]
 pub struct MinerOptions {
+    //@todo this is in seconds.
     pub retarget_time: u64, //300 Seconds
     pub target_time: u64,   //10 seconds
     pub min_diff: u64,

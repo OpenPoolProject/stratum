@@ -11,7 +11,7 @@ use std::{
 pub struct VarDiffBuffer {
     pub(crate) pos: usize,
     pub(crate) used: usize,
-    pub(crate) data: [i64; 90],
+    pub(crate) data: [u128; 90],
 }
 
 impl VarDiffBuffer {
@@ -23,7 +23,7 @@ impl VarDiffBuffer {
         }
     }
 
-    pub(crate) fn append(&mut self, time: i64) {
+    pub(crate) fn append(&mut self, time: u128) {
         self.data[self.pos] = time;
         self.pos += 1;
         self.pos %= 90;
@@ -45,7 +45,7 @@ impl VarDiffBuffer {
             count = self.pos;
         }
 
-        let mut total: i64 = 0;
+        let mut total: u128 = 0;
         for i in 0..count {
             total += self.data[i];
         }
