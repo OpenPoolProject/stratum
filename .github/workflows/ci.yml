@@ -55,10 +55,10 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: rust-src
-      - uses: taiki-e/install-action@d66f303732ab38096c28843eb6f3dbb4b2cdba14
+      - uses: taiki-e/install-action@cb3ffa00b0643af23f444bc51b3b3a0f06ae90ff
         with:
           tool: cargo-hack
-      - uses: taiki-e/install-action@d66f303732ab38096c28843eb6f3dbb4b2cdba14
+      - uses: taiki-e/install-action@cb3ffa00b0643af23f444bc51b3b3a0f06ae90ff
         with:
           tool: nextest
       - uses: Swatinem/rust-cache@359a70e43a0bb8a13953b04a90f76428b4959bb6
@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
         with:
           persist-credentials: false
-      - uses: taiki-e/install-action@d66f303732ab38096c28843eb6f3dbb4b2cdba14
+      - uses: taiki-e/install-action@cb3ffa00b0643af23f444bc51b3b3a0f06ae90ff
         with:
           tool: cargo-hack
       - run:
@@ -100,10 +100,10 @@ jobs:
         with:
           toolchain: nightly
           components: clippy,rustfmt
-      - uses: taiki-e/install-action@d66f303732ab38096c28843eb6f3dbb4b2cdba14
+      - uses: taiki-e/install-action@cb3ffa00b0643af23f444bc51b3b3a0f06ae90ff
         with:
           tool: cargo-hack
-      - uses: taiki-e/install-action@d66f303732ab38096c28843eb6f3dbb4b2cdba14
+      - uses: taiki-e/install-action@cb3ffa00b0643af23f444bc51b3b3a0f06ae90ff
         with:
           tool: cargo-minimal-versions
       - run: cargo fmt --all --check
@@ -174,10 +174,10 @@ jobs:
         with:
           toolchain: nightly
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@d66f303732ab38096c28843eb6f3dbb4b2cdba14
+        uses: taiki-e/install-action@cb3ffa00b0643af23f444bc51b3b3a0f06ae90ff
         with:
           tool: cargo-llvm-cov
-      - uses: taiki-e/install-action@d66f303732ab38096c28843eb6f3dbb4b2cdba14
+      - uses: taiki-e/install-action@cb3ffa00b0643af23f444bc51b3b3a0f06ae90ff
         with:
           tool: nextest
       - uses: Swatinem/rust-cache@359a70e43a0bb8a13953b04a90f76428b4959bb6 # v2
