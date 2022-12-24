@@ -38,7 +38,7 @@ jobs:
         with:
           toolchain: stable
       - run: cargo package
-      - uses: taiki-e/create-gh-release-action@715e1b46a61c2accc61d05352e5a7d364b798a4e
+      - uses: taiki-e/create-gh-release-action@53e4930bd2723a82d1a54b244a80277657781ec6
         with:
           title: $version
           branch: master
