@@ -511,9 +511,8 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
     // }
 }
 
-//@todo giant todo
-// impl Drop for Session<State> {
-//     fn drop(&mut self) {
-//         self.id_manager.remove_session_id(self.session_id);
-//     }
-// }
+impl<State> Drop for Session<State> {
+    fn drop(&mut self) {
+        self.id_manager.remove_session_id(self.session_id);
+    }
+}
