@@ -51,7 +51,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
-      - uses: dtolnay/rust-toolchain@22cb70465de2ebc761c76f91046abd5a6986040f
+      - uses: dtolnay/rust-toolchain@ce8f65846d7180d2ce63b1e74483d981800b9e22
         with:
           toolchain: ${{ matrix.rust }}
           components: rust-src
@@ -96,7 +96,7 @@ jobs:
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
-      - uses: dtolnay/rust-toolchain@22cb70465de2ebc761c76f91046abd5a6986040f
+      - uses: dtolnay/rust-toolchain@ce8f65846d7180d2ce63b1e74483d981800b9e22
         with:
           toolchain: nightly
           components: clippy,rustfmt
@@ -125,7 +125,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@22cb70465de2ebc761c76f91046abd5a6986040f
+        uses: dtolnay/rust-toolchain@ce8f65846d7180d2ce63b1e74483d981800b9e22
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@664ce0090f15897beb496f9faf2f88e6908c80c4
@@ -149,7 +149,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@22cb70465de2ebc761c76f91046abd5a6986040f
+        uses: dtolnay/rust-toolchain@ce8f65846d7180d2ce63b1e74483d981800b9e22
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@664ce0090f15897beb496f9faf2f88e6908c80c4
@@ -170,7 +170,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@22cb70465de2ebc761c76f91046abd5a6986040f
+        uses: dtolnay/rust-toolchain@ce8f65846d7180d2ce63b1e74483d981800b9e22
         with:
           toolchain: nightly
       - name: Install cargo-llvm-cov
@@ -198,7 +198,7 @@ jobs:
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@22cb70465de2ebc761c76f91046abd5a6986040f
+        uses: dtolnay/rust-toolchain@ce8f65846d7180d2ce63b1e74483d981800b9e22
         with:
           toolchain:
             stable
