@@ -24,7 +24,7 @@ v2 = []
 # the minimal required.
 tokio = { version = "1.25.0", features = ["full"] }
 async-trait = "0.1.63"
-futures = "0.3.25"
+futures = "0.3.26"
 tokio-util = { version = "0.7.4", features = ["time"]}
 tokio-stream = { version = "0.1.11", features = ["net"]}
 
