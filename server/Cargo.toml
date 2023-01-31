@@ -23,7 +23,7 @@ v2 = []
 # @todo after full implementation, see if we can peel back some features here to
 # the minimal required.
 tokio = { version = "1.25.0", features = ["full"] }
-async-trait = "0.1.63"
+async-trait = "0.1.64"
 futures = "0.3.26"
 tokio-util = { version = "0.7.4", features = ["time"]}
 tokio-stream = { version = "0.1.11", features = ["net"]}
