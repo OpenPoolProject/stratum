@@ -31,6 +31,7 @@ pub struct StratumServerBuilder<State, CState> {
     pub connection_state: PhantomData<CState>,
     pub ready_indicator: ReadyIndicator,
     pub shutdown_message: Option<Buffer>,
+    pub cancel_token: Option<CancellationToken>,
 }
 
 impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static>
@@ -67,6 +68,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             //     url: String::from(""),
             // },
             shutdown_message: None,
+            cancel_token: None,
         }
     }
 
@@ -172,6 +174,12 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self
     }
 
+    #[must_use]
+    pub fn with_cancel_token(mut self, token: CancellationToken) -> Self {
+        self.cancel_token = Some(token);
+        self
+    }
+
     pub async fn build(self) -> Result<StratumServer<State, CState>> {
         let config = Config {
             connection: self.connection_config,
@@ -185,14 +193,15 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         //This will fail if unable to find a local port.
         let listen_address = listener.local_addr()?;
         let listener = TcpListenerStream::new(listener);
-
         let session_list = SessionList::new(config_manager.clone());
-        let cancel_token = CancellationToken::new();
-        //@todo accept configManager here.
-        let ban_manager = Arc::new(BanManager::new(
-            config_manager.clone(),
-            cancel_token.child_token(),
-        ));
+
+        let cancel_token = if let Some(cancel_token) = self.cancel_token {
+            cancel_token
+        } else {
+            CancellationToken::new()
+        };
+
+        let ban_manager = BanManager::new(config_manager.clone(), cancel_token.child_token());
 
         #[cfg(feature = "api")]
         let api = {
