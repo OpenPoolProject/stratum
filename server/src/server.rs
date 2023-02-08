@@ -1,8 +1,8 @@
 // #[cfg(feature = "upstream")]
 // use crate::UpstreamConfig;
 
+use crate::id_manager::IDManager;
 use crate::{
-    ban_manager,
     global::Global,
     route::Endpoint,
     router::Router,
@@ -10,24 +10,19 @@ use crate::{
     types::{GlobalVars, ReadyIndicator},
     BanManager, ConfigManager, Connection, Result, SessionList, StratumServerBuilder,
 };
+use extended_primitives::Buffer;
 use futures::StreamExt;
 use rlimit::Resource;
-use std::{net::SocketAddr, sync::Arc, time::Duration};
-use tokio::task::JoinHandle;
-use tokio_stream::wrappers::TcpListenerStream;
-use tracing::info;
-// use metrics_exporter_prometheus::PrometheusBuilder;
-use crate::id_manager::IDManager;
-use extended_primitives::Buffer;
 use signal_hook::consts::signal::{SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 use signal_hook_tokio::{Handle, Signals};
 use std::time::Instant;
+use std::{net::SocketAddr, sync::Arc, time::Duration};
+use tokio::task::JoinHandle;
+use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::CancellationToken;
+use tracing::info;
 use tracing::{error, warn};
 
-// use crate::metrics::Metrics;
-
-// #[derive(Clone)]
 pub struct StratumServer<State, CState>
 where
     State: Clone + Send + Sync + 'static,
@@ -38,17 +33,12 @@ where
     pub(crate) listener: TcpListenerStream,
     pub(crate) state: State,
     pub(crate) session_list: SessionList<CState>,
-    pub(crate) ban_manager: Arc<BanManager>,
+    pub(crate) ban_manager: BanManager,
     pub(crate) config_manager: ConfigManager,
     pub(crate) router: Arc<Router<State, CState>>,
     pub(crate) session_id_manager: IDManager,
     pub(crate) cancel_token: CancellationToken,
     pub(crate) global_thread_list: Vec<JoinHandle<()>>,
-    //@todo I think we can actually kill this now that I remember.
-    //Likely why the nimiq server will occasionally get not ready for a long time.
-    //Although let's look into what scenarios are we marking not ready in the stratums.
-    //@todo I think revamp this a bit to include getting the correct server_id from our
-    //homebase
     pub(crate) ready_indicator: ReadyIndicator,
     pub(crate) shutdown_message: Option<Buffer>,
     #[cfg(feature = "api")]
@@ -58,11 +48,6 @@ where
     // #[cfg(feature = "upstream")]
     // pub(crate) upstream_config: UpstreamConfig,
 }
-
-//@todo I like the idea of Topology - Shows which services are running and which are not.
-
-//@todo we should check ulimits and report them just so that we know that we can handle the
-//max_connections that is set for the server. Use the new library we just imported.
 
 //@todo consider this signal for reloading upstream config?
 // SIGHUP => {
@@ -219,8 +204,6 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     async fn handle_incoming(&mut self) -> Result<()> {
         info!("Listening on {}", &self.listen_address);
 
-        //@todo review this and make sure it works w/ cancellation token. I don't think it's going
-        //to as it stands.
         while let Some(stream) = self.listener.next().await {
             //@todo we might actually want access to this error though.
             let Ok(stream) = stream else {
@@ -363,7 +346,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self.listen_address
     }
 
-    pub fn get_ban_manager(&self) -> ban_manager::Handle {
+    pub fn get_ban_manager(&self) -> BanManager {
         self.ban_manager.clone()
     }
 

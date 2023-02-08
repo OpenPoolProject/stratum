@@ -73,6 +73,7 @@ pub struct BanInfo {
 }
 
 //@todo perma bans
+#[derive(Clone)]
 pub struct BanManager {
     pub(crate) shared: Arc<Shared>,
     config: ConfigManager,
@@ -316,8 +317,6 @@ impl Drop for BanManager {
         self.shared.background_task.notify_one();
     }
 }
-
-pub type Handle = Arc<BanManager>;
 
 #[cfg(test)]
 mod tests {

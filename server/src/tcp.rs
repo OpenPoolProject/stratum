@@ -18,7 +18,7 @@ pub(crate) struct Handler<State, CState>
 where
     CState: Send + Sync + Clone + 'static,
 {
-    pub(crate) ban_manager: Arc<BanManager>,
+    pub(crate) ban_manager: BanManager,
     pub(crate) id_manager: IDManager,
     pub(crate) session_list: SessionList<CState>,
     pub(crate) router: Arc<Router<State, CState>>,
