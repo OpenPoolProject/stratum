@@ -1,9 +1,9 @@
 // #[cfg(feature = "upstream")]
 // use crate::UpstreamConfig;
 
-use crate::id_manager::IDManager;
 use crate::{
     global::Global,
+    id_manager::IDManager,
     route::Endpoint,
     router::Router,
     tcp::Handler,
@@ -15,13 +15,15 @@ use futures::StreamExt;
 use rlimit::Resource;
 use signal_hook::consts::signal::{SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 use signal_hook_tokio::{Handle, Signals};
-use std::time::Instant;
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    net::SocketAddr,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tokio::task::JoinHandle;
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::CancellationToken;
-use tracing::info;
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
 pub struct StratumServer<State, CState>
 where
