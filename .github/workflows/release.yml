@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
         with:
           persist-credentials: false
-      - uses: dtolnay/rust-toolchain@bb357d4af1c0028503e3cdd9b1c274326d7ae140
+      - uses: dtolnay/rust-toolchain@25dc93b901a87e864900a8aec6c12e9aa794c0c3
         with:
           toolchain: stable
       - run: cargo package
