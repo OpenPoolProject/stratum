@@ -278,7 +278,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
             let mut backoff = 1;
             loop {
-                let connected_miners = self.session_list.len().await;
+                let connected_miners = self.session_list.len();
                 if connected_miners == 0 {
                     break;
                 }

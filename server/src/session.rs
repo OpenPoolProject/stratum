@@ -1,9 +1,3 @@
-// #[cfg(feature = "upstream")]
-// use {
-//     futures::{channel::mpsc::UnboundedReceiver, StreamExt},
-//     serde_json::json,
-// };
-
 use crate::{
     config::ConfigManager, format_difficulty, id_manager::IDManager, Miner, MinerList, Result,
 };
@@ -345,11 +339,13 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
             format_difficulty(*self.difficulty.lock().await),
         );
 
-        self.miner_list.add_miner(session_id, worker).await;
+        self.miner_list.add_miner(session_id, worker);
     }
 
-    pub async fn unregister_worker(&self, session_id: u32) -> Option<Miner> {
-        self.miner_list.remove_miner(session_id).await
+    //@todo make session_id a custom type.
+    #[must_use]
+    pub fn unregister_worker(&self, session_id: u32) -> Option<(u32, Miner)> {
+        self.miner_list.remove_miner(session_id)
     }
 
     #[must_use]
@@ -357,14 +353,14 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
         self.miner_list.clone()
     }
 
-    pub async fn get_worker_by_session_id(&self, session_id: u32) -> Option<Miner> {
-        self.miner_list.get_miner_by_id(session_id).await
+    #[must_use]
+    pub fn get_worker_by_session_id(&self, session_id: u32) -> Option<Miner> {
+        self.miner_list.get_miner_by_id(session_id)
     }
 
-    pub async fn update_worker_by_session_id(&self, session_id: u32, miner: Miner) {
+    pub fn update_worker_by_session_id(&self, session_id: u32, miner: Miner) {
         self.miner_list
-            .update_miner_by_session_id(session_id, miner)
-            .await;
+            .update_miner_by_session_id(session_id, miner);
     }
 
     // ===== Worker Helper functions ===== //

@@ -1,8 +1,8 @@
 pub use crate::session::Session;
 use crate::{ConfigManager, Result};
+use dashmap::DashMap;
 use extended_primitives::Buffer;
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
-use tokio::sync::RwLock;
+use std::{net::SocketAddr, sync::Arc};
 use tracing::{info, warn};
 
 //@todo performance test using a Sephamore for this similar to how Tokio does it in mini-redis
@@ -17,13 +17,12 @@ use tracing::{info, warn};
 #[derive(Default, Clone)]
 pub struct SessionList<CState: Clone + Sync + Send + 'static> {
     inner: Arc<Inner<CState>>,
-    //@todo there are faster data structures than hashmap. Investigate using some of those.
     pub(crate) config_manager: ConfigManager,
 }
 
 #[derive(Default)]
 struct Inner<CState> {
-    state: RwLock<HashMap<SocketAddr, Arc<Session<CState>>>>,
+    state: DashMap<SocketAddr, Arc<Session<CState>>>,
 }
 
 impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
@@ -31,14 +30,14 @@ impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
     pub fn new(config_manager: ConfigManager) -> Self {
         SessionList {
             inner: Arc::new(Inner {
-                state: RwLock::new(HashMap::new()),
+                state: DashMap::new(),
             }),
             config_manager,
         }
     }
 
-    pub async fn add_miner(&self, addr: SocketAddr, miner: Arc<Session<CState>>) -> Result<()> {
-        self.inner.state.write().await.insert(addr, miner);
+    pub fn add_miner(&self, addr: SocketAddr, miner: Arc<Session<CState>>) -> Result<()> {
+        self.inner.state.insert(addr, miner);
         // gauge!(
         //     "stratum.num_connections",
         //     self.miners.read().await.len() as f64
@@ -46,34 +45,38 @@ impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
         Ok(())
     }
 
-    pub async fn remove_miner(&self, addr: SocketAddr) {
-        self.inner.state.write().await.remove(&addr);
+    pub fn remove_miner(&self, addr: SocketAddr) {
+        self.inner.state.remove(&addr);
         // gauge!(
         //     "stratum.num_connections",
         //     self.miners.read().await.len() as f64
         // );
     }
 
-    pub async fn get_all_miners(&self) -> Vec<Arc<Session<CState>>> {
-        self.inner.state.read().await.values().cloned().collect()
+    #[must_use]
+    pub fn get_all_miners(&self) -> Vec<Arc<Session<CState>>> {
+        self.inner.state.iter().map(|x| x.value().clone()).collect()
     }
 
-    pub async fn len(&self) -> usize {
-        self.inner.state.read().await.len()
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.inner.state.len()
     }
 
-    pub async fn is_empty(&self) -> bool {
-        self.inner.state.read().await.is_empty()
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.inner.state.is_empty()
     }
 
-    pub async fn is_full(&self) -> bool {
+    #[must_use]
+    pub fn is_full(&self) -> bool {
         if let Some(max) = self
             .config_manager
             .current_config()
             .connection
             .max_connections
         {
-            self.len().await >= max
+            self.len() >= max
         } else {
             false
         }
@@ -84,9 +87,10 @@ impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
         if let Some(msg) = msg {
             info!(
                 "Session List sending {} miners reconnect message.",
-                self.inner.state.read().await.len()
+                self.inner.state.len()
             );
-            for miner in self.inner.state.read().await.values() {
+            for entry in self.inner.state.iter() {
+                let miner = entry.value();
                 if let Err(e) = miner.send_raw(msg.clone()).await {
                     warn!(connection_id = %miner.id, cause = %e, "Failed to send shutdown message");
                 }
@@ -99,12 +103,12 @@ impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
     pub async fn shutdown(&self) {
         info!(
             "Session List shutting down {} miners",
-            self.inner.state.read().await.len()
+            self.inner.state.len()
         );
 
         //@todo we need to parallize this async.
-        for miner in self.inner.state.read().await.values() {
-            miner.shutdown().await;
+        for entry in self.inner.state.iter() {
+            entry.value().shutdown().await;
         }
     }
 }
