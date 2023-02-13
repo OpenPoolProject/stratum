@@ -7,7 +7,7 @@ use crate::{
 };
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::trace;
+use tracing::{trace, warn};
 
 //@note / @todo I think this is the play in that for each "protocol" we implement a Handler (does
 //message parsing and State management) and a "Connection" (different than our courrent one) which
@@ -53,10 +53,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             self.connection_state.clone(),
         )?);
 
+        //@todo figure out if we should remove the ? here.
         //@todo solve removing session from this (pros in drop here using connection.)
-        self.session_list
-            .add_miner(address, session.clone())
-            .await?;
+        self.session_list.add_miner(address, session.clone())?;
 
         while !self.cancel_token.is_cancelled() {
             if session.is_disconnected().await {
@@ -68,7 +67,15 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             }
 
             let maybe_frame = tokio::select! {
-                res = reader.read_frame() => res?,
+                res = reader.read_frame() => {
+                    match res {
+                        Err(e) => {
+                            warn!("Session: {} errored with the following error: {}", session.id(), e);
+                            break;
+                        },
+                        Ok(frame) => frame,
+                    }
+                },
                 _ = self.cancel_token.cancelled() => {
                     // If a shutdown signal is received, return from `run`.
                     // This will result in the task terminating.
@@ -93,7 +100,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         trace!("Closing stream from: {}", session.id());
 
-        self.session_list.remove_miner(address).await;
+        self.session_list.remove_miner(address);
 
         if session.needs_ban().await {
             self.ban_manager.add_ban(address);
@@ -104,6 +111,20 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         Ok(())
     }
 }
+
+// impl<State, CState> Drop for Handler<State, CState>
+// where
+//     CState: Send + Sync + Clone + 'static,
+// {
+//     // impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static> Drop
+//     // for Handler<State, CState>
+//
+//     fn drop(&mut self) {
+//         let address = self.connection.address;
+//
+//         self.session_list.remove_miner(address).await;
+//     }
+// }
 
 //@todo I big think that I think we need to focus on today is catching attacks like open sockets
 //doing nothing, socketrs trying to flood, etc.
