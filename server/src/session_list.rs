@@ -53,19 +53,23 @@ impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
         // );
     }
 
+    #[must_use]
     pub fn get_all_miners(&self) -> Vec<Arc<Session<CState>>> {
         self.inner.state.iter().map(|x| x.value().clone()).collect()
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.inner.state.len()
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.inner.state.is_empty()
     }
 
-    pub async fn is_full(&self) -> bool {
+    #[must_use]
+    pub fn is_full(&self) -> bool {
         if let Some(max) = self
             .config_manager
             .current_config()
