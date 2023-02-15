@@ -18,14 +18,17 @@ pub(crate) struct Handler<State, CState>
 where
     CState: Send + Sync + Clone + 'static,
 {
+    //No Cleanup needed
     pub(crate) ban_manager: BanManager,
     pub(crate) id_manager: IDManager,
     pub(crate) session_list: SessionList<CState>,
+    pub(crate) config_manager: ConfigManager,
+    // Not sure, but should test
     pub(crate) router: Arc<Router<State, CState>>,
     pub(crate) state: State,
     pub(crate) connection_state: CState,
+    // Cleanup needed
     pub(crate) connection: Connection,
-    pub(crate) config_manager: ConfigManager,
     pub(crate) cancel_token: CancellationToken,
     pub(crate) global_vars: GlobalVars,
 }
@@ -42,7 +45,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         let address = self.connection.address;
 
-        let (mut reader, tx) = self.connection.init();
+        let (mut reader, tx, handle) = self.connection.init();
 
         //@todo goal is get session not needing Arc Wrap.
         let session = Arc::new(Session::new(
@@ -107,6 +110,13 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         }
 
         session.shutdown().await;
+
+        //@todo below comment for older code, not accurate - review this though please.
+        //@todo swap this to self.cancel_token.cancel() and don't return this from the function. Should
+        //have the same effect
+        self.cancel_token.cancel();
+
+        handle.await;
 
         Ok(())
     }

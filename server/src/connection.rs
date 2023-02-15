@@ -8,6 +8,7 @@ use tokio::{
         TcpStream,
     },
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    task::JoinHandle,
 };
 use tokio_util::sync::CancellationToken;
 use tracing::trace;
@@ -39,7 +40,13 @@ impl Connection {
         })
     }
 
-    pub(crate) fn init(self) -> (ConnectionReader, UnboundedSender<SendInformation>) {
+    pub(crate) fn init(
+        self,
+    ) -> (
+        ConnectionReader,
+        UnboundedSender<SendInformation>,
+        JoinHandle<Result<()>>,
+    ) {
         let reader = ConnectionReader {
             reader: self.reader,
         };
@@ -49,16 +56,21 @@ impl Connection {
             UnboundedReceiver<SendInformation>,
         ) = unbounded_channel();
 
-        let cancel_token = self.cancel_token.child_token();
-        tokio::spawn(async move { write_message(cancel_token, rx, self.writer).await });
+        //@todo let's review this thoroughly.
+        //@todo I think that we need to return this thread so it can be joined.
+        let cancel_token = self.cancel_token.clone();
+        let handle =
+            tokio::spawn(async move { write_message(cancel_token, rx, self.writer).await });
 
-        (reader, tx)
+        (reader, tx, handle)
     }
 
+    //@todo this prob panics in multiple scenarios, so this really needs to be cleaned up.
     //@todo polish this up and support both v1 and v2.
     pub(crate) async fn proxy_protocol(&mut self) -> Result<SocketAddr> {
         let mut buf = String::new();
 
+        //@todo This may be the memory leak here.
         // Check for Proxy Protocol.
         self.reader.read_line(&mut buf).await?;
 
@@ -79,6 +91,8 @@ async fn write_message(
     mut rx: UnboundedReceiver<SendInformation>,
     mut writer: OwnedWriteHalf,
 ) -> Result<()> {
+    //@todo move cancel_token.cancelled() into the select loop oh wait it is, weird I guess this
+    //works just review again?
     while !cancel_token.is_cancelled() {
         tokio::select! {
             Some(msg) = rx.recv() => {
@@ -96,6 +110,9 @@ async fn write_message(
                 }
             }
             _ = cancel_token.cancelled() => {
+                //@todo reword this
+                trace!("write loop hit cancellation token.");
+
                 //Return Err
                     return Ok(());
             }
@@ -142,3 +159,6 @@ impl ConnectionReader {
         }
     }
 }
+
+//@todo RUN tests here with a bunch of different scenarios, including bad messages, not using proxy
+//protocol, etc.
