@@ -122,6 +122,8 @@ pub async fn spawn_full_server() -> Result<(SocketAddr, JoinHandle<Result<()>>)>
 
     #[cfg(feature = "api")]
     let builder = builder.with_api_host("0.0.0.0").with_api_port(0);
+    //@todo
+    // .with_proxy(true);
 
     let mut server = builder.build().await?;
 
