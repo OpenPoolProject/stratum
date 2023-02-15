@@ -7,7 +7,7 @@ use crate::{
 };
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::{trace, warn};
+use tracing::{error, trace, warn};
 
 //@note / @todo I think this is the play in that for each "protocol" we implement a Handler (does
 //message parsing and State management) and a "Connection" (different than our courrent one) which
@@ -116,7 +116,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         //have the same effect
         self.cancel_token.cancel();
 
-        handle.await;
+        if let Err(e) = handle.await {
+            //@todo fix this where it's like cause = e
+            //Also maybe see if we can only report this in debug or trace though.
+            error!("{}", e);
+        }
 
         Ok(())
     }
