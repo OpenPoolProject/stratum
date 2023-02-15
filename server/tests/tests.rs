@@ -50,6 +50,7 @@ async fn test_heap_allocation() {
     tokio::time::sleep(Duration::from_secs(2)).await;
 
     common::call_sigint();
+    common::call_sigterm();
 
     let server_result = assert_ok!(server_handle.await);
 
