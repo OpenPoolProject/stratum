@@ -9,7 +9,7 @@ use std::{
 };
 use tokio::sync::{mpsc::UnboundedSender, Mutex, RwLock};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, trace};
+use tracing::trace;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -65,8 +65,6 @@ pub enum SendInformation {
     Raw(Buffer),
 }
 
-//@todo we are going to rename this to StratumSession
-
 //@todo thought process -> Rather than have this boolean variables that slowly add up over time, we
 //should add a new type of "SessionType". This will allow us to also incorporate other types of
 //connections that are developed in the future or that are already here and enables a lot easier
@@ -77,6 +75,7 @@ pub struct Session<State> {
     pub id: Uuid,
     pub session_id: u32,
     pub id_manager: IDManager,
+    pub config_manager: ConfigManager,
 
     pub info: Arc<RwLock<SessionInfo>>,
     pub user_info: Arc<Mutex<UserInfo>>,
@@ -121,23 +120,15 @@ pub struct MinerOptions {
 }
 
 impl<State: Clone + Send + Sync + 'static> Session<State> {
-    //@todo remove this if/when we
-    #[allow(clippy::needless_pass_by_value)]
     pub fn new(
+        id: Uuid,
         id_manager: IDManager,
         sender: UnboundedSender<SendInformation>,
         config_manager: ConfigManager,
         cancel_token: CancellationToken,
-        // #[cfg(feature = "upstream")] upstream_sender: UnboundedSender<String>,
-        // #[cfg(feature = "upstream")] upstream_receiver: UnboundedReceiver<
-        //     serde_json::map::Map<String, serde_json::Value>,
-        // >,
         state: State,
     ) -> Result<Self> {
         let session_id = id_manager.allocate_session_id()?;
-        let id = Uuid::new_v4();
-
-        debug!("Accepting new miner. ID: {}", &id);
 
         let config = config_manager.current_config();
 
@@ -158,6 +149,7 @@ impl<State: Clone + Send + Sync + 'static> Session<State> {
             id,
             session_id,
             id_manager,
+            config_manager,
             user_info: Arc::new(Mutex::new(UserInfo {
                 account_id: 0,
                 mining_account: 0,

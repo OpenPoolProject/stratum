@@ -1,6 +1,3 @@
-// #[cfg(feature = "upstream")]
-// use crate::UpstreamConfig;
-
 use crate::{
     global::Global,
     id_manager::IDManager,
@@ -24,6 +21,7 @@ use tokio::task::JoinHandle;
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
+use uuid::Uuid;
 
 pub struct StratumServer<State, CState>
 where
@@ -57,6 +55,7 @@ where
 //     // Reopen the log file
 // }
 //@todo maybe move this somewhere else outside of this file.
+//@todo its possible we should just kill this.
 async fn handle_signals(mut signals: Signals, cancel_token: CancellationToken) {
     while let Some(signal) = signals.next().await {
         tracing::warn!("{:?}", &signal);
@@ -212,14 +211,20 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 continue;
             };
 
+            //@todo might make sense to wrap this in ConnectionID, so that we can implement Valuable
+            //from tracing so that we can directly print the IDs
+            //@todo we could also move this to handler? Idk also works here. Depends if we need it
+            //in connection or not.
+            let id = Uuid::new_v4();
             let child_token = self.get_cancel_token();
 
             //@todo for this error, make sure we print it in Connection.
-            let Ok(connection) = Connection::new(stream, child_token.clone()) else {
+            let Ok(connection) = Connection::new(id, stream, child_token.clone()) else {
                 continue;
             };
 
             let handler = Handler {
+                id,
                 ban_manager: self.ban_manager.clone(),
                 id_manager: self.session_id_manager.clone(),
                 session_list: self.session_list.clone(),

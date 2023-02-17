@@ -12,9 +12,11 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use tracing::trace;
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct Connection {
+    _id: Uuid,
     writer: OwnedWriteHalf,
     reader: BufReader<OwnedReadHalf>,
     cancel_token: CancellationToken,
@@ -26,12 +28,17 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub(crate) fn new(socket: TcpStream, cancel_token: CancellationToken) -> Result<Self> {
+    pub(crate) fn new(
+        id: Uuid,
+        socket: TcpStream,
+        cancel_token: CancellationToken,
+    ) -> Result<Self> {
         let addr = socket.peer_addr()?;
 
         let (read_half, write_half) = socket.into_split();
 
         Ok(Connection {
+            _id: id,
             address: addr,
             writer: write_half,
             reader: BufReader::new(read_half),
