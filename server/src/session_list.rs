@@ -15,7 +15,7 @@ use tracing::{info, warn};
 //@todo would be nice to track the number of agent connections on here.
 //@todo use improved RwLock<HashMap> libraries.
 #[derive(Default, Clone)]
-pub struct SessionList<CState: Clone + Sync + Send + 'static> {
+pub struct SessionList<CState: Clone> {
     inner: Arc<Inner<CState>>,
     pub(crate) config_manager: ConfigManager,
 }
@@ -25,7 +25,7 @@ struct Inner<CState> {
     state: DashMap<SocketAddr, Arc<Session<CState>>>,
 }
 
-impl<CState: Clone + Sync + Send + 'static> SessionList<CState> {
+impl<CState: Clone> SessionList<CState> {
     #[must_use]
     pub fn new(config_manager: ConfigManager) -> Self {
         SessionList {

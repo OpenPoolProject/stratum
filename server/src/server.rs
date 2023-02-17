@@ -25,8 +25,8 @@ use uuid::Uuid;
 
 pub struct StratumServer<State, CState>
 where
-    State: Clone + Send + Sync + 'static,
-    CState: Default + Clone + Send + Sync + 'static,
+    State: Clone,
+    CState: Default + Clone,
 {
     pub(crate) id: u8,
     pub(crate) listen_address: SocketAddr,
@@ -43,10 +43,6 @@ where
     pub(crate) shutdown_message: Option<Buffer>,
     #[cfg(feature = "api")]
     pub(crate) api: crate::api::Api,
-    // #[cfg(feature = "upstream")]
-    // pub(crate) upstream_router: Arc<Router<State, CState>>,
-    // #[cfg(feature = "upstream")]
-    // pub(crate) upstream_config: UpstreamConfig,
 }
 
 //@todo consider this signal for reloading upstream config?

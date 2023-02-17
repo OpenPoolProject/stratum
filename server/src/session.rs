@@ -119,7 +119,7 @@ pub struct MinerOptions {
     // share_time_max: f64,
 }
 
-impl<State: Clone + Send + Sync + 'static> Session<State> {
+impl<State: Clone> Session<State> {
     pub fn new(
         id: Uuid,
         id_manager: IDManager,
