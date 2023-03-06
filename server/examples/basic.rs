@@ -1,4 +1,4 @@
-use std::{time::Duration};
+use std::time::Duration;
 use stratum_server::{Session, SessionList, StratumRequest, StratumServer};
 use tracing::subscriber::set_global_default;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Registry};
