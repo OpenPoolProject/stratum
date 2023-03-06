@@ -1,19 +1,16 @@
 use crate::{Session, StratumRequest};
 use async_trait::async_trait;
 use futures::Future;
-use std::sync::Arc;
 use tracing::error;
 
 pub(crate) type DynEndpoint<State, CState> = dyn Endpoint<State, CState>;
 
 #[async_trait]
-pub trait Endpoint<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static>:
-    Send + Sync + 'static
-{
+pub trait Endpoint<State: Clone, CState: Clone>: Send + Sync + 'static {
     async fn call(
         &self,
         req: StratumRequest<State>,
-        connection: Arc<Session<CState>>,
+        connection: Session<CState>,
     ) -> serde_json::Value;
 }
 
@@ -22,7 +19,7 @@ impl<State, CState, F, Fut, Res, E> Endpoint<State, CState> for F
 where
     State: Clone + Send + Sync + 'static,
     CState: Clone + Send + Sync + 'static,
-    F: Send + Sync + 'static + Fn(StratumRequest<State>, Arc<Session<CState>>) -> Fut,
+    F: Send + Sync + 'static + Fn(StratumRequest<State>, Session<CState>) -> Fut,
     Fut: Future<Output = std::result::Result<Res, E>> + Send + 'static,
     E: std::error::Error + 'static + std::marker::Send,
     Res: Into<serde_json::Value> + 'static + std::marker::Send,
@@ -31,7 +28,7 @@ where
         &self,
         req: StratumRequest<State>,
         //@todo remove the Arc...
-        connection: Arc<Session<CState>>,
+        connection: Session<CState>,
     ) -> serde_json::Value {
         let fut = (self)(req, connection.clone());
 
@@ -46,7 +43,7 @@ where
                 );
 
                 //@todo better response values here if we can.
-                connection.disconnect().await;
+                connection.disconnect();
                 serde_json::Value::Null
             }
         }

@@ -3,7 +3,7 @@ use crate::{
     types::GlobalVars,
     Frame, Session, StratumRequest,
 };
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 use tracing::warn;
 
 pub struct Router<State, CState> {
@@ -27,7 +27,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
         &self,
         value: Frame,
         state: State,
-        connection: Arc<Session<CState>>,
+        connection: Session<CState>,
         global_vars: GlobalVars,
     ) {
         let Some(endpoint) = self.routes.get(value.method()) else {

@@ -3,9 +3,7 @@ use async_trait::async_trait;
 use futures::Future;
 
 #[async_trait]
-pub trait Global<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static>:
-    Send + Sync + 'static
-{
+pub trait Global<State: Clone, CState: Clone>: Send + Sync + 'static {
     async fn call(&self, state: State, session_list: SessionList<CState>);
 }
 

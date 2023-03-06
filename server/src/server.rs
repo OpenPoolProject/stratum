@@ -10,8 +10,6 @@ use crate::{
 use extended_primitives::Buffer;
 use futures::StreamExt;
 use rlimit::Resource;
-use signal_hook::consts::signal::{SIGHUP, SIGINT, SIGQUIT, SIGTERM};
-use signal_hook_tokio::{Handle, Signals};
 use std::{
     net::SocketAddr,
     sync::Arc,
@@ -45,75 +43,20 @@ where
     pub(crate) api: crate::api::Api,
 }
 
-//@todo consider this signal for reloading upstream config?
-// SIGHUP => {
-//     // Reload configuration
-//     // Reopen the log file
-// }
-//@todo maybe move this somewhere else outside of this file.
-//@todo its possible we should just kill this.
-async fn handle_signals(mut signals: Signals, cancel_token: CancellationToken) {
-    while let Some(signal) = signals.next().await {
-        tracing::warn!("{:?}", &signal);
-        match signal {
-            SIGTERM | SIGINT | SIGQUIT => {
-                // Shutdown the system;
-                //@todo print the signal here
-                //@todo use extended signal information
-                info!("Received SIGINT. Initiating shutdown...");
-                cancel_token.cancel();
-                info!("CancellationToken has been canceled");
-                return;
-            }
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static>
-    StratumServer<State, CState>
+impl<State, CState> StratumServer<State, CState>
+where
+    State: Clone + Send + Sync + 'static,
+    CState: Default + Clone + Send + Sync + 'static,
 {
     pub fn builder(state: State, server_id: u8) -> StratumServerBuilder<State, CState> {
         StratumServerBuilder::new(state, server_id)
     }
 
-    //Initialize the server before we want to start accepting any connections.
-    fn init(&self) -> Result<(Handle, JoinHandle<()>)> {
-        info!("Initializing...");
-
-        //@todo let's wrap this to make sure it's aboe what we need otherwise adjust.
-        //Check that the system will support what we need.
-        let (hard, soft) = rlimit::getrlimit(Resource::NOFILE)?;
-
-        info!("Current Ulimit is set to {hard} hard limit, {soft} soft limit");
-
-        let signals = Signals::new([SIGHUP, SIGTERM, SIGINT, SIGQUIT])?;
-        let handle = signals.handle();
-
-        //@note we want to clone here because cancel will cancel all child tokens. If we set this
-        //as a child token, it will have no children itself
-        let signals_task = tokio::task::spawn(handle_signals(signals, self.cancel_token.clone()));
-
-        info!("Initialization Complete");
-
-        Ok((handle, signals_task))
-    }
-
     pub fn add(&mut self, method: &str, ep: impl Endpoint<State, CState>) {
-        //@todo review this code.
         let router = Arc::get_mut(&mut self.router)
             .expect("Registering routes is not possible after the Server has started");
         router.add(method, ep);
     }
-
-    //@todo will probably change this "Endpoint" here to an upstream endpoint.
-    // #[cfg(feature = "upstream")]
-    // pub fn add_upstream(&mut self, method: &str, ep: impl Endpoint<State, CState>) {
-    //     //@todo review this code.
-    //     let router = Arc::get_mut(&mut self.upstream_router)
-    //         .expect("Registering routes is not possible after the Server has started");
-    //     router.add(method, ep);
-    // }
 
     pub fn global(&mut self, _global_name: &str, ep: impl Global<State, CState>) {
         let state = self.state.clone();
@@ -250,10 +193,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 
     pub async fn start(&mut self) -> Result<()> {
-        //Initalize the recorder
-        init_metrics_recorder();
-
-        let (signal_handle, signal_task) = self.init()?;
+        init()?;
 
         let cancel_token = self.cancel_token.clone();
 
@@ -274,8 +214,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         //Session Shutdowns
         {
             self.session_list
-                .shutdown_msg(self.shutdown_message.clone())
-                .await?;
+                .shutdown_msg(self.shutdown_message.clone())?;
 
             let mut backoff = 1;
             loop {
@@ -286,7 +225,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
                 if backoff > 64 {
                     warn!("{connected_miners} remaining, force shutting down now");
-                    self.session_list.shutdown().await;
+                    self.session_list.shutdown();
                     break;
                 }
 
@@ -315,15 +254,6 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             if let Err(err) = api_handle.await {
                 error!(cause = %err, "API failed to shut down gracefully.");
             }
-        }
-
-        info!("Awaiting for all signal handler to complete");
-        // Allow for signal threads to close. @todo check this in testing.
-        signal_handle.close();
-
-        info!("Awaiting for all signal task to complete");
-        if let Err(err) = signal_task.await {
-            error!(cause = %err, "Signal task failed to shut down gracefully.");
         }
 
         //@todo lets get some better parsing here. Seconds and NS would be great
@@ -359,6 +289,23 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     }
 }
 
+fn init() -> Result<()> {
+    info!("Initializing...");
+
+    //Initalize the recorder
+    init_metrics_recorder();
+
+    //@todo let's wrap this to make sure it's aboe what we need otherwise adjust.
+    //Check that the system will support what we need.
+    let (hard, soft) = rlimit::getrlimit(Resource::NOFILE)?;
+
+    info!("Current Ulimit is set to {hard} hard limit, {soft} soft limit");
+
+    info!("Initialization Complete");
+
+    Ok(())
+}
+
 //Initalizes the prometheus metrics recorder.
 pub fn init_metrics_recorder() {
     // let (recorder, _) = PrometheusBuilder::new().build().unwrap();
@@ -372,5 +319,38 @@ pub fn init_metrics_recorder() {
 // {
 //     fn drop(&mut self) {
 //         info!("Dropping StratumSever with data `{}`!", self.host);
+//     }
+// }
+//
+
+//@todo
+// #[cfg(test)]
+// mod tests {
+//
+//     #[derive(Clone)]
+//     pub struct State {}
+//
+//     pub async fn handle_auth(
+//         req: StratumRequest<State>,
+//         _connection: Arc<Session<ConnectionState>>,
+//     ) -> Result<bool> {
+//         let state = req.state();
+//
+//         let login = state.auth.login().await;
+//
+//         Ok(login)
+//     }
+//
+//     #[tokio::test]
+//     async fn test_server_add() {
+//         let builder = StratumServer::builder(state, 1)
+//             .with_host("0.0.0.0")
+//             .with_port(0);
+//
+//         let mut server = builder.build().await?;
+//
+//         let address = server.get_address();
+//
+//         server.add("auth", handle_auth);
 //     }
 // }

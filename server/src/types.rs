@@ -125,3 +125,54 @@ impl GlobalVars {
         GlobalVars { server_id }
     }
 }
+
+//@todo export this publically
+#[derive(Clone, Debug)]
+pub struct Difficulties {
+    pub(crate) current: u64,
+    pub(crate) old: u64,
+    pub(crate) next: u64,
+}
+
+impl Difficulties {
+    pub(crate) fn new(current: u64, old: u64, next: u64) -> Self {
+        Difficulties { current, old, next }
+    }
+
+    pub fn current(&self) -> u64 {
+        self.current
+    }
+
+    pub fn old(&self) -> u64 {
+        self.old
+    }
+
+    pub fn next(&self) -> Option<u64> {
+        if self.next == 0 {
+            None
+        } else {
+            Some(self.next)
+        }
+    }
+
+    pub fn update_next(&mut self, next: u64) {
+        self.next = next;
+    }
+
+    pub(crate) fn shift(&mut self) -> Option<u64> {
+        if self.next == 0 {
+            None
+        } else {
+            self.old = self.current;
+            self.current = self.next;
+            self.next = 0;
+            Some(self.current)
+        }
+    }
+
+    pub(crate) fn set_and_shift(&mut self, current: u64) {
+        self.old = self.current;
+        self.current = current;
+        self.next = 0;
+    }
+}

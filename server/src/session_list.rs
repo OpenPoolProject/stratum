@@ -1,5 +1,4 @@
-pub use crate::session::Session;
-use crate::{ConfigManager, Result};
+use crate::{session::Session, ConfigManager, Result};
 use dashmap::DashMap;
 use extended_primitives::Buffer;
 use std::{net::SocketAddr, sync::Arc};
@@ -22,7 +21,7 @@ pub struct SessionList<CState: Clone> {
 
 #[derive(Default)]
 struct Inner<CState> {
-    state: DashMap<SocketAddr, Arc<Session<CState>>>,
+    state: DashMap<SocketAddr, Session<CState>>,
 }
 
 impl<CState: Clone> SessionList<CState> {
@@ -36,7 +35,7 @@ impl<CState: Clone> SessionList<CState> {
         }
     }
 
-    pub fn add_miner(&self, addr: SocketAddr, miner: Arc<Session<CState>>) -> Result<()> {
+    pub fn add_miner(&self, addr: SocketAddr, miner: Session<CState>) -> Result<()> {
         self.inner.state.insert(addr, miner);
         // gauge!(
         //     "stratum.num_connections",
@@ -54,7 +53,7 @@ impl<CState: Clone> SessionList<CState> {
     }
 
     #[must_use]
-    pub fn get_all_miners(&self) -> Vec<Arc<Session<CState>>> {
+    pub fn get_all_miners(&self) -> Vec<Session<CState>> {
         self.inner.state.iter().map(|x| x.value().clone()).collect()
     }
 
@@ -82,7 +81,8 @@ impl<CState: Clone> SessionList<CState> {
         }
     }
 
-    pub async fn shutdown_msg(&self, msg: Option<Buffer>) -> Result<()> {
+    //@todo we need to revamp this as it needs to be variable.
+    pub fn shutdown_msg(&self, msg: Option<Buffer>) -> Result<()> {
         // @todo use this for deluge
         if let Some(msg) = msg {
             info!(
@@ -91,8 +91,8 @@ impl<CState: Clone> SessionList<CState> {
             );
             for entry in self.inner.state.iter() {
                 let miner = entry.value();
-                if let Err(e) = miner.send_raw(msg.clone()).await {
-                    warn!(connection_id = %miner.id, cause = %e, "Failed to send shutdown message");
+                if let Err(e) = miner.send_raw(msg.clone()) {
+                    warn!(connection_id = %miner.id(), cause = %e, "Failed to send shutdown message");
                 }
             }
         }
@@ -100,15 +100,15 @@ impl<CState: Clone> SessionList<CState> {
         Ok(())
     }
 
-    pub async fn shutdown(&self) {
+    pub fn shutdown(&self) {
         info!(
             "Session List shutting down {} miners",
             self.inner.state.len()
         );
 
-        //@todo we need to parallize this async.
+        //@todo we need to parallize this async - now we can do it without async though.
         for entry in self.inner.state.iter() {
-            entry.value().shutdown().await;
+            entry.value().shutdown();
         }
     }
 }

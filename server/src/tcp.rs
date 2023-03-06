@@ -55,15 +55,14 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         let (mut reader, tx, handle) = self.connection.init();
 
-        //@todo goal is get session not needing Arc Wrap.
-        let session = Arc::new(Session::new(
+        let session = Session::new(
             self.id,
             self.id_manager.clone(),
             tx,
             self.config_manager.clone(),
             self.cancel_token.child_token(),
             self.connection_state.clone(),
-        )?);
+        )?;
 
         //@todo time would be nice, but I think is default included. Double check
         debug!(
@@ -77,7 +76,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self.session_list.add_miner(address, session.clone())?;
 
         while !self.cancel_token.is_cancelled() {
-            if session.is_disconnected().await {
+            if session.is_disconnected() {
                 trace!(
                     "Session: {} disconnected. Breaking out of next_message loop",
                     session.id()
@@ -85,6 +84,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 break;
             }
 
+            //@todo we need a timeout here otherwise we can get stuck forever.
             let maybe_frame = tokio::select! {
                 res = reader.read_frame() => {
                     match res {
@@ -125,11 +125,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         self.session_list.remove_miner(address);
 
-        if session.needs_ban().await {
+        if session.needs_ban() {
             self.ban_manager.add_ban(address);
         }
 
-        session.shutdown().await;
+        session.shutdown();
 
         //@todo below comment for older code, not accurate - review this though please.
         //@todo swap this to self.cancel_token.cancel() and don't return this from the function. Should
