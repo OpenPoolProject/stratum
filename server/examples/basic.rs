@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{time::Duration};
 use stratum_server::{Session, SessionList, StratumRequest, StratumServer};
 use tracing::subscriber::set_global_default;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Registry};
@@ -23,7 +23,7 @@ pub struct ConnectionState {}
 //@todo test returning a message, so that we can assert eq in the main test.
 pub async fn handle_auth(
     req: StratumRequest<State>,
-    _connection: Arc<Session<ConnectionState>>,
+    _connection: Session<ConnectionState>,
 ) -> Result<bool, std::io::Error> {
     let state = req.state();
 

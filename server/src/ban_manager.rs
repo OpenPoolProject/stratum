@@ -330,7 +330,7 @@ mod tests {
 
     #[cfg_attr(coverage_nightly, no_coverage)]
     #[tokio::test]
-    async fn single_ban_expires() {
+    async fn single_ban_expires() -> anyhow::Result<()> {
         let cancel_token = CancellationToken::new();
         let mut config = Config::default();
         config.bans.default_ban_duration = ms(1);
@@ -349,11 +349,13 @@ mod tests {
         let temp_bans = ban_manager.temp_bans();
 
         assert_eq!(temp_bans.len(), 0);
+
+        Ok(())
     }
 
     #[cfg_attr(coverage_nightly, no_coverage)]
     #[tokio::test]
-    async fn ban_extended() {
+    async fn ban_extended() -> anyhow::Result<()> {
         let cancel_token = CancellationToken::new();
         let mut config = Config::default();
         config.bans.default_ban_duration = Duration::from_secs(100);
@@ -389,6 +391,8 @@ mod tests {
         let temp_bans = ban_manager.temp_bans();
 
         assert_eq!(temp_bans.len(), 0);
+
+        Ok(())
     }
 
     fn ms(n: u64) -> Duration {
@@ -397,7 +401,7 @@ mod tests {
 
     #[cfg_attr(coverage_nightly, no_coverage)]
     #[tokio::test]
-    async fn graceful_shutdown() {
+    async fn graceful_shutdown() -> anyhow::Result<()> {
         let cancel_token = CancellationToken::new();
         let mut config = Config::default();
         config.bans.default_ban_duration = ms(100);
@@ -414,5 +418,7 @@ mod tests {
         tokio::time::sleep(ms(200)).await;
 
         assert_err!(ban_manager.check_banned(addr));
+
+        Ok(())
     }
 }
