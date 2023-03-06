@@ -39,7 +39,9 @@ mod utils;
 #[cfg(feature = "api")]
 mod api;
 
-pub(crate) use crate::{ban_manager::BanManager, connection::Connection, frame::Frame};
+pub(crate) use crate::{
+    ban_manager::BanManager, connection::Connection, frame::Frame, miner_list::MinerList,
+};
 
 pub use crate::{
     builder::StratumServerBuilder,
@@ -47,7 +49,6 @@ pub use crate::{
     error::Error,
     global::Global,
     miner::Miner,
-    miner_list::MinerList,
     request::StratumRequest,
     server::StratumServer,
     session::Session,

@@ -1,6 +1,3 @@
-// #[cfg(feature = "upstream")]
-// use crate::config::UpstreamConfig;
-
 use crate::{
     config::{ConnectionConfig, DifficultyConfig},
     id_manager::IDManager,
@@ -25,8 +22,6 @@ pub struct StratumServerBuilder<State, CState> {
     pub api_port: u16,
     pub connection_config: ConnectionConfig,
     pub var_diff_config: DifficultyConfig,
-    // #[cfg(feature = "upstream")]
-    // pub upstream_config: UpstreamConfig,
     pub state: State,
     pub connection_state: PhantomData<CState>,
     pub ready_indicator: ReadyIndicator,
@@ -46,14 +41,12 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             api_host: String::from("0.0.0.0"),
             #[cfg(feature = "api")]
             api_port: 8888,
-            connection_config: ConnectionConfig {
-                proxy_protocol: false,
-                max_connections: None,
-            },
+            connection_config: ConnectionConfig::default(),
             state,
             connection_state: PhantomData,
             ready_indicator: ReadyIndicator::new(false),
             var_diff_config: DifficultyConfig {
+                retarget_share_amount: 30,
                 initial_difficulty: 16384,
                 var_diff: false,
                 minimum_difficulty: 64,
@@ -157,16 +150,6 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self.ready_indicator = ready_indicator;
         self
     }
-
-    // #[cfg(feature = "upstream")]
-    // #[must_use]
-    // pub fn with_upstream(mut self, url: &str) -> Self {
-    //     self.upstream_config = UpstreamConfig {
-    //         enabled: true,
-    //         url: url.to_string(),
-    //     };
-    //     self
-    // }
 
     #[must_use]
     pub fn with_shutdown_message(mut self, msg: Buffer) -> Self {

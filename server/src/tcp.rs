@@ -7,7 +7,10 @@ use crate::{
 };
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, trace, warn};
+use tracing::{debug, error, trace, warn};
+use uuid::Uuid;
+
+//@todo finish up the logging in this
 
 //@note / @todo I think this is the play in that for each "protocol" we implement a Handler (does
 //message parsing and State management) and a "Connection" (different than our courrent one) which
@@ -19,14 +22,17 @@ where
     CState: Send + Sync + Clone + 'static,
 {
     //No Cleanup needed
+    pub(crate) id: Uuid,
     pub(crate) ban_manager: BanManager,
     pub(crate) id_manager: IDManager,
     pub(crate) session_list: SessionList<CState>,
     pub(crate) config_manager: ConfigManager,
+
     // Not sure, but should test
     pub(crate) router: Arc<Router<State, CState>>,
     pub(crate) state: State,
     pub(crate) connection_state: CState,
+
     // Cleanup needed
     pub(crate) connection: Connection,
     pub(crate) cancel_token: CancellationToken,
@@ -37,6 +43,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     Handler<State, CState>
 {
     pub(crate) async fn run(mut self) -> Result<()> {
+        //@todo proxy_protocol returns an address, so ban_mananger won't see that address if we
+        //don't get the return value from here.
         if self.config_manager.proxy_protocol() {
             self.connection.proxy_protocol().await?;
         }
@@ -47,21 +55,28 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         let (mut reader, tx, handle) = self.connection.init();
 
-        //@todo goal is get session not needing Arc Wrap.
-        let session = Arc::new(Session::new(
+        let session = Session::new(
+            self.id,
             self.id_manager.clone(),
             tx,
             self.config_manager.clone(),
             self.cancel_token.child_token(),
             self.connection_state.clone(),
-        )?);
+        )?;
+
+        //@todo time would be nice, but I think is default included. Double check
+        debug!(
+            id = &self.id.to_string(),
+            ip = &address.to_string(),
+            "Connection initialized",
+        );
 
         //@todo figure out if we should remove the ? here.
         //@todo solve removing session from this (pros in drop here using connection.)
         self.session_list.add_miner(address, session.clone())?;
 
         while !self.cancel_token.is_cancelled() {
-            if session.is_disconnected().await {
+            if session.is_disconnected() {
                 trace!(
                     "Session: {} disconnected. Breaking out of next_message loop",
                     session.id()
@@ -69,6 +84,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 break;
             }
 
+            //@todo we need a timeout here otherwise we can get stuck forever.
             let maybe_frame = tokio::select! {
                 res = reader.read_frame() => {
                     match res {
@@ -101,15 +117,19 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 .await;
         }
 
-        trace!("Closing stream from: {}", session.id());
+        trace!(
+            id = &self.id.to_string(),
+            ip = &address.to_string(),
+            "Connection shutdown started",
+        );
 
         self.session_list.remove_miner(address);
 
-        if session.needs_ban().await {
+        if session.needs_ban() {
             self.ban_manager.add_ban(address);
         }
 
-        session.shutdown().await;
+        session.shutdown();
 
         //@todo below comment for older code, not accurate - review this though please.
         //@todo swap this to self.cancel_token.cancel() and don't return this from the function. Should
@@ -122,23 +142,15 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             error!("{}", e);
         }
 
+        debug!(
+            id = &self.id.to_string(),
+            ip = &address.to_string(),
+            "Connection shutdown complete",
+        );
+
         Ok(())
     }
 }
-
-// impl<State, CState> Drop for Handler<State, CState>
-// where
-//     CState: Send + Sync + Clone + 'static,
-// {
-//     // impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static> Drop
-//     // for Handler<State, CState>
-//
-//     fn drop(&mut self) {
-//         let address = self.connection.address;
-//
-//         self.session_list.remove_miner(address).await;
-//     }
-// }
 
 //@todo I big think that I think we need to focus on today is catching attacks like open sockets
 //doing nothing, socketrs trying to flood, etc.

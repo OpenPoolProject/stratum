@@ -1,7 +1,10 @@
-use crate::{session::MinerOptions, types::VarDiffBuffer, utils};
+use crate::{
+    types::{Difficulties, VarDiffBuffer},
+    utils, ConfigManager,
+};
 use extended_primitives::Buffer;
+use parking_lot::Mutex;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tracing::warn;
 use uuid::Uuid;
 
@@ -9,19 +12,25 @@ use uuid::Uuid;
 //connection which is why we needed to break it into these primitives.
 #[derive(Debug, Clone)]
 pub struct Miner {
-    pub id: Uuid,
-    pub sid: Buffer,
-    pub client: Option<String>,
-    pub name: Option<String>,
-    //@todo one thing we could do here that I luike quite a bit is to just make this a tuple.
-    //(old, new)
-    pub difficulty: Arc<Mutex<u64>>,
-    pub previous_difficulty: Arc<Mutex<u64>>,
-    pub next_difficulty: Arc<Mutex<Option<u64>>>,
-    pub stats: Arc<Mutex<MinerStats>>,
-    pub job_stats: Arc<Mutex<JobStats>>,
-    pub options: Arc<MinerOptions>,
-    pub needs_ban: Arc<Mutex<bool>>,
+    config_manager: ConfigManager,
+    shared: Arc<Shared>,
+    inner: Arc<Inner>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Inner {
+    pub(crate) id: Uuid,
+    pub(crate) _sid: Buffer,
+    pub(crate) _client: Option<String>,
+    pub(crate) _name: Option<String>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Shared {
+    difficulties: Mutex<Difficulties>,
+    needs_ban: Mutex<bool>,
+    stats: Mutex<MinerStats>,
+    var_diff_stats: Mutex<VarDiffStats>,
 }
 
 impl Miner {
@@ -31,88 +40,126 @@ impl Miner {
         client: Option<String>,
         name: Option<String>,
         sid: Buffer,
-        options: Arc<MinerOptions>,
+        config_manager: ConfigManager,
         difficulty: u64,
     ) -> Self {
         let now = utils::now();
-        Miner {
-            id,
-            sid,
-            client,
-            name,
-            difficulty: Arc::new(Mutex::new(difficulty)),
-            previous_difficulty: Arc::new(Mutex::new(difficulty)),
-            next_difficulty: Arc::new(Mutex::new(None)),
-            stats: Arc::new(Mutex::new(MinerStats {
-                accepted_shares: 0,
-                rejected_shares: 0,
+
+        let shared = Shared {
+            difficulties: Mutex::new(Difficulties::new(difficulty, 0, 0)),
+            needs_ban: Mutex::new(false),
+            stats: Mutex::new(MinerStats {
+                accepted: 0,
+                stale: 0,
+                rejected: 0,
                 last_active: now,
-            })),
-            job_stats: Arc::new(Mutex::new(JobStats {
+            }),
+            var_diff_stats: Mutex::new(VarDiffStats {
                 last_timestamp: now,
-                last_retarget: now - (options.retarget_time as u128 * 1000) / 2,
+                last_retarget: config_manager
+                    .difficulty_config()
+                    .initial_retarget_time(now),
                 vardiff_buf: VarDiffBuffer::new(),
                 last_retarget_share: 0,
-                current_difficulty: difficulty,
-            })),
-            options,
-            needs_ban: Arc::new(Mutex::new(false)),
+            }),
+        };
+
+        let inner = Inner {
+            id,
+            _sid: sid,
+            _client: client,
+            _name: name,
+        };
+
+        Miner {
+            config_manager,
+            shared: Arc::new(shared),
+            inner: Arc::new(inner),
         }
     }
 
-    pub async fn ban(&self) {
-        *self.needs_ban.lock().await = true;
-        // self.disconnect().await;
+    // pub(crate) fn id(&self) -> Uuid {
+    //     self.inner.id
+    // }
+
+    pub(crate) fn ban(&self) {
+        *self.shared.needs_ban.lock() = true;
+
+        //@todo I think we need to disconnect here as well.
     }
 
-    pub async fn consider_ban(&self) {
-        let accepted = self.stats.lock().await.accepted_shares;
-        let rejected = self.stats.lock().await.rejected_shares;
+    pub fn consider_ban(&self) {
+        let stats = self.shared.stats.lock();
 
-        let total = accepted + rejected;
+        //@note this could possibly possibly possibly overflow - let's just think about that as we
+        //move forward.
+        let total = stats.accepted + stats.stale + stats.rejected;
 
-        //@todo come from options.
-        let check_threshold = 500;
-        let invalid_percent = 50.0;
+        let config = &self.config_manager.current_config().connection;
 
-        if total >= check_threshold {
-            let percent_bad: f64 = (rejected as f64 / total as f64) * 100.0;
+        if total >= config.check_threshold {
+            let percent_bad: f64 = ((stats.stale + stats.rejected) as f64 / total as f64) * 100.0;
 
-            if percent_bad < invalid_percent {
+            if percent_bad < config.invalid_percent {
+                //@todo do we want to reset though?
+                //Although if we don't, then this will trigger on every new share after 500.
+                //So we could switch it to modulo 500 == 0
                 //@todo make this possible. Reset stats to 0.
                 // self.stats.lock().await = MinerStats::default();
             } else {
                 warn!(
                     "Miner: {} banned. {} out of the last {} shares were invalid",
-                    self.id, rejected, total
+                    self.inner.id,
+                    stats.stale + stats.rejected,
+                    total
                 );
-                // self.ban().await; @todo
+                self.ban();
             }
         }
     }
 
-    pub async fn current_difficulty(&self) -> u64 {
-        *self.difficulty.lock().await
+    pub(crate) fn difficulties(&self) -> Difficulties {
+        self.shared.difficulties.lock().clone()
     }
 
-    pub async fn previous_difficulty(&self) -> u64 {
-        *self.previous_difficulty.lock().await
-    }
-
-    pub async fn valid_share(&self) {
-        let mut stats = self.stats.lock().await;
-        stats.accepted_shares += 1;
+    //@todo in the future have this accept difficulty, and then we could calculate hashrate here.
+    pub fn valid_share(&self) {
+        let mut stats = self.shared.stats.lock();
+        stats.accepted += 1;
         stats.last_active = utils::now();
+
         drop(stats);
-        // self.consider_ban().await; @todo
-        // @todo if we want to wrap this in an option, lets make it options.
-        // @todo don't retarget until new job has been added.
-        self.retarget().await;
+
+        self.consider_ban();
+
+        self.retarget();
     }
 
-    pub async fn invalid_share(&self) {
-        self.stats.lock().await.rejected_shares += 1;
-        // self.consider_ban().await;
+    pub fn stale_share(&self) {
+        let mut stats = self.shared.stats.lock();
+
+        stats.stale += 1;
+        stats.last_active = utils::now();
+
+        drop(stats);
+
+        self.consider_ban();
+
+        //@todo see below
+        //I don't think we want to retarget on invalid shares, but let's double check later.
+        // self.retarget().await;
+    }
+
+    pub fn rejected_share(&self) {
+        let mut stats = self.shared.stats.lock();
+
+        stats.rejected += 1;
+        stats.last_active = utils::now();
+
+        drop(stats);
+
+        self.consider_ban();
+
         //@todo see below
         //I don't think we want to retarget on invalid shares, but let's double check later.
         // self.retarget().await;
@@ -124,117 +171,97 @@ impl Miner {
     //@todo does this need to return a result? Ideally not, but if we send difficulty, then maybe.
     //@todo see if we can solve a lot of these recasting issues.
     //@todo wrap u64 with a custom difficulty type.
-    async fn retarget(&self) {
+    fn retarget(&self) {
         let now = utils::now();
 
-        let mut job_stats = self.job_stats.lock().await;
+        let mut difficulties = self.shared.difficulties.lock();
+        let mut var_diff_stats = self.shared.var_diff_stats.lock();
+        let stats = self.shared.stats.lock();
 
-        let since_last = now - job_stats.last_timestamp;
+        let since_last = now - var_diff_stats.last_timestamp;
 
-        job_stats.vardiff_buf.append(since_last);
-        job_stats.last_timestamp = now;
+        var_diff_stats.vardiff_buf.append(since_last);
+        var_diff_stats.last_timestamp = now;
 
-        //@todo set the retarget share amount in self.options as well.
-        let stats = self.stats.lock().await;
-        if !(((stats.accepted_shares - job_stats.last_retarget_share) >= 30)
-            || (now - job_stats.last_retarget) >= self.options.retarget_time as u128)
+        //@todo review this code, see if we can make this easier.
+        if !(((stats.accepted - var_diff_stats.last_retarget_share)
+            >= self
+                .config_manager
+                .difficulty_config()
+                .retarget_share_amount)
+            || (now - var_diff_stats.last_retarget)
+                >= self.config_manager.difficulty_config().retarget_time as u128)
         {
             return;
         }
 
-        job_stats.last_retarget = now;
-        job_stats.last_retarget_share = stats.accepted_shares;
+        var_diff_stats.last_retarget = now;
+        var_diff_stats.last_retarget_share = stats.accepted;
 
         // let variance = self.options.target_time * (self.options.variance_percent as f64 / 100.0);
         // let time_min = self.options.target_time as f64 * 0.40;
         // let time_max = self.options.target_time as f64 * 1.40;
 
-        let avg = job_stats.vardiff_buf.avg();
+        let avg = var_diff_stats.vardiff_buf.avg();
 
         if avg <= 0.0 {
             return;
         }
-        // let mut d_dif = self.options.target_time as f64 / avg as f64;
-        //
+
         let mut new_diff;
 
-        if avg > self.options.target_time as f64 {
-            if (avg / self.options.target_time as f64) <= 1.5 {
+        //@todo figure out what else needs to come from config here, and comment out this function.
+        let target_time = self.config_manager.difficulty_config().target_time as f64;
+        if avg > target_time {
+            if (avg / self.config_manager.difficulty_config().target_time as f64) <= 1.5 {
                 return;
             }
-            new_diff = job_stats.current_difficulty / 2;
-        } else if (avg / self.options.target_time as f64) >= 0.7 {
+            new_diff = difficulties.current() / 2;
+        } else if (avg / target_time) >= 0.7 {
             return;
         } else {
-            new_diff = job_stats.current_difficulty * 2;
+            new_diff = difficulties.current() * 2;
         }
 
-        new_diff = new_diff.clamp(self.options.min_diff, self.options.max_diff);
+        new_diff = new_diff.clamp(
+            self.config_manager.difficulty_config().minimum_difficulty,
+            self.config_manager.difficulty_config().maximum_difficulty,
+        );
 
-        if new_diff != job_stats.current_difficulty {
-            *self.next_difficulty.lock().await = Some(new_diff);
-            job_stats.vardiff_buf.reset();
-        }
-
-        // let mut new_difficulty = job_stats.current_difficulty.clone();
-        // Too Fast
-        // if (avg) < time_min {
-        //     while (avg) < time_min && new_difficulty < self.options.max_diff {
-        //         new_difficulty *= 2;
-        //         avg *= 2.0;
-        //     }
-        //
-        //     *self.next_difficulty.lock().await = Some(new_difficulty);
-        // }
-
-        // Too SLow
-        // if (avg) > time_max && new_difficulty >= self.options.min_diff * 2 {
-        //     while (avg) > time_max && new_difficulty >= self.options.min_diff * 2 {
-        //         new_difficulty /= 2;
-        //         avg /= 2.0;
-        //     }
-        // *self.next_difficulty.lock().await = Some(new_difficulty);
-
-        // job_stats.times.clear();
-    }
-
-    pub async fn update_difficulty(&self) -> Option<u64> {
-        let next_difficulty = *self.next_difficulty.lock().await;
-
-        if let Some(next_difficulty) = next_difficulty {
-            *self.difficulty.lock().await = next_difficulty;
-            self.job_stats.lock().await.current_difficulty = next_difficulty;
-
-            *self.next_difficulty.lock().await = None;
-
-            Some(next_difficulty)
-        } else {
-            None
+        if new_diff != difficulties.current() {
+            difficulties.update_next(new_diff);
+            var_diff_stats.vardiff_buf.reset();
         }
     }
 
-    pub async fn set_difficulty(&self, difficulty: u64) {
-        let old_diff = *self.difficulty.lock().await;
-        *self.difficulty.lock().await = difficulty;
-        *self.previous_difficulty.lock().await = old_diff;
-        self.job_stats.lock().await.current_difficulty = difficulty;
+    #[must_use]
+    pub fn update_difficulty(&self) -> Option<u64> {
+        let mut difficulties = self.shared.difficulties.lock();
+
+        difficulties.shift()
+    }
+
+    pub fn set_difficulty(&self, difficulty: u64) {
+        let mut difficulties = self.shared.difficulties.lock();
+
+        difficulties.set_and_shift(difficulty);
     }
 }
+
+//@todo either wrap miner in a folder, or move these both to types
 
 #[derive(Debug, Clone)]
 pub struct MinerStats {
-    accepted_shares: u64,
-    rejected_shares: u64,
+    accepted: u64,
+    stale: u64,
+    rejected: u64,
     last_active: u128,
 }
 
-//@todo probably move these over to types.
-//@todo maybe rename this as vardiff stats.
 #[derive(Debug)]
-pub struct JobStats {
+pub struct VarDiffStats {
     last_timestamp: u128,
     last_retarget_share: u64,
     last_retarget: u128,
     vardiff_buf: VarDiffBuffer,
-    current_difficulty: u64,
 }

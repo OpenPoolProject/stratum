@@ -1,14 +1,7 @@
-use signal_hook::{
-    consts::{SIGINT, SIGTERM},
-    low_level::raise,
-};
-use std::{
-    net::SocketAddr,
-    sync::{Arc, Once},
-    time::Duration,
-};
+use std::{net::SocketAddr, sync::Once, time::Duration};
 use stratum_server::{Result, Session, SessionList, StratumRequest, StratumServer};
 use tokio::{net::TcpStream, task::JoinHandle, time::sleep};
+use tokio_util::sync::CancellationToken;
 use tracing::subscriber::set_global_default;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Registry};
 
@@ -35,16 +28,6 @@ pub fn init() {
     });
 }
 
-pub fn call_sigint() {
-    tracing::info!("Raising SIGINT signal");
-    raise(SIGINT).unwrap();
-}
-
-pub fn call_sigterm() {
-    tracing::info!("Raising SIGTERM signal");
-    raise(SIGTERM).unwrap();
-}
-
 #[derive(Clone)]
 pub struct AuthProvider {}
 
@@ -65,7 +48,7 @@ pub struct ConnectionState {}
 //@todo test returning a message, so that we can assert eq in the main test.
 pub async fn handle_auth(
     req: StratumRequest<State>,
-    _connection: Arc<Session<ConnectionState>>,
+    _connection: Session<ConnectionState>,
 ) -> Result<bool> {
     let state = req.state();
 
@@ -112,13 +95,17 @@ pub async fn poll_global(_state: State, _connection_list: SessionList<Connection
 
 //@todo this JoinHandle should return a Result, and we should check to make sure its a shutdonw
 //error in the signal tests.
-pub async fn spawn_full_server() -> Result<(SocketAddr, JoinHandle<Result<()>>)> {
+pub async fn spawn_full_server() -> Result<(SocketAddr, JoinHandle<Result<()>>, CancellationToken)>
+{
+    let cancel_token = CancellationToken::new();
+
     let auth = AuthProvider {};
     let state = State { auth };
     // let port = find_port().await;
     let builder = StratumServer::builder(state, 1)
         .with_host("0.0.0.0")
-        .with_port(0);
+        .with_port(0)
+        .with_cancel_token(cancel_token.clone());
 
     #[cfg(feature = "api")]
     let builder = builder.with_api_host("0.0.0.0").with_api_port(0);
@@ -136,7 +123,7 @@ pub async fn spawn_full_server() -> Result<(SocketAddr, JoinHandle<Result<()>>)>
 
     sleep(STARTUP_TIME).await;
 
-    Ok((address, handle))
+    Ok((address, handle, cancel_token))
 }
 
 //@note these connections do not send any messages.

@@ -13,12 +13,12 @@ use tokio_test::assert_ok;
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
 #[tokio::test]
-async fn test_heap_allocation() {
+async fn test_heap_allocation() -> anyhow::Result<()> {
     let _profiler = dhat::Profiler::builder().testing().build();
 
     common::init();
 
-    let (addr, server_handle) = assert_ok!(spawn_full_server().await);
+    let (addr, server_handle, shutdown) = assert_ok!(spawn_full_server().await);
 
     let stats = dhat::HeapStats::get();
 
@@ -49,12 +49,13 @@ async fn test_heap_allocation() {
 
     tokio::time::sleep(Duration::from_secs(2)).await;
 
-    common::call_sigint();
-    common::call_sigterm();
+    shutdown.cancel();
 
     let server_result = assert_ok!(server_handle.await);
 
     //@todo In the future, make sure the Result is Err(Shutdown::Signal(Correct Signal)) Something like this.
 
     assert_ok!(server_result);
+
+    Ok(())
 }

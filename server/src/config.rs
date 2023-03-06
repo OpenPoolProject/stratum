@@ -2,11 +2,12 @@ use std::{net::IpAddr, sync::Arc, time::Duration};
 
 //@todo wrap this in a Mutex<Arc. Then when a new config is refreshed, everyone can just get it
 //from a clone.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct ConfigManager {
     config: Arc<Config>,
 }
 
+//@todo just looking at this now, it seems highly highly inefficient if we are moving or cloning
 impl ConfigManager {
     pub(crate) fn new(config: Config) -> Self {
         Self {
@@ -25,6 +26,10 @@ impl ConfigManager {
 
     pub(crate) fn default_ban_duration(&self) -> Duration {
         self.config.bans.default_ban_duration
+    }
+
+    pub(crate) fn difficulty_config(&self) -> &DifficultyConfig {
+        &self.config.difficulty
     }
 }
 
@@ -54,14 +59,35 @@ impl Default for BanManagerConfig {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct ConnectionConfig {
     pub(crate) proxy_protocol: bool,
     pub(crate) max_connections: Option<usize>,
+    /// Active Timeout is how long with no activity before we disconnect a miner.
+    pub(crate) active_timeout: u64,
+    //@todo maybe move this to a new struct called MinerConfig, but for now I think it's ok.
+    /// Check Threshold is how many shares until we consider a ban on a miner
+    pub(crate) check_threshold: u64,
+    /// Invalid Percent is the percent of shares that are rejected or stale before we ban a miner.
+    /// In full-interval format e.g. 50.0 = 50%.
+    pub(crate) invalid_percent: f64,
+}
+
+impl Default for ConnectionConfig {
+    fn default() -> Self {
+        ConnectionConfig {
+            proxy_protocol: false,
+            max_connections: None,
+            active_timeout: 600,
+            check_threshold: 500,
+            invalid_percent: 50.0,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct DifficultyConfig {
+    pub(crate) retarget_share_amount: u64,
     pub(crate) initial_difficulty: u64,
     pub(crate) var_diff: bool,
     pub(crate) minimum_difficulty: u64,
@@ -72,6 +98,12 @@ pub struct DifficultyConfig {
     pub(crate) target_time: u64,
     //@todo see if we use this.
     pub(crate) variance_percent: f64,
+}
+
+impl DifficultyConfig {
+    pub(crate) fn initial_retarget_time(&self, now: u128) -> u128 {
+        now - ((self.retarget_time as u128 * 1000) / 2)
+    }
 }
 
 // #[cfg(feature = "upstream")]
