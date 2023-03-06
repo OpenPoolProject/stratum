@@ -1,8 +1,7 @@
 use crate::{
-    types::{Difficulties, VarDiffBuffer},
-    utils, ConfigManager,
+    types::{Difficulties, Difficulty, DifficultySettings, VarDiffBuffer},
+    utils, ConfigManager, SessionID,
 };
-use extended_primitives::Buffer;
 use parking_lot::Mutex;
 use std::sync::Arc;
 use tracing::warn;
@@ -20,7 +19,7 @@ pub struct Miner {
 #[derive(Debug)]
 pub(crate) struct Inner {
     pub(crate) id: Uuid,
-    pub(crate) _sid: Buffer,
+    pub(crate) _sid: SessionID,
     pub(crate) _client: Option<String>,
     pub(crate) _name: Option<String>,
 }
@@ -31,6 +30,7 @@ pub(crate) struct Shared {
     needs_ban: Mutex<bool>,
     stats: Mutex<MinerStats>,
     var_diff_stats: Mutex<VarDiffStats>,
+    difficulty_settings: Mutex<DifficultySettings>,
 }
 
 impl Miner {
@@ -39,14 +39,14 @@ impl Miner {
         id: Uuid,
         client: Option<String>,
         name: Option<String>,
-        sid: Buffer,
+        sid: SessionID,
         config_manager: ConfigManager,
-        difficulty: u64,
+        difficulty: DifficultySettings,
     ) -> Self {
         let now = utils::now();
 
         let shared = Shared {
-            difficulties: Mutex::new(Difficulties::new(difficulty, 0, 0)),
+            difficulties: Mutex::new(Difficulties::new_only_current(difficulty.default)),
             needs_ban: Mutex::new(false),
             stats: Mutex::new(MinerStats {
                 accepted: 0,
@@ -62,6 +62,7 @@ impl Miner {
                 vardiff_buf: VarDiffBuffer::new(),
                 last_retarget_share: 0,
             }),
+            difficulty_settings: Mutex::new(difficulty),
         };
 
         let inner = Inner {
@@ -216,32 +217,32 @@ impl Miner {
             if (avg / self.config_manager.difficulty_config().target_time as f64) <= 1.5 {
                 return;
             }
-            new_diff = difficulties.current() / 2;
+            new_diff = difficulties.current().as_u64() / 2;
         } else if (avg / target_time) >= 0.7 {
             return;
         } else {
-            new_diff = difficulties.current() * 2;
+            new_diff = difficulties.current().as_u64() * 2;
         }
 
         new_diff = new_diff.clamp(
-            self.config_manager.difficulty_config().minimum_difficulty,
+            self.shared.difficulty_settings.lock().minimum.as_u64(),
             self.config_manager.difficulty_config().maximum_difficulty,
         );
 
-        if new_diff != difficulties.current() {
-            difficulties.update_next(new_diff);
+        if new_diff != difficulties.current().as_u64() {
+            difficulties.update_next(Difficulty::from(new_diff));
             var_diff_stats.vardiff_buf.reset();
         }
     }
 
     #[must_use]
-    pub fn update_difficulty(&self) -> Option<u64> {
+    pub fn update_difficulty(&self) -> Option<Difficulty> {
         let mut difficulties = self.shared.difficulties.lock();
 
         difficulties.shift()
     }
 
-    pub fn set_difficulty(&self, difficulty: u64) {
+    pub fn set_difficulty(&self, difficulty: Difficulty) {
         let mut difficulties = self.shared.difficulties.lock();
 
         difficulties.set_and_shift(difficulty);
@@ -249,7 +250,6 @@ impl Miner {
 }
 
 //@todo either wrap miner in a folder, or move these both to types
-
 #[derive(Debug, Clone)]
 pub struct MinerStats {
     accepted: u64,

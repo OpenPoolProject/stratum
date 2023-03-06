@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::{Error, Result, SessionID};
 use bit_set::BitSet;
 use parking_lot::Mutex;
 use std::sync::Arc;
@@ -42,7 +42,7 @@ impl IDManager {
         self.inner.state.lock().count > MAX_SESSION_INDEX_SERVER
     }
 
-    pub fn allocate_session_id(&self) -> Result<u32> {
+    pub fn allocate_session_id(&self) -> Result<SessionID> {
         if self.is_full() {
             return Err(Error::SessionIDsExhausted);
         }
@@ -78,11 +78,11 @@ impl IDManager {
 
         let session_id: u32 = (u32::from(self.inner.server_id) << 24) | idx;
 
-        Ok(session_id)
+        Ok(session_id.into())
     }
 
-    pub fn remove_session_id(&self, session_id: u32) {
-        let idx = session_id & 0x00FF_FFFF;
+    pub fn remove_session_id(&self, session_id: SessionID) {
+        let idx = session_id.as_u32() & 0x00FF_FFFF;
 
         let mut state = self.inner.state.lock();
 
@@ -103,7 +103,7 @@ mod tests {
 
         let id = assert_ok!(id_manager.allocate_session_id());
 
-        assert_eq!(id, 0);
+        assert_eq!(id, SessionID::from(0));
 
         for _ in 0..MAX_SESSION_INDEX_SERVER - 1 {
             assert_ok!(id_manager.allocate_session_id());
@@ -111,13 +111,13 @@ mod tests {
 
         let last_id = assert_ok!(id_manager.allocate_session_id());
 
-        assert_eq!(last_id, MAX_SESSION_INDEX_SERVER);
+        assert_eq!(last_id, SessionID::from(MAX_SESSION_INDEX_SERVER));
 
-        id_manager.remove_session_id(0);
+        id_manager.remove_session_id(SessionID::from(0));
 
         let rolled_id = assert_ok!(id_manager.allocate_session_id());
 
-        assert_eq!(rolled_id, 0);
+        assert_eq!(rolled_id, SessionID::from(0));
     }
 
     #[cfg_attr(coverage_nightly, no_coverage)]
@@ -127,10 +127,10 @@ mod tests {
 
         let id = assert_ok!(id_manager.allocate_session_id());
 
-        assert_eq!(id, 0x0900_0000);
+        assert_eq!(id, SessionID::from(0x0900_0000));
 
         let id = assert_ok!(id_manager.allocate_session_id());
 
-        assert_eq!(id, 0x0900_0001);
+        assert_eq!(id, SessionID::from(0x0900_0001));
     }
 }

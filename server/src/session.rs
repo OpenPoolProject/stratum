@@ -1,9 +1,11 @@
 use crate::{
-    config::ConfigManager, format_difficulty, id_manager::IDManager, types::Difficulties, Miner,
-    MinerList, Result,
+    config::ConfigManager,
+    id_manager::IDManager,
+    types::{Difficulties, Difficulty, DifficultySettings},
+    Miner, MinerList, Result, SessionID,
 };
 use extended_primitives::Buffer;
-use parking_lot::Mutex;
+use parking_lot::{Mutex, RwLock};
 use serde::Serialize;
 use std::{
     sync::Arc,
@@ -68,24 +70,24 @@ pub enum SendInformation {
 //@todo also think about these enums for connectgion sttatus like authenticated/subscribed etc.
 #[derive(Clone)]
 pub struct Session<State> {
-    inner: Arc<Inner>,
+    inner: Arc<Inner<State>>,
     id_manager: IDManager,
     config_manager: ConfigManager,
 
     cancel_token: CancellationToken,
     miner_list: MinerList,
-    shared: Arc<parking_lot::Mutex<Shared<State>>>,
+    shared: Arc<Mutex<Shared>>,
+    difficulty_settings: Arc<RwLock<DifficultySettings>>,
 }
 
-struct Inner {
+struct Inner<State> {
     pub id: Uuid,
-    pub session_id: u32,
+    pub session_id: SessionID,
+    pub state: State,
 }
 
 //@todo I think we need to have a few more Mutex's here otherwise we run the risk of deadlocks.
-pub(crate) struct Shared<State> {
-    state: State,
-    difficulties: Difficulties,
+pub(crate) struct Shared {
     //@todo possibly turn this into an Atomic
     status: SessionState,
     //@todo change this (But Later)
@@ -110,16 +112,18 @@ impl<State: Clone> Session<State> {
         let config = config_manager.current_config();
 
         let shared = Shared {
-            difficulties: Difficulties::new(config.difficulty.initial_difficulty, 0, 0),
             status: SessionState::Connected,
             last_active: Instant::now(),
             needs_ban: false,
             sender,
-            state,
             info: SessionInfo::new(),
         };
 
-        let inner = Inner { id, session_id };
+        let inner = Inner {
+            id,
+            session_id,
+            state,
+        };
 
         Ok(Session {
             id_manager,
@@ -128,6 +132,10 @@ impl<State: Clone> Session<State> {
             miner_list: MinerList::new(),
             shared: Arc::new(Mutex::new(shared)),
             inner: Arc::new(inner),
+            difficulty_settings: Arc::new(RwLock::new(DifficultySettings {
+                default: Difficulty::from(config.difficulty.initial_difficulty),
+                minimum: Difficulty::from(config.difficulty.minimum_difficulty),
+            })),
         })
     }
 
@@ -203,30 +211,27 @@ impl<State: Clone> Session<State> {
         self.inner.id
     }
 
-    //@todo we could possibly accept Options here.
     pub fn register_worker(
         &self,
-        session_id: u32,
-        client: &str,
-        worker_name: &str,
+        session_id: SessionID,
+        client: Option<String>,
+        worker_name: Option<String>,
         worker_id: Uuid,
     ) {
         let worker = Miner::new(
             worker_id,
-            Some(client.to_owned()),
-            Some(worker_name.to_owned()),
-            Buffer::from(session_id.to_le_bytes().to_vec()),
+            client,
+            worker_name,
+            session_id,
             self.config_manager.clone(),
-            //@todo do I want to use inital difficulty here, and not have to unlock
-            format_difficulty(self.shared.lock().difficulties.current()),
+            self.difficulty_settings.read().clone(),
         );
 
         self.miner_list.add_miner(session_id, worker);
     }
 
-    //@todo make session_id a custom type.
     #[must_use]
-    pub fn unregister_worker(&self, session_id: u32) -> Option<(u32, Miner)> {
+    pub fn unregister_worker(&self, session_id: SessionID) -> Option<(SessionID, Miner)> {
         self.miner_list.remove_miner(session_id)
     }
 
@@ -236,12 +241,12 @@ impl<State: Clone> Session<State> {
     }
 
     #[must_use]
-    pub fn get_worker_by_session_id(&self, session_id: u32) -> Option<Miner> {
+    pub fn get_worker_by_session_id(&self, session_id: SessionID) -> Option<Miner> {
         self.miner_list.get_miner_by_id(session_id)
     }
 
     //@todo I think we can remove this
-    pub fn update_worker_by_session_id(&self, session_id: u32, miner: Miner) {
+    pub fn update_worker_by_session_id(&self, session_id: SessionID, miner: Miner) {
         self.miner_list
             .update_miner_by_session_id(session_id, miner);
     }
@@ -296,7 +301,7 @@ impl<State: Clone> Session<State> {
     }
 
     #[must_use]
-    pub fn get_session_id(&self) -> u32 {
+    pub fn get_session_id(&self) -> SessionID {
         self.inner.session_id
     }
 
@@ -323,34 +328,40 @@ impl<State: Clone> Session<State> {
         self.shared.lock().info.agent
     }
 
-    pub fn set_difficulty(&self, session_id: u32, difficulty: u64) {
+    pub fn set_difficulty(&self, session_id: SessionID, difficulty: Difficulty) {
         if let Some(miner) = self.miner_list.get_miner_by_id(session_id) {
-            miner.set_difficulty(format_difficulty(difficulty));
-        } else {
-            self.shared.lock().difficulties.current = format_difficulty(difficulty);
+            miner.set_difficulty(difficulty);
+        }
+    }
+
+    pub fn set_default_difficulty(&self, difficulty: Difficulty) {
+        self.difficulty_settings.write().default = difficulty;
+    }
+
+    //@todo we need to test this
+    pub fn set_minimum_difficulty(&self, difficulty: Difficulty) {
+        //We only want to set the minimum difficulty if it is greater than or equal to the Global
+        //minimum difficulty
+        if difficulty.as_u64() >= self.config_manager.difficulty_config().minimum_difficulty {
+            self.difficulty_settings.write().minimum = difficulty;
         }
     }
 
     #[must_use]
-    pub fn get_difficulties(&self, session_id: u32) -> Difficulties {
-        if let Some(miner) = self.miner_list.get_miner_by_id(session_id) {
-            miner.difficulties()
-        } else {
-            self.shared.lock().difficulties.clone()
-        }
+    pub fn get_difficulties(&self, session_id: SessionID) -> Option<Difficulties> {
+        self.miner_list
+            .get_miner_by_id(session_id)
+            .map(|miner| miner.difficulties())
+    }
+
+    //@todo double check that a reference here will work
+    #[must_use]
+    pub fn state(&self) -> &State {
+        &self.inner.state
     }
 
     #[must_use]
-    pub fn get_state(&self) -> State {
-        self.shared.lock().state.clone()
-    }
-
-    pub fn set_state(&self, state: State) {
-        self.shared.lock().state = state;
-    }
-
-    #[must_use]
-    pub fn update_difficulty(&self, session_id: u32) -> Option<u64> {
+    pub fn update_difficulty(&self, session_id: SessionID) -> Option<Difficulty> {
         if let Some(miner) = self.miner_list.get_miner_by_id(session_id) {
             miner.update_difficulty()
         } else {
