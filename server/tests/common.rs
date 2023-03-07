@@ -57,7 +57,10 @@ pub async fn handle_auth(
     Ok(login)
 }
 
-pub async fn poll_global(_state: State, _connection_list: SessionList<ConnectionState>) {
+pub async fn poll_global(
+    _state: State,
+    _connection_list: SessionList<ConnectionState>,
+) -> Result<()> {
     loop {
         //Infite loop
         tokio::time::sleep(Duration::from_secs(10)).await;

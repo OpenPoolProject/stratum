@@ -10,7 +10,7 @@ use crate::{
 };
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, trace, warn};
+use tracing::{debug, trace, warn};
 
 //@todo finish up the logging in this
 
