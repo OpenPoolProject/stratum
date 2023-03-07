@@ -30,12 +30,6 @@ mod tcp;
 mod types;
 mod utils;
 
-// #[cfg(feature = "upstream")]
-// mod upstream;
-
-// #[cfg(feature = "upstream")]
-// use crate::config::UpstreamConfig;
-
 #[cfg(feature = "api")]
 mod api;
 
@@ -53,7 +47,7 @@ pub use crate::{
     server::StratumServer,
     session::Session,
     session_list::SessionList,
-    types::{ReadyIndicator, SessionID, EX_MAGIC_NUMBER, ID},
+    types::{Difficulty, ReadyIndicator, SessionID, EX_MAGIC_NUMBER, ID},
 };
 
 pub type Result<T> = std::result::Result<T, Error>;
