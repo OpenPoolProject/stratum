@@ -4,7 +4,7 @@ use crate::{
     route::Endpoint,
     router::Router,
     tcp::Handler,
-    types::{GlobalVars, ReadyIndicator},
+    types::{ConnectionID, GlobalVars, ReadyIndicator},
     BanManager, ConfigManager, Connection, Result, SessionList, StratumServerBuilder,
 };
 use extended_primitives::Buffer;
@@ -15,11 +15,10 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::task::JoinHandle;
+use tokio::task::JoinSet;
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info, warn};
-use uuid::Uuid;
+use tracing::{error, info, trace, warn};
 
 pub struct StratumServer<State, CState>
 where
@@ -36,7 +35,7 @@ where
     pub(crate) router: Arc<Router<State, CState>>,
     pub(crate) session_id_manager: IDManager,
     pub(crate) cancel_token: CancellationToken,
-    pub(crate) global_thread_list: Vec<JoinHandle<()>>,
+    pub(crate) global_thread_list: JoinSet<()>,
     pub(crate) ready_indicator: ReadyIndicator,
     pub(crate) shutdown_message: Option<Buffer>,
     #[cfg(feature = "api")]
@@ -58,112 +57,59 @@ where
         router.add(method, ep);
     }
 
-    pub fn global(&mut self, _global_name: &str, ep: impl Global<State, CState>) {
-        let state = self.state.clone();
-        let session_list = self.session_list.clone();
-        let cancel_token = self.get_cancel_token();
+    pub fn global(&mut self, global_name: &str, ep: impl Global<State, CState>) {
+        self.global_thread_list.spawn({
+            let state = self.state.clone();
+            let session_list = self.session_list.clone();
+            let cancel_token = self.get_cancel_token();
+            let global_name = global_name.to_string();
+            async move {
+                tokio::select! {
+                    res = ep.call(state, session_list) => {
+                        if let Err(e) = res {
+                            error!(cause = ?e, "Global thread {} failed.", global_name);
+                        }
+                    }
+                    _ = cancel_token.cancelled() => {
+                        info!("Global thread {} is shutting down from shutdown message.", global_name);
+                    }
 
-        let handle = tokio::spawn(async move {
-            tokio::select! {
-                _res = ep.call(state, session_list) => {
-                    //@todo call does not return an Error. It should!
-                    // if let Err(e) = res {
-                    //     //@todo more indepth, lots of stuff to include here.
-                    //     error!("Global thread failed.");
-                    // }
                 }
-                _ = cancel_token.cancelled() => {
-                    //@todo
-                    info!("Global thread XYZ is shutting down from shutdown message.");
-                }
-
             }
-            // let call = ep.call(state, connection_list).timeout_at(stop_token);
-            // match call.await {
-            //     Ok(()) => {}
-            //     Err(_e) => {
-            //         //@todo we can't do any of this until Tokio stablizes these APIs
-            //         //@todo - This will only be relevant for when we have results returned by
-            //         //Globals because currently this block will only be called if the stop
-            //         //token is revoked. Re-enable this when that is implemented.
-            //         //2. We should probably have a config setting that asks if we want to nuke everything if a
-            //         //   global falls. I don't know if we should automatically nuke everything, but it should
-            //         //   be a setting that is available. Maybe it's available on a per-global basis, but I
-            //         //   think it's something we should absolutely know about.
-            //         //   @
-            //         // warn!(
-            //         //     "Global thread id: {} name: {} was unexpected closed by the error: {}",
-            //         //     async_std::task::current().id(),
-            //         //     async_std::task::current().name().unwrap_or(""),
-            //         //     e
-            //         // );
-            //         // info!(
-            //         //     "Global thread id: {} name: {} was closed",
-            //         //     async_std::task::current().id(),
-            //         //     async_std::task::current().name().unwrap_or("")
-            //         // );
-            //     }
-            // }
         });
-
-        // let handle = async_std::task::Builder::new()
-        //     .name(global_name.to_string())
-        //     .spawn(async move {
-        //         let call = ep.call(state, connection_list).timeout_at(stop_token);
-        //         match call.await {
-        //             Ok(()) => {}
-        //             Err(_e) => {
-        //                 //@todo - This will only be relevant for when we have results returned by
-        //                 //Globals because currently this block will only be called if the stop
-        //                 //token is revoked. Re-enable this when that is implemented.
-        //                 //2. We should probably have a config setting that asks if we want to nuke everything if a
-        //                 //   global falls. I don't know if we should automatically nuke everything, but it should
-        //                 //   be a setting that is available. Maybe it's available on a per-global basis, but I
-        //                 //   think it's something we should absolutely know about.
-        //                 //   @
-        //                 // warn!(
-        //                 //     "Global thread id: {} name: {} was unexpected closed by the error: {}",
-        //                 //     async_std::task::current().id(),
-        //                 //     async_std::task::current().name().unwrap_or(""),
-        //                 //     e
-        //                 // );
-        //                 info!(
-        //                     "Global thread id: {} name: {} was closed",
-        //                     async_std::task::current().id(),
-        //                     async_std::task::current().name().unwrap_or("")
-        //                 );
-        //             }
-        //         };
-        //     })
-        //     //@todo switch this to expect
-        //     .unwrap();
-
-        self.global_thread_list.push(handle);
     }
 
     async fn handle_incoming(&mut self) -> Result<()> {
         info!("Listening on {}", &self.listen_address);
 
         while let Some(stream) = self.listener.next().await {
-            //@todo we might actually want access to this error though.
-            let Ok(stream) = stream else {
-                continue;
+            let stream = match stream {
+                Ok(stream) => stream,
+                Err(e) => {
+                    error!(cause = ?e, "Unable to access stream");
+                    continue;
+                }
             };
 
-            //@todo might make sense to wrap this in ConnectionID, so that we can implement Valuable
-            //from tracing so that we can directly print the IDs
-            //@todo we could also move this to handler? Idk also works here. Depends if we need it
-            //in connection or not.
-            let id = Uuid::new_v4();
+            let id = ConnectionID::new();
             let child_token = self.get_cancel_token();
 
-            //@todo for this error, make sure we print it in Connection.
-            let Ok(connection) = Connection::new(id, stream, child_token.clone()) else {
-                continue;
+            trace!(
+                id = ?id,
+                ip = &stream.peer_addr()?.to_string(),
+                "Connection initialized",
+            );
+
+            let connection = match Connection::new(id.clone(), stream, child_token.clone()) {
+                Ok(connection) => connection,
+                Err(e) => {
+                    error!(id = ?id, cause = ?e, "Failed while constructing Connection");
+                    continue;
+                }
             };
 
             let handler = Handler {
-                id,
+                id: id.clone(),
                 ban_manager: self.ban_manager.clone(),
                 id_manager: self.session_id_manager.clone(),
                 session_list: self.session_list.clone(),
@@ -176,15 +122,9 @@ where
                 connection,
             };
 
-            //@todo here is how we should do this.
-            //We should pass these threads to a ThreadManager, and include some kind of key with them?
-            //Connection::new() should generate a UUID rather than Session. Then we can save these via
-            //UUID, and when they shutdown, the server can ping threadManager to clean it up. If they
-            //aren't able to do that, we will also just have periodic prunings of the threads to ensure
-            //all is well.
             tokio::spawn(async move {
                 if let Err(err) = handler.run().await {
-                    error!(cause = ?err, "connection error");
+                    error!(id =?id, cause = ?err, "connection error");
                 }
             });
         }
@@ -236,13 +176,9 @@ where
             }
         }
 
-        let global_thread_list = self.global_thread_list.drain(..);
-
-        //@TODO make this parrallel.
         info!("Awaiting for all current globals to complete");
-        for thread in global_thread_list {
-            //@todo handle this better just report the error I think.
-            if let Err(err) = thread.await {
+        while let Some(res) = self.global_thread_list.join_next().await {
+            if let Err(err) = res {
                 error!(cause = %err, "Global thread failed to shut down gracefully.");
             }
         }
@@ -250,14 +186,12 @@ where
         #[cfg(feature = "api")]
         {
             info!("Waiting for Api handler to finish");
-            //@todo report the errors here
             if let Err(err) = api_handle.await {
                 error!(cause = %err, "API failed to shut down gracefully.");
             }
         }
 
-        //@todo lets get some better parsing here. Seconds and NS would be great
-        info!("Shutdown complete in {} ms", start.elapsed().as_millis());
+        info!("Shutdown complete in {} ns", start.elapsed().as_nanos());
 
         Ok(())
     }
@@ -292,10 +226,6 @@ where
 fn init() -> Result<()> {
     info!("Initializing...");
 
-    //Initalize the recorder
-    init_metrics_recorder();
-
-    //@todo let's wrap this to make sure it's aboe what we need otherwise adjust.
     //Check that the system will support what we need.
     let (hard, soft) = rlimit::getrlimit(Resource::NOFILE)?;
 
@@ -305,23 +235,6 @@ fn init() -> Result<()> {
 
     Ok(())
 }
-
-//Initalizes the prometheus metrics recorder.
-pub fn init_metrics_recorder() {
-    // let (recorder, _) = PrometheusBuilder::new().build().unwrap();
-
-    ////@todo this is breaking.
-    // metrics::set_boxed_recorder(Box::new(recorder));
-}
-
-// impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static> Drop
-//     for StratumServer<State, CState>
-// {
-//     fn drop(&mut self) {
-//         info!("Dropping StratumSever with data `{}`!", self.host);
-//     }
-// }
-//
 
 //@todo
 // #[cfg(test)]

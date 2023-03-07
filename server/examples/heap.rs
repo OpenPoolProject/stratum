@@ -1,5 +1,5 @@
 use std::time::Duration;
-use stratum_server::{Session, SessionList, StratumRequest, StratumServer};
+use stratum_server::{Result, Session, SessionList, StratumRequest, StratumServer};
 use tracing::subscriber::set_global_default;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Registry};
 
@@ -28,7 +28,7 @@ pub struct ConnectionState {}
 pub async fn handle_auth(
     req: StratumRequest<State>,
     _connection: Session<ConnectionState>,
-) -> Result<bool, std::io::Error> {
+) -> std::result::Result<bool, std::io::Error> {
     let state = req.state();
 
     let login = state.auth.login().await;
@@ -36,7 +36,10 @@ pub async fn handle_auth(
     Ok(login)
 }
 
-pub async fn poll_global(_state: State, _connection_list: SessionList<ConnectionState>) {
+pub async fn poll_global(
+    _state: State,
+    _connection_list: SessionList<ConnectionState>,
+) -> Result<()> {
     loop {
         //Infite loop
         tokio::time::sleep(Duration::from_secs(10)).await;

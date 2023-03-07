@@ -2,27 +2,24 @@
 // use {crate::config::UpstreamConfig, crate::upstream::upstream_message_handler};
 
 use crate::{
-    id_manager::IDManager, router::Router, session::Session, types::GlobalVars, BanManager,
-    ConfigManager, Connection, Result, SessionList,
+    id_manager::IDManager,
+    router::Router,
+    session::Session,
+    types::{ConnectionID, GlobalVars},
+    BanManager, ConfigManager, Connection, Result, SessionList,
 };
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, trace, warn};
-use uuid::Uuid;
+use tracing::{debug, trace, warn};
 
 //@todo finish up the logging in this
 
-//@note / @todo I think this is the play in that for each "protocol" we implement a Handler (does
-//message parsing and State management) and a "Connection" (different than our courrent one) which
-//wraps whatever medium we use to connect e.g. v1 - base tcp, v2 - noise, autonomy - brontide, e.g.
-//Then we can later make it generic so that we can re-implement these things for stuff like Nimiq
-//and websockets/etc.
 pub(crate) struct Handler<State, CState>
 where
     CState: Send + Sync + Clone + 'static,
 {
     //No Cleanup needed
-    pub(crate) id: Uuid,
+    pub(crate) id: ConnectionID,
     pub(crate) ban_manager: BanManager,
     pub(crate) id_manager: IDManager,
     pub(crate) session_list: SessionList<CState>,
@@ -43,20 +40,18 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
     Handler<State, CState>
 {
     pub(crate) async fn run(mut self) -> Result<()> {
-        //@todo proxy_protocol returns an address, so ban_mananger won't see that address if we
-        //don't get the return value from here.
-        if self.config_manager.proxy_protocol() {
-            self.connection.proxy_protocol().await?;
-        }
+        let address = if self.config_manager.proxy_protocol() {
+            self.connection.proxy_protocol().await?
+        } else {
+            self.connection.address
+        };
 
-        self.ban_manager.check_banned(self.connection.address)?;
-
-        let address = self.connection.address;
+        self.ban_manager.check_banned(address)?;
 
         let (mut reader, tx, handle) = self.connection.init();
 
         let session = Session::new(
-            self.id,
+            self.id.clone(),
             self.id_manager.clone(),
             tx,
             self.config_manager.clone(),
@@ -64,16 +59,13 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             self.connection_state.clone(),
         )?;
 
-        //@todo time would be nice, but I think is default included. Double check
         debug!(
-            id = &self.id.to_string(),
+            id = ?self.id,
             ip = &address.to_string(),
             "Connection initialized",
         );
 
-        //@todo figure out if we should remove the ? here.
-        //@todo solve removing session from this (pros in drop here using connection.)
-        self.session_list.add_miner(address, session.clone())?;
+        self.session_list.add_miner(address, session.clone());
 
         while !self.cancel_token.is_cancelled() {
             if session.is_disconnected() {
@@ -136,14 +128,13 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         //have the same effect
         self.cancel_token.cancel();
 
+        //@todo we should also have a timeout here - but I may change write loop so we'll see
         if let Err(e) = handle.await {
-            //@todo fix this where it's like cause = e
-            //Also maybe see if we can only report this in debug or trace though.
-            error!("{}", e);
+            trace!(id = ?self.id, cause = ?e, "Write loop error");
         }
 
-        debug!(
-            id = &self.id.to_string(),
+        trace!(
+            id = ?self.id,
             ip = &address.to_string(),
             "Connection shutdown complete",
         );

@@ -1,4 +1,4 @@
-use crate::{frame::Request, session::SendInformation, Error, Frame, Result};
+use crate::{frame::Request, session::SendInformation, types::ConnectionID, Error, Frame, Result};
 use bytes::BytesMut;
 use std::net::SocketAddr;
 use tokio::{
@@ -12,11 +12,10 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use tracing::trace;
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct Connection {
-    _id: Uuid,
+    _id: ConnectionID,
     writer: OwnedWriteHalf,
     reader: BufReader<OwnedReadHalf>,
     cancel_token: CancellationToken,
@@ -29,7 +28,7 @@ pub struct Connection {
 
 impl Connection {
     pub(crate) fn new(
-        id: Uuid,
+        id: ConnectionID,
         socket: TcpStream,
         cancel_token: CancellationToken,
     ) -> Result<Self> {

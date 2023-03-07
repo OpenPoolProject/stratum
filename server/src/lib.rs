@@ -53,8 +53,7 @@ pub use crate::{
     server::StratumServer,
     session::Session,
     session_list::SessionList,
-    types::{ReadyIndicator, EX_MAGIC_NUMBER, ID},
-    utils::format_difficulty,
+    types::{ReadyIndicator, SessionID, EX_MAGIC_NUMBER, ID},
 };
 
 pub type Result<T> = std::result::Result<T, Error>;

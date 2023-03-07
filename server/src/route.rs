@@ -27,7 +27,6 @@ where
     async fn call(
         &self,
         req: StratumRequest<State>,
-        //@todo remove the Arc...
         connection: Session<CState>,
     ) -> serde_json::Value {
         let fut = (self)(req, connection.clone());
