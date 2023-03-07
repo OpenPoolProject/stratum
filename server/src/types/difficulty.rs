@@ -5,14 +5,17 @@ const MAX_DIFF: u64 = 9_223_372_036_854_775_808;
 pub struct Difficulty(u64);
 
 impl Difficulty {
+    #[must_use]
     pub fn zero() -> Self {
         Difficulty(0)
     }
 
+    #[must_use]
     pub fn is_zero(self) -> bool {
         self.0 == 0
     }
 
+    #[must_use]
     pub fn as_u64(self) -> u64 {
         self.0
     }
