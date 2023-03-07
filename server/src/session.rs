@@ -1,7 +1,7 @@
 use crate::{
     config::ConfigManager,
     id_manager::IDManager,
-    types::{Difficulties, Difficulty, DifficultySettings},
+    types::{ConnectionID, Difficulties, Difficulty, DifficultySettings},
     Miner, MinerList, Result, SessionID,
 };
 use extended_primitives::Buffer;
@@ -81,7 +81,7 @@ pub struct Session<State> {
 }
 
 struct Inner<State> {
-    pub id: Uuid,
+    pub id: ConnectionID,
     pub session_id: SessionID,
     pub state: State,
 }
@@ -100,7 +100,7 @@ pub(crate) struct Shared {
 
 impl<State: Clone> Session<State> {
     pub fn new(
-        id: Uuid,
+        id: ConnectionID,
         id_manager: IDManager,
         sender: UnboundedSender<SendInformation>,
         config_manager: ConfigManager,
@@ -207,8 +207,8 @@ impl<State: Clone> Session<State> {
     }
 
     #[must_use]
-    pub fn id(&self) -> Uuid {
-        self.inner.id
+    pub fn id(&self) -> &ConnectionID {
+        &self.inner.id
     }
 
     pub fn register_worker(

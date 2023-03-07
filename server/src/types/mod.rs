@@ -1,3 +1,4 @@
+mod connection_id;
 mod difficulties;
 mod difficulty;
 mod difficulty_settings;
@@ -6,6 +7,7 @@ mod ready_indicator;
 mod session_id;
 mod var_diff_buffer;
 
+pub use connection_id::ConnectionID;
 pub use difficulties::Difficulties;
 pub use difficulty::Difficulty;
 pub use difficulty_settings::DifficultySettings;

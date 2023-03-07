@@ -7,7 +7,7 @@ use crate::{
 };
 use extended_primitives::Buffer;
 use std::{marker::PhantomData, sync::Arc};
-use tokio::net::TcpListener;
+use tokio::{net::TcpListener, task::JoinSet};
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::CancellationToken;
 
@@ -195,7 +195,6 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
             let api_address = format!("{}:{}", self.api_host, self.api_port).parse()?;
 
-            //@todo also pass in a port for metrics
             crate::api::Api::build(api_address, state)?
         };
 
@@ -210,18 +209,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             router: Arc::new(Router::new()),
             session_id_manager: IDManager::new(self.server_id),
             cancel_token,
-            global_thread_list: Vec::new(),
+            global_thread_list: JoinSet::new(),
             ready_indicator: self.ready_indicator,
             shutdown_message: self.shutdown_message,
-
-            // #[cfg(feature = "api")]
-            // api: Arc::new(Mutex::new(api)),
             #[cfg(feature = "api")]
             api,
-            // #[cfg(feature = "upstream")]
-            // upstream_router: Arc::new(Router::new()),
-            // #[cfg(feature = "upstream")]
-            // upstream_config: self.upstream_config,
         })
     }
 }

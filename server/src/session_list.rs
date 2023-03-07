@@ -12,7 +12,6 @@ use tracing::{info, warn};
 //Maybe total hashrate that we are processing at the moment.
 
 //@todo would be nice to track the number of agent connections on here.
-//@todo use improved RwLock<HashMap> libraries.
 #[derive(Default, Clone)]
 pub struct SessionList<CState: Clone> {
     inner: Arc<Inner<CState>>,
@@ -35,13 +34,12 @@ impl<CState: Clone> SessionList<CState> {
         }
     }
 
-    pub fn add_miner(&self, addr: SocketAddr, miner: Session<CState>) -> Result<()> {
+    pub fn add_miner(&self, addr: SocketAddr, miner: Session<CState>) {
         self.inner.state.insert(addr, miner);
         // gauge!(
         //     "stratum.num_connections",
         //     self.miners.read().await.len() as f64
         // );
-        Ok(())
     }
 
     pub fn remove_miner(&self, addr: SocketAddr) {
