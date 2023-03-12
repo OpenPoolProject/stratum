@@ -119,7 +119,8 @@ impl Miner {
         }
     }
 
-    pub(crate) fn difficulties(&self) -> Difficulties {
+    #[must_use]
+    pub fn difficulties(&self) -> Difficulties {
         self.shared.difficulties.lock().clone()
     }
 
@@ -246,6 +247,11 @@ impl Miner {
         let mut difficulties = self.shared.difficulties.lock();
 
         difficulties.set_and_shift(difficulty);
+    }
+
+    #[must_use]
+    pub fn id(&self) -> Uuid {
+        self.inner.id
     }
 }
 

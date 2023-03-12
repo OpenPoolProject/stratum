@@ -370,6 +370,11 @@ impl<State: Clone> Session<State> {
     }
 }
 
+#[cfg(feature = "test-utils")]
+impl<State: Clone> Session<State> {
+    pub fn mock(state: State) -> Session<State> {}
+}
+
 impl<State> Drop for Session<State> {
     fn drop(&mut self) {
         self.id_manager.remove_session_id(self.inner.session_id);
