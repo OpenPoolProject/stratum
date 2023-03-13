@@ -1,6 +1,5 @@
 use crate::{
     config::ConfigManager,
-    id_manager::IDManager,
     types::{ConnectionID, Difficulties, Difficulty, DifficultySettings},
     Miner, MinerList, Result, SessionID,
 };
@@ -71,7 +70,6 @@ pub enum SendInformation {
 #[derive(Clone)]
 pub struct Session<State> {
     inner: Arc<Inner<State>>,
-    id_manager: IDManager,
     config_manager: ConfigManager,
 
     cancel_token: CancellationToken,
@@ -101,14 +99,12 @@ pub(crate) struct Shared {
 impl<State: Clone> Session<State> {
     pub fn new(
         id: ConnectionID,
-        id_manager: IDManager,
+        session_id: SessionID,
         sender: UnboundedSender<SendInformation>,
         config_manager: ConfigManager,
         cancel_token: CancellationToken,
         state: State,
     ) -> Result<Self> {
-        let session_id = id_manager.allocate_session_id()?;
-
         let config = config_manager.current_config();
 
         let shared = Shared {
@@ -126,7 +122,6 @@ impl<State: Clone> Session<State> {
         };
 
         Ok(Session {
-            id_manager,
             config_manager,
             cancel_token,
             miner_list: MinerList::new(),
@@ -374,10 +369,4 @@ impl<State: Clone> Session<State> {
 #[cfg(feature = "test-utils")]
 impl<State: Clone> Session<State> {
     pub fn mock(state: State) -> Session<State> {}
-}
-
-impl<State> Drop for Session<State> {
-    fn drop(&mut self) {
-        self.id_manager.remove_session_id(self.inner.session_id);
-    }
 }
