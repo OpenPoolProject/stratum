@@ -164,10 +164,8 @@ impl<State: Clone> Session<State> {
 
         debug!("Sending message: {}", serde_json::to_string(&message)?);
 
-        let msg = SendInformation::Json(serde_json::to_string(&message)?);
-
         //@todo implement Display on SendInformation.
-        // trace!("Sending message: {}", &msg_string);
+        let msg = SendInformation::Json(serde_json::to_string(&message)?);
 
         //@todo it may make sense to keep the sender inside of session here - not sure why it's in
         //connection like the way it is.
