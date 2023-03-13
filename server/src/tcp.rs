@@ -10,7 +10,7 @@ use crate::{
 };
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, trace, warn};
+use tracing::{trace, warn};
 
 //@todo finish up the logging in this
 
@@ -52,12 +52,14 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         let session_id = self.id_manager.allocate_session_id()?;
 
+        let session_cancel_token = self.cancel_token.child_token();
+
         let session = Session::new(
             self.id.clone(),
             session_id,
             tx,
             self.config_manager.clone(),
-            self.cancel_token.child_token(),
+            session_cancel_token.clone(),
             self.connection_state.clone(),
         )?;
 
@@ -69,6 +71,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         self.session_list.add_miner(address, session.clone());
 
+        //@todo we can return a value from this loop -> break can return a value, and so we may
+        //want to return an error if there is one so that we can report it at the end.
         while !self.cancel_token.is_cancelled() {
             if session.is_disconnected() {
                 trace!(
@@ -89,6 +93,12 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                         Ok(frame) => frame,
                     }
                 },
+                    //@todo we might want timeouts to reduce difficulty as well here. -> That is
+                    //handled in retarget, so let's check that out.
+                    //@note this checks for session shutdowns, we still need timeouts here.
+                _ = session_cancel_token.cancelled() => {
+                    break;
+                },
                 _ = self.cancel_token.cancelled() => {
                     // If a shutdown signal is received, return from `run`.
                     // This will result in the task terminating.
@@ -100,18 +110,22 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 break;
             };
 
+            //Resets the Session's last active, to detect for unactive connections
+            session.active();
+
             //Calls the Stratum method on the router.
             self.router
                 .call(
                     frame,
                     self.state.clone(),
+                    //@todo would it be possible to pass session by reference?
                     session.clone(),
                     self.global_vars.clone(),
                 )
                 .await;
         }
 
-        debug!(
+        trace!(
             id = &self.id.to_string(),
             ip = &address.to_string(),
             "Connection shutdown started",
