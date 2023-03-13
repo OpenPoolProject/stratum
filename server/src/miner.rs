@@ -1,5 +1,5 @@
 use crate::{
-    types::{Difficulties, Difficulty, DifficultySettings, VarDiffBuffer},
+    types::{ConnectionID, Difficulties, Difficulty, DifficultySettings, VarDiffBuffer},
     utils, ConfigManager, SessionID,
 };
 use parking_lot::Mutex;
@@ -18,10 +18,11 @@ pub struct Miner {
 
 #[derive(Debug)]
 pub(crate) struct Inner {
-    pub(crate) id: Uuid,
-    pub(crate) _sid: SessionID,
-    pub(crate) _client: Option<String>,
-    pub(crate) _name: Option<String>,
+    pub(crate) worker_id: Uuid,
+    pub(crate) sid: SessionID,
+    pub(crate) connection_id: ConnectionID,
+    pub(crate) client: Option<String>,
+    pub(crate) name: Option<String>,
 }
 
 #[derive(Debug)]
@@ -36,10 +37,11 @@ pub(crate) struct Shared {
 impl Miner {
     #[must_use]
     pub fn new(
-        id: Uuid,
+        connection_id: ConnectionID,
+        worker_id: Uuid,
+        sid: SessionID,
         client: Option<String>,
         name: Option<String>,
-        sid: SessionID,
         config_manager: ConfigManager,
         difficulty: DifficultySettings,
     ) -> Self {
@@ -66,10 +68,11 @@ impl Miner {
         };
 
         let inner = Inner {
-            id,
-            _sid: sid,
-            _client: client,
-            _name: name,
+            worker_id,
+            sid,
+            connection_id,
+            client,
+            name,
         };
 
         Miner {
@@ -109,8 +112,11 @@ impl Miner {
                 // self.stats.lock().await = MinerStats::default();
             } else {
                 warn!(
-                    "Miner: {} banned. {} out of the last {} shares were invalid",
-                    self.inner.id,
+                    id = ?self.inner.connection_id,
+                    worker_id = ?self.inner.worker_id,
+                    worker = ?self.inner.name,
+                    client = ?self.inner.client,
+                    "Miner banned. {} out of the last {} shares were invalid",
                     stats.stale + stats.rejected,
                     total
                 );
@@ -250,8 +256,18 @@ impl Miner {
     }
 
     #[must_use]
-    pub fn id(&self) -> Uuid {
-        self.inner.id
+    pub fn connection_id(&self) -> ConnectionID {
+        self.inner.connection_id.clone()
+    }
+
+    #[must_use]
+    pub fn worker_id(&self) -> Uuid {
+        self.inner.worker_id
+    }
+
+    #[must_use]
+    pub fn session_id(&self) -> SessionID {
+        self.inner.sid
     }
 }
 

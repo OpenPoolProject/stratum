@@ -219,10 +219,11 @@ impl<State: Clone> Session<State> {
         worker_id: Uuid,
     ) {
         let worker = Miner::new(
+            self.id().clone(),
             worker_id,
+            session_id,
             client,
             worker_name,
-            session_id,
             self.config_manager.clone(),
             self.difficulty_settings.read().clone(),
         );
