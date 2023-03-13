@@ -61,7 +61,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             self.connection_state.clone(),
         )?;
 
-        debug!(
+        trace!(
             id = ?self.id,
             ip = &address.to_string(),
             "Connection initialized",
@@ -111,7 +111,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 .await;
         }
 
-        trace!(
+        debug!(
             id = &self.id.to_string(),
             ip = &address.to_string(),
             "Connection shutdown started",
