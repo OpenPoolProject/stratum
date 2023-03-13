@@ -9,6 +9,8 @@
 #![allow(clippy::cast_lossless)]
 //@todo remove eventually
 #![allow(clippy::cast_precision_loss)]
+//@todo we want to remove this as soon as possible
+#![allow(clippy::redundant_async_block)]
 
 mod ban_manager;
 mod builder;
