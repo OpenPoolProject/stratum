@@ -122,7 +122,7 @@ pub async fn spawn_full_server() -> Result<(SocketAddr, JoinHandle<Result<()>>, 
     server.add("auth", handle_auth);
     server.global("Poll Global", poll_global);
 
-    let handle = tokio::spawn(async move { server.start().await });
+    let handle = tokio::spawn(server.start());
 
     sleep(STARTUP_TIME).await;
 
