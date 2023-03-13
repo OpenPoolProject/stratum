@@ -50,9 +50,11 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         let (mut reader, tx, handle) = self.connection.init();
 
+        let session_id = self.id_manager.allocate_session_id()?;
+
         let session = Session::new(
             self.id.clone(),
-            self.id_manager.clone(),
+            session_id,
             tx,
             self.config_manager.clone(),
             self.cancel_token.child_token(),
@@ -116,6 +118,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         );
 
         self.session_list.remove_miner(address);
+        self.id_manager.remove_session_id(session_id);
 
         if session.needs_ban() {
             self.ban_manager.add_ban(address);
