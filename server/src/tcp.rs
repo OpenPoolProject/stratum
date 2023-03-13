@@ -1,6 +1,3 @@
-// #[cfg(feature = "upstream")]
-// use {crate::config::UpstreamConfig, crate::upstream::upstream_message_handler};
-
 use crate::{
     id_manager::IDManager,
     router::Router,
@@ -9,6 +6,7 @@ use crate::{
     BanManager, ConfigManager, Connection, Result, SessionList,
 };
 use std::sync::Arc;
+use tokio::time::{sleep, Duration, Instant};
 use tokio_util::sync::CancellationToken;
 use tracing::{trace, warn};
 
@@ -71,40 +69,47 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         self.session_list.add_miner(address, session.clone());
 
+        //@todo mark this somewhere as the default timeout
+        let sleep = sleep(Duration::from_secs(15));
+        tokio::pin!(sleep);
+
         //@todo we can return a value from this loop -> break can return a value, and so we may
         //want to return an error if there is one so that we can report it at the end.
         while !self.cancel_token.is_cancelled() {
             if session.is_disconnected() {
-                trace!(
-                    "Session: {} disconnected. Breaking out of next_message loop",
-                    session.id()
-                );
+                trace!( id = ?self.id, ip = &address.to_string(), "Session disconnected.");
                 break;
             }
 
-            //@todo we need a timeout here otherwise we can get stuck forever.
             let maybe_frame = tokio::select! {
-                res = reader.read_frame() => {
-                    match res {
-                        Err(e) => {
-                            warn!("Session: {} errored with the following error: {}", session.id(), e);
+                            res = reader.read_frame() => {
+                                sleep.as_mut().reset(Instant::now() + session.timeout());
+                                match res {
+                                    Err(e) => {
+                                        warn!("Session: {} errored with the following error: {}", session.id(), e);
+                                        break;
+                                    },
+                                    Ok(frame) => frame,
+                                }
+                            },
+                                _ = &mut sleep => {
+                                //@todo let's see if this is a lot of error messages or not.
+                        // error!(connection_id=connection.id().to_string(), timeout=timeout.as_secs(), "next_message timed out.");
                             break;
                         },
-                        Ok(frame) => frame,
-                    }
-                },
-                    //@todo we might want timeouts to reduce difficulty as well here. -> That is
-                    //handled in retarget, so let's check that out.
-                    //@note this checks for session shutdowns, we still need timeouts here.
-                _ = session_cancel_token.cancelled() => {
-                    break;
-                },
-                _ = self.cancel_token.cancelled() => {
-                    // If a shutdown signal is received, return from `run`.
-                    // This will result in the task terminating.
-                    break;
-                }
-            };
+                                //@todo we might want timeouts to reduce difficulty as well here. -> That is
+                                //handled in retarget, so let's check that out.
+                            _ = session_cancel_token.cancelled() => {
+                                //@todo work on these errors,
+            //             error!(connection_id=connection.id().to_string(), "Message parsing canceled. Received Shutdown");
+                                break;
+                            },
+                            _ = self.cancel_token.cancelled() => {
+                                // If a shutdown signal is received, return from `run`.
+                                // This will result in the task terminating.
+                                break;
+                            }
+                        };
 
             let Some(frame) = maybe_frame else {
                 break;
@@ -164,145 +169,3 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 //doing nothing, socketrs trying to flood, etc.
 //Let's make sure we have an entire folder of tests for "attacks" and make sure that we cover them
 //thoroughly.
-
-//     //@todo handle this undwrap?
-//     connection_list
-//         .add_miner(addr, connection.clone())
-//         .await
-//         .unwrap();
-//
-//     loop {
-//         //@todo we could possibly do something like Cancellation token and see miniRedis from tokyo
-//         //where this would be a future, so we can put it into select!
-//         if connection.is_disconnected().await {
-//             trace!(
-//                 "Connection: {} disconnected. Breaking out of next_message loop",
-//                 connection.id()
-//             );
-//             break;
-//         }
-//
-//         let timeout = connection.timeout().await;
-//
-//         tokio::select! {
-//         //@todo try this suggestion later.
-//         //If this returns first, it's either a Timeout, or successful message read.
-//         //We should also try the "else" method here so we would match Ok(msg) = and then cancel
-//         //match, and then the else would be a timeout message which would match Err(msg)
-//         res = tokio::time::timeout(timeout, next_message(&mut buffer_stream)) => {
-//
-//                     //Next_message Success
-//                     if let Ok(result) = res {
-//                     match result {
-//                     Ok((method, values)) => {
-//                         router
-//                             .call(
-//                                 &method,
-//                                 values,
-//                                 state.clone(),
-//                                 connection.clone(),
-//                                 global_vars.clone(),
-//                             )
-//                             .await;
-//                     },
-//                     Err(e) => {
-//                         error!(
-//                             "Connection: {} error in 'next_message' (decoding/reading) Error: {}",
-//                             connection.id(), e
-//                         );
-//                         break;
-//                 }
-//
-//                     }
-//
-//                     } else {
-//             error!(connection_id=connection.id().to_string(), timeout=timeout.as_secs(), "next_message timed out.");
-//
-//                 }
-//             }
-//         _ = cancel_token.cancelled() => {
-//             error!(connection_id=connection.id().to_string(), "Message parsing canceled. Received Shutdown");
-//             break;
-//         }
-//
-//         }
-//     }
-//
-//     // let next_message = tokio::time::timeout(timeout, next_message(&mut buffer_stream))
-//     //     .await;
-//     //
-//     // match next_message {
-//     //     //@todo this would most likely be stop_token
-//     //     Err(e) => tracing::error!(
-//     //         "Connection: {} error in 'next_message' (stop_token) Error: {}",
-//     //         connection.id(),
-//     //         e
-//     //     ),
-//     //     Ok(msg) => {
-//     //         //@todo this would most likely be timeout function
-//     //         match msg {
-//     //             Err(e) => {
-//     //                 tracing::error!(
-//     //                     "Connection: {} error in 'next_message' (timeout fn) Error: {}",
-//     //                     connection.id(),
-//     //                     e
-//     //                 );
-//     //                 break;
-//     //             }
-//     //             Ok(msg) => match msg {
-//     //                 Err(e) => {
-//     //                     tracing::error!(
-//     //                         "Connection: {} error in 'next_message' (decoding/reading) Error: {}",
-//     //                         connection.id(), e
-//     //                     );
-//     //                     break;
-//     //                 }
-//     //                 Ok((method, values)) => {
-//     //                     router
-//     //                         .call(
-//     //                             &method,
-//     //                             values,
-//     //                             state.clone(),
-//     //                             connection.clone(),
-//     //                             global_vars.clone(),
-//     //                         )
-//     //                         .await;
-//     //                 }
-//     //             },
-//     //         }
-//     //     }
-//     // }
-//
-//     //@todo maybe do triple ??? instead?
-//     //@todo I don't think we like the triple ??? actually because we want to break the loop and
-//     //not automatically complete the function so we can do shutdown proceedures.
-//     //Check to see if we did ? anywhere, and if so let's fix that.
-//     // if let Ok(Ok(Ok((method, values)))) = next_message {
-//     //     router
-//     //         .call(
-//     //             &method,
-//     //             values,
-//     //             state.clone(),
-//     //             connection.clone(),
-//     //             global_vars.clone(),
-//     //         )
-//     //         .await;
-//     // } else {
-//     //     break;
-//     // }
-//
-//     //@todo on that note, let's go through this workflow as if we are a complete hack and see if we
-//     //can figure out if there are any bad spots.
-//     //Not necessarily a hack, but say like a random request from a random website.
-//     trace!("Closing stream from: {}", connection.id());
-//
-//     connection_list.remove_miner(addr).await;
-//
-//     if connection.needs_ban().await {
-//         ban_manager.add_ban(addr);
-//     }
-//
-//     connection.shutdown().await;
-//
-//     Ok(())
-// }
