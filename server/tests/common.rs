@@ -1,3 +1,6 @@
+//@todo we want to remove this as soon as possible
+#![allow(clippy::redundant_async_block)]
+
 use std::{net::SocketAddr, sync::Once, time::Duration};
 use stratum_server::{Result, Session, SessionList, StratumRequest, StratumServer};
 use tokio::{net::TcpStream, task::JoinHandle, time::sleep};
