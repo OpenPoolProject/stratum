@@ -152,6 +152,7 @@ impl ConnectionReader {
                 //@smells
                 buf = buf.trim().to_owned();
 
+                //@todo when revamping logging, put connection id into here.
                 trace!("Received Message: {}", &buf);
 
                 if buf.is_empty() {

@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Copy)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, Copy, Default)]
 pub struct SessionID([u8; 4]);
 
 impl SessionID {
