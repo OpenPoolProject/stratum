@@ -12,7 +12,7 @@ use std::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_util::sync::CancellationToken;
-use tracing::error;
+use tracing::{debug, error};
 use uuid::Uuid;
 
 //@todo remove this excessive_bools
@@ -154,16 +154,18 @@ impl<State: Clone> Session<State> {
                 "Session: {} not active for 10 minutes. Disconnecting",
                 self.inner.id,
             );
+            drop(shared);
+
             self.ban();
 
             //@todo return Error here instead
             return Ok(());
         }
 
-        let msg = SendInformation::Json(serde_json::to_string(&message)?);
+        debug!("Sending message: {}", serde_json::to_string(&message)?);
 
         //@todo implement Display on SendInformation.
-        // trace!("Sending message: {}", &msg_string);
+        let msg = SendInformation::Json(serde_json::to_string(&message)?);
 
         //@todo it may make sense to keep the sender inside of session here - not sure why it's in
         //connection like the way it is.
@@ -182,9 +184,11 @@ impl<State: Clone> Session<State> {
     }
 
     pub fn shutdown(&self) {
-        self.disconnect();
+        if !self.is_disconnected() {
+            self.disconnect();
 
-        self.cancel_token.cancel();
+            self.cancel_token.cancel();
+        }
     }
 
     pub fn disconnect(&self) {
@@ -193,7 +197,7 @@ impl<State: Clone> Session<State> {
 
     pub fn ban(&self) {
         self.shared.lock().needs_ban = true;
-        self.disconnect();
+        self.shutdown();
     }
 
     #[must_use]
