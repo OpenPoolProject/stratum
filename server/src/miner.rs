@@ -210,6 +210,7 @@ impl Miner {
         // let time_min = self.options.target_time as f64 * 0.40;
         // let time_max = self.options.target_time as f64 * 1.40;
 
+        //This average is in milliseconds
         let avg = var_diff_stats.vardiff_buf.avg();
 
         if avg <= 0.0 {
@@ -219,7 +220,8 @@ impl Miner {
         let mut new_diff;
 
         //@todo figure out what else needs to come from config here, and comment out this function.
-        let target_time = self.config_manager.difficulty_config().target_time as f64;
+        let target_time = self.config_manager.difficulty_config().target_time as f64 * 1000.0;
+
         if avg > target_time {
             if (avg / self.config_manager.difficulty_config().target_time as f64) <= 1.5 {
                 return;
@@ -286,4 +288,55 @@ pub struct VarDiffStats {
     last_retarget_share: u64,
     last_retarget: u128,
     vardiff_buf: VarDiffBuffer,
+}
+
+#[cfg(test)]
+mod test {
+    use std::thread::sleep;
+
+    use super::*;
+    use crate::Config;
+
+    #[test]
+    fn test_valid_share() {
+        let connection_id = ConnectionID::new();
+        let worker_id = Uuid::new_v4();
+        let session_id = SessionID::from(1);
+
+        let config = Config::default();
+        let config_manager = ConfigManager::new(config.clone());
+
+        let diff_settings = DifficultySettings {
+            default: Difficulty::from(config.difficulty.initial_difficulty),
+            minimum: Difficulty::from(config.difficulty.minimum_difficulty),
+        };
+        let miner = Miner::new(
+            connection_id,
+            worker_id,
+            session_id,
+            None,
+            None,
+            config_manager,
+            diff_settings,
+        );
+
+        miner.valid_share();
+
+        for _ in 0..100 {
+            miner.valid_share();
+            sleep(std::time::Duration::from_millis(50));
+        }
+
+        let new_diff = miner.update_difficulty();
+        assert!(new_diff.is_some());
+
+        for _ in 0..100 {
+            miner.valid_share();
+        }
+
+        let new_diff = miner.update_difficulty();
+        assert!(new_diff.is_some());
+
+        //@todo we need some actual result here lol
+    }
 }

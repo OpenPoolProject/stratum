@@ -375,6 +375,12 @@ impl<State: Clone> Session<State> {
     pub(crate) fn active(&self) {
         self.shared.lock().last_active = Instant::now();
     }
+
+    //@todo Use internal URLs if they exist otherwise use the default URL?
+    //Figure out how to do this gracefully.
+    // pub(crate) fn graceful_shutdown(&self) {
+    //     todo!()
+    // }
 }
 
 #[cfg(feature = "test-utils")]

@@ -3,7 +3,7 @@
 
 use std::{net::SocketAddr, sync::Once, time::Duration};
 use stratum_server::{Result, Session, SessionList, StratumRequest, StratumServer};
-use tokio::{net::TcpStream, task::JoinHandle, time::sleep};
+use tokio::{io::AsyncReadExt, net::TcpStream, task::JoinHandle, time::sleep};
 use tokio_util::sync::CancellationToken;
 use tracing::subscriber::set_global_default;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter, Registry};
@@ -144,9 +144,36 @@ pub async fn generate_connections<A: Into<SocketAddr>>(
     for i in 0..num {
         let client = tokio::task::spawn({
             async move {
-                let _stream = TcpStream::connect(addrs).await.unwrap();
+                let mut stream = TcpStream::connect(addrs).await.unwrap();
+                let mut buffer = [0; 10];
+                let sleep = tokio::time::sleep(Duration::from_secs(sleep_duration));
+                tokio::pin!(sleep);
 
-                tokio::time::sleep(Duration::from_secs(sleep_duration)).await;
+                loop {
+                    tokio::select! {
+                        res = stream.read(&mut buffer) => {
+                            if let Ok(n) = res {
+                                match n {
+                                    0 => {
+                                        break;
+                                    },
+                                        _ => {
+                                        println!("{:?}", buffer);
+                            continue;
+                                    },
+                                }
+
+                            } else {
+                                break;
+                            }
+                        },
+                    _ = &mut sleep => {
+                            break;
+                        }
+
+
+                    }
+                }
 
                 i
             }
