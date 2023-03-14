@@ -150,6 +150,7 @@ async fn purge_expired_tasks(shared: Arc<Shared>) {
         }
     }
 
+    //@todo figure out why this triggers immediately
     debug!("Purge background task shut down");
 }
 

@@ -8,7 +8,7 @@ use crate::{
 use std::sync::Arc;
 use tokio::time::{sleep, Duration, Instant};
 use tokio_util::sync::CancellationToken;
-use tracing::{trace, warn};
+use tracing::{enabled, error, trace, warn, Level};
 
 //@todo finish up the logging in this
 
@@ -44,6 +44,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             self.connection.address
         };
 
+        //@todo this seems dangerous on Global Accelerator As they all use the same address ->
+        //Let's think about if we use this by default or not.
         self.ban_manager.check_banned(address)?;
 
         let (mut reader, tx, handle) = self.connection.init();
@@ -58,7 +60,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             tx,
             self.config_manager.clone(),
             session_cancel_token.clone(),
-            self.connection_state.clone(),
+            self.connection_state,
         )?;
 
         trace!(
@@ -82,34 +84,36 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             }
 
             let maybe_frame = tokio::select! {
-                            res = reader.read_frame() => {
-                                sleep.as_mut().reset(Instant::now() + session.timeout());
-                                match res {
-                                    Err(e) => {
-                                        warn!("Session: {} errored with the following error: {}", session.id(), e);
-                                        break;
-                                    },
-                                    Ok(frame) => frame,
-                                }
-                            },
-                                _ = &mut sleep => {
-                                //@todo let's see if this is a lot of error messages or not.
-                        // error!(connection_id=connection.id().to_string(), timeout=timeout.as_secs(), "next_message timed out.");
-                            break;
-                        },
-                                //@todo we might want timeouts to reduce difficulty as well here. -> That is
-                                //handled in retarget, so let's check that out.
-                            _ = session_cancel_token.cancelled() => {
-                                //@todo work on these errors,
-            //             error!(connection_id=connection.id().to_string(), "Message parsing canceled. Received Shutdown");
+                    res = reader.read_frame() => {
+                        match res {
+                            Err(e) => {
+                                warn!("Session: {} errored with the following error: {}", session.id(), e);
                                 break;
                             },
-                            _ = self.cancel_token.cancelled() => {
-                                // If a shutdown signal is received, return from `run`.
-                                // This will result in the task terminating.
-                                break;
-                            }
-                        };
+                            Ok(frame) => frame,
+                        }
+                    },
+                        _ = &mut sleep => {
+            if enabled!(Level::DEBUG) {
+                error!( id = &self.id.to_string(), ip = &address.to_string(), "Session Parse Frame Timeout");
+            }
+                    break;
+                },
+                        //@todo we might want timeouts to reduce difficulty as well here. -> That is
+                        //handled in retarget, so let's check that out.
+                    _ = session_cancel_token.cancelled() => {
+                        //@todo work on these errors,
+            if enabled!(Level::DEBUG) {
+                error!( id = &self.id.to_string(), ip = &address.to_string(), "Session Disconnected");
+            }
+                        break;
+                    },
+                    _ = self.cancel_token.cancelled() => {
+                        // If a shutdown signal is received, return from `run`.
+                        // This will result in the task terminating.
+                        break;
+                    }
+                };
 
             let Some(frame) = maybe_frame else {
                 break;
@@ -128,6 +132,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                     self.global_vars.clone(),
                 )
                 .await;
+
+            //Reset sleep as later as possible
+            sleep.as_mut().reset(Instant::now() + session.timeout());
         }
 
         trace!(

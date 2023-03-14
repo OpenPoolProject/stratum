@@ -13,6 +13,8 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 use tracing::trace;
 
+//@todo convert this to return ConnectionWriter to be used in Sessions.
+
 #[derive(Debug)]
 pub struct Connection {
     _id: ConnectionID,

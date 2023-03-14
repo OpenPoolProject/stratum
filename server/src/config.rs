@@ -85,7 +85,7 @@ impl Default for ConnectionConfig {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct DifficultyConfig {
     pub(crate) retarget_share_amount: u64,
     pub(crate) initial_difficulty: u64,
@@ -98,6 +98,21 @@ pub struct DifficultyConfig {
     pub(crate) target_time: u64,
     //@todo see if we use this.
     pub(crate) variance_percent: f64,
+}
+
+impl Default for DifficultyConfig {
+    fn default() -> Self {
+        DifficultyConfig {
+            retarget_share_amount: 30,
+            initial_difficulty: 16384,
+            var_diff: false,
+            minimum_difficulty: 64,
+            maximum_difficulty: 4_611_686_018_427_387_904,
+            retarget_time: 300,
+            target_time: 10,
+            variance_percent: 30.0,
+        }
+    }
 }
 
 impl DifficultyConfig {
