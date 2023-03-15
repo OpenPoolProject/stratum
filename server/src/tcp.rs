@@ -46,7 +46,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         //@todo this seems dangerous on Global Accelerator As they all use the same address ->
         //Let's think about if we use this by default or not.
-        self.ban_manager.check_banned(address)?;
+        // self.ban_manager.check_banned(address)?;
 
         let (mut reader, tx, handle) = self.connection.init();
 
