@@ -3,7 +3,6 @@ use std::sync::{
     Arc,
 };
 
-//@todo testing this
 #[derive(Default, Clone)]
 pub struct ReadyIndicator(Arc<AtomicBool>);
 
@@ -15,11 +14,9 @@ impl ReadyIndicator {
 
     #[must_use]
     pub fn create_new(&self) -> Self {
-        //@todo review this, no idea why we do this.
         Self(Arc::clone(&self.0))
     }
 
-    //@todo figure out if relaxed is ok
     pub fn ready(&self) {
         self.0.store(true, Ordering::Relaxed);
     }
