@@ -1,6 +1,6 @@
-use std::fmt::{self, Display};
+use std::fmt::{self, Debug, Display};
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, Copy, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Copy, Default)]
 pub struct SessionID([u8; 4]);
 
 impl SessionID {
@@ -16,12 +16,21 @@ impl From<u32> for SessionID {
     }
 }
 
-//@todo needs testing
 impl Display for SessionID {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{:02x}{:02x}{:02x}{:02x} ({})",
+            "{:02x}{:02x}{:02x}{:02x}",
+            self.0[3], self.0[2], self.0[1], self.0[0],
+        )
+    }
+}
+
+impl Debug for SessionID {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{:#04x}{:02x}{:02x}{:02x} ({})",
             self.0[3],
             self.0[2],
             self.0[1],
@@ -31,7 +40,6 @@ impl Display for SessionID {
     }
 }
 
-//@todo we need lots of testing here.
 #[cfg(test)]
 mod test {
     use super::*;
@@ -43,5 +51,36 @@ mod test {
         let session_id = SessionID::from(id);
 
         assert_eq!(id, session_id.as_u32());
+    }
+
+    #[test]
+    fn test_session_id_display() {
+        assert_eq!(format!("{}", SessionID::from(200)), "000000c8");
+        assert_eq!(format!("{}", SessionID::from(1)), "00000001");
+        assert_eq!(format!("{}", SessionID::from(2)), "00000002");
+        assert_eq!(format!("{}", SessionID::from(256)), "00000100");
+        assert_eq!(format!("{}", SessionID::from(65536)), "00010000");
+        assert_eq!(format!("{}", SessionID::from(16_777_216)), "01000000");
+        assert_eq!(format!("{}", SessionID::from(16_777_217)), "01000001");
+    }
+
+    #[test]
+    fn test_session_id_debug() {
+        assert_eq!(format!("{:?}", SessionID::from(200)), "0x000000c8 (200)");
+        assert_eq!(format!("{:?}", SessionID::from(1)), "0x00000001 (1)");
+        assert_eq!(format!("{:?}", SessionID::from(2)), "0x00000002 (2)");
+        assert_eq!(format!("{:?}", SessionID::from(256)), "0x00000100 (256)");
+        assert_eq!(
+            format!("{:?}", SessionID::from(65536)),
+            "0x00010000 (65536)"
+        );
+        assert_eq!(
+            format!("{:?}", SessionID::from(16_777_216)),
+            "0x01000000 (16777216)"
+        );
+        assert_eq!(
+            format!("{:?}", SessionID::from(16_777_217)),
+            "0x01000001 (16777217)"
+        );
     }
 }
