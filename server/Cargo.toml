@@ -24,7 +24,7 @@ dhat-heap = []
 # @todo after full implementation, see if we can peel back some features here to
 # the minimal required.
 tokio = { version = "1.26.0", features = ["full"] }
-async-trait = "0.1.66"
+async-trait = "0.1.67"
 futures = "0.3.27"
 tokio-util = { version = "0.7.7", features = ["time"]}
 tokio-stream = { version = "0.1.12", features = ["net"]}
