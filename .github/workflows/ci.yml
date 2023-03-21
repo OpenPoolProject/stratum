@@ -51,14 +51,14 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
-      - uses: dtolnay/rust-toolchain@e12eda571dc9a5ee5d58eecf4738ec291c66f295
+      - uses: dtolnay/rust-toolchain@fc3253060d0c959bea12a59f10f8391454a0b02d
         with:
           toolchain: ${{ matrix.rust }}
           components: rust-src
-      - uses: taiki-e/install-action@7570159fccd8f9337aac58fde2981930f633580a
+      - uses: taiki-e/install-action@c64d4ba1ed6c0cd17ee54957739f97342c0910df
         with:
           tool: cargo-hack
-      - uses: taiki-e/install-action@7570159fccd8f9337aac58fde2981930f633580a
+      - uses: taiki-e/install-action@c64d4ba1ed6c0cd17ee54957739f97342c0910df
         with:
           tool: nextest
       - uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f
@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
         with:
           persist-credentials: false
-      - uses: taiki-e/install-action@7570159fccd8f9337aac58fde2981930f633580a
+      - uses: taiki-e/install-action@c64d4ba1ed6c0cd17ee54957739f97342c0910df
         with:
           tool: cargo-hack
       - run:
@@ -96,14 +96,14 @@ jobs:
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
-      - uses: dtolnay/rust-toolchain@e12eda571dc9a5ee5d58eecf4738ec291c66f295
+      - uses: dtolnay/rust-toolchain@fc3253060d0c959bea12a59f10f8391454a0b02d
         with:
           toolchain: nightly
           components: clippy,rustfmt
-      - uses: taiki-e/install-action@7570159fccd8f9337aac58fde2981930f633580a
+      - uses: taiki-e/install-action@c64d4ba1ed6c0cd17ee54957739f97342c0910df
         with:
           tool: cargo-hack
-      - uses: taiki-e/install-action@7570159fccd8f9337aac58fde2981930f633580a
+      - uses: taiki-e/install-action@c64d4ba1ed6c0cd17ee54957739f97342c0910df
         with:
           tool: cargo-minimal-versions
       - run: cargo fmt --all --check
@@ -125,7 +125,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e12eda571dc9a5ee5d58eecf4738ec291c66f295
+        uses: dtolnay/rust-toolchain@fc3253060d0c959bea12a59f10f8391454a0b02d
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f
@@ -149,7 +149,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e12eda571dc9a5ee5d58eecf4738ec291c66f295
+        uses: dtolnay/rust-toolchain@fc3253060d0c959bea12a59f10f8391454a0b02d
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@6fd3edff6979b79f87531400ad694fb7f2c84b1f
@@ -170,14 +170,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e12eda571dc9a5ee5d58eecf4738ec291c66f295
+        uses: dtolnay/rust-toolchain@fc3253060d0c959bea12a59f10f8391454a0b02d
         with:
           toolchain: nightly
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@7570159fccd8f9337aac58fde2981930f633580a
+        uses: taiki-e/install-action@c64d4ba1ed6c0cd17ee54957739f97342c0910df
         with:
           tool: cargo-llvm-cov
-      - uses: taiki-e/install-action@7570159fccd8f9337aac58fde2981930f633580a
+      - uses: taiki-e/install-action@c64d4ba1ed6c0cd17ee54957739f97342c0910df
         with:
           tool: nextest
       - uses: Swatinem/rust-cache@359a70e43a0bb8a13953b04a90f76428b4959bb6 # v2
@@ -198,7 +198,7 @@ jobs:
     steps:
       - uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e12eda571dc9a5ee5d58eecf4738ec291c66f295
+        uses: dtolnay/rust-toolchain@fc3253060d0c959bea12a59f10f8391454a0b02d
         with:
           toolchain:
             stable
