@@ -46,11 +46,11 @@ jobs:
         rust: [stable, beta, nightly]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@f8b229487278099721572481264761b1d4fdd530
+        uses: step-security/harden-runner@910b3276b25495e4cfd8669cf5d7ea16508b0241
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-      - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+      - uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
       - uses: dtolnay/rust-toolchain@b44cb146d03e8d870c57ab64b80f04586349ca5d
         with:
           toolchain: ${{ matrix.rust }}
@@ -72,11 +72,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@f8b229487278099721572481264761b1d4fdd530
+        uses: step-security/harden-runner@910b3276b25495e4cfd8669cf5d7ea16508b0241
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-      - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+      - uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
         with:
           persist-credentials: false
       - uses: taiki-e/install-action@1c96e2750bff5748077b0c814e5bd290059c84a5
@@ -92,10 +92,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@f8b229487278099721572481264761b1d4fdd530
+        uses: step-security/harden-runner@910b3276b25495e4cfd8669cf5d7ea16508b0241
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
-      - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+      - uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
       - uses: dtolnay/rust-toolchain@b44cb146d03e8d870c57ab64b80f04586349ca5d
         with:
           toolchain: nightly
@@ -118,12 +118,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@f8b229487278099721572481264761b1d4fdd530
+        uses: step-security/harden-runner@910b3276b25495e4cfd8669cf5d7ea16508b0241
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
-        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b44cb146d03e8d870c57ab64b80f04586349ca5d
         with:
@@ -142,12 +142,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@f8b229487278099721572481264761b1d4fdd530
+        uses: step-security/harden-runner@910b3276b25495e4cfd8669cf5d7ea16508b0241
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
-        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b44cb146d03e8d870c57ab64b80f04586349ca5d
         with:
@@ -163,12 +163,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@f8b229487278099721572481264761b1d4fdd530
+        uses: step-security/harden-runner@910b3276b25495e4cfd8669cf5d7ea16508b0241
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout repository
-        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+        uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b44cb146d03e8d870c57ab64b80f04586349ca5d
         with:
@@ -196,7 +196,7 @@ jobs:
   bloat:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+      - uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@b44cb146d03e8d870c57ab64b80f04586349ca5d
         with:
@@ -227,7 +227,7 @@ jobs:
   cargo-deny:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # v3
+      - uses: actions/checkout@83b7061638ee4956cf7545a6f7efe594e5ad0247 # v3
       - uses: EmbarkStudios/cargo-deny-action@8af37f5d0c77859223226de776036f7f691e1469 # v1
 
   ci-success:
@@ -245,7 +245,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@f8b229487278099721572481264761b1d4fdd530
+        uses: step-security/harden-runner@910b3276b25495e4cfd8669cf5d7ea16508b0241
         with:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
