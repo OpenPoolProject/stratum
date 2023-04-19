@@ -34,7 +34,7 @@ jobs:
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
       - name: Checkout code
-        uses: actions/checkout@47fbe2df0ad0e27efb67a70beac3555f192b062f
+        uses: actions/checkout@f095bcc56b7c2baf48f3ac70d6d6782f4f553222
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1
