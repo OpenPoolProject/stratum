@@ -55,7 +55,7 @@ parking_lot = "0.12"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }
-tokio-test = "0.4.2"
+tokio-test = "0.4.3"
 criterion = {version = "0.5", features = ["async_tokio"]}
 anyhow = "1.0"
 
