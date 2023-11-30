@@ -218,7 +218,7 @@ impl<State: Clone> Session<State> {
         worker_id: Uuid,
     ) {
         //@todo has to be an easier way to reuse worker_name here
-        debug!(id = ?self.inner.id, "Registered Worker {worker_id} ({}) Session ID: {session_id}", worker_name.clone().unwrap_or(String::new()));
+        debug!(id = ?self.inner.id, "Registered Worker {worker_id} ({}) Session ID: {session_id}", worker_name.clone().unwrap_or_default());
 
         let worker = Miner::new(
             self.id().clone(),

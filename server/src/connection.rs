@@ -117,7 +117,7 @@ async fn write_message(
                     }
                 }
             }
-            _ = cancel_token.cancelled() => {
+            () = cancel_token.cancelled() => {
                 //@todo reword this
                 trace!("write loop hit cancellation token.");
 

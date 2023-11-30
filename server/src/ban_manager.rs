@@ -140,8 +140,8 @@ async fn purge_expired_tasks(shared: Arc<Shared>) {
             // state as new keys have been set to expire early. This is done by
             // looping.
             tokio::select! {
-                _ = tokio::time::sleep_until(when) => {}
-                _ = shared.background_task.notified() => {}
+                () = tokio::time::sleep_until(when) => {}
+                () = shared.background_task.notified() => {}
             }
         } else {
             // There are no keys expiring in the future. Wait until the task is
