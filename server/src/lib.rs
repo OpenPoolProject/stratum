@@ -1,3 +1,4 @@
+#![feature(coverage_attribute)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 //@todo fix this.
