@@ -31,8 +31,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
         global_vars: GlobalVars,
     ) {
         let Some(endpoint) = self.routes.get(value.method()) else {
-                warn!("Method {} was not found", value.method());
-                return;
+            warn!("Method {} was not found", value.method());
+            return;
         };
 
         // if log::log_enabled!(log::Level::Trace) {
