@@ -1,6 +1,6 @@
 use crate::api::{Context, Result};
-use std::net::{SocketAddr, TcpListener};
-use tokio::task::JoinHandle;
+use std::{future::IntoFuture, net::SocketAddr};
+use tokio::{net::TcpListener, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 // use std::time::Instant;
 // @todo think about using ready indicator
@@ -23,8 +23,8 @@ pub struct Api {
 }
 
 impl Api {
-    pub fn build(addr: SocketAddr, state: Context) -> Result<Self> {
-        let tcp = TcpListener::bind(addr)?;
+    pub async fn build(addr: SocketAddr, state: Context) -> Result<Self> {
+        let tcp = TcpListener::bind(addr).await?;
         let info = tcp.local_addr()?;
 
         Ok(Self {
@@ -60,11 +60,32 @@ impl Api {
                 )
                 .with_state(self.state.clone());
 
-            let server = axum::Server::from_tcp(listener)?
-                .serve(app.into_make_service())
-                .with_graceful_shutdown(async move { cancel_token.cancelled().await });
+            //@todo quite annoying, but the new axum version essentially makes us do a massive redo
+            //for graceful shutdown.... So we will need to wait some time to revamp this, for now
+            //graceful shutdown DOES NOT work.
+            //Actually now I'm looking at a different example, and it seems straight forward....
+            //Not sure what to think here, but going to use the new example, and come back to this
+            //later.
+            //@todo looks like AXUM will be adding back in graceful shutdown on axum::serve, so
+            //let's update this when that is released
+            // let server = axum::Server::from_tcp(listener)?
+            //     .serve(app.into_make_service())
+            //     .with_graceful_shutdown(async move { cancel_token.cancelled().await });
             let handle = tokio::spawn(async move {
-                server.await?;
+                //@todo not quite sure why we use into_future here rather than just leaving it but
+                //let's see
+                let server = axum::serve(listener, app.into_make_service()).into_future();
+
+                tokio::select! {
+                    biased;
+
+                    () = cancel_token.cancelled() => {},
+
+                    result = server => {
+                        result?;
+                },
+
+                }
 
                 Ok(())
             });

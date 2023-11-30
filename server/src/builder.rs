@@ -195,7 +195,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
             let api_address = format!("{}:{}", self.api_host, self.api_port).parse()?;
 
-            crate::api::Api::build(api_address, state)?
+            crate::api::Api::build(api_address, state).await?
         };
 
         Ok(StratumServer {
