@@ -1,8 +1,6 @@
 use crate::api::{Context, Result};
-use std::future::IntoFuture;
-use std::net::SocketAddr;
-use tokio::net::TcpListener;
-use tokio::task::JoinHandle;
+use std::{future::IntoFuture, net::SocketAddr};
+use tokio::{net::TcpListener, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 // use std::time::Instant;
 // @todo think about using ready indicator
