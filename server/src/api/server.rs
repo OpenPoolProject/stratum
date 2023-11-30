@@ -68,6 +68,8 @@ impl Api {
             //Actually now I'm looking at a different example, and it seems straight forward....
             //Not sure what to think here, but going to use the new example, and come back to this
             //later.
+            //@todo looks like AXUM will be adding back in graceful shutdown on axum::serve, so
+            //let's update this when that is released
             // let server = axum::Server::from_tcp(listener)?
             //     .serve(app.into_make_service())
             //     .with_graceful_shutdown(async move { cancel_token.cancelled().await });
