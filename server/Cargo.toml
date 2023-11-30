@@ -40,7 +40,7 @@ serde_json = "1.0.96"
 extended-primitives = {version = "0.3.8"}
 
 # Telemtry
-tracing = "0.1.38"
+tracing = "0.1.40"
 
 # Primitives
 uuid = { version = "1.3.1", features = ["serde", "v4", "fast-rng", "macro-diagnostics"] }
