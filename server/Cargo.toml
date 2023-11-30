@@ -50,7 +50,7 @@ bytes = "1.4.0"
 thiserror = "1.0.40"
 bit-set = "0.5.3"
 dashmap = {version = "5.4.0"}
-rlimit = "0.9.1"
+rlimit = "0.10.1"
 parking_lot = "0.12"
 
 [dev-dependencies]
