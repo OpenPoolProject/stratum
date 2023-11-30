@@ -70,7 +70,7 @@ where
                             error!(cause = ?e, "Global thread {} failed.", global_name);
                         }
                     }
-                    _ = cancel_token.cancelled() => {
+                    () = cancel_token.cancelled() => {
                         info!("Global thread {} is shutting down from shutdown message.", global_name);
                     }
 
@@ -146,7 +146,7 @@ where
                     error!(cause = %err, "failed to accept");
                 };
             },
-            _ = cancel_token.cancelled() => {}
+            () = cancel_token.cancelled() => {}
         }
 
         let start = Instant::now();

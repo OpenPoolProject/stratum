@@ -93,7 +93,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                             Ok(frame) => frame,
                         }
                     },
-                        _ = &mut sleep => {
+                        () = &mut sleep => {
             if enabled!(Level::DEBUG) {
                 error!( id = &self.id.to_string(), ip = &address.to_string(), "Session Parse Frame Timeout");
             }
@@ -101,14 +101,14 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                 },
                         //@todo we might want timeouts to reduce difficulty as well here. -> That is
                         //handled in retarget, so let's check that out.
-                    _ = session_cancel_token.cancelled() => {
+                    () = session_cancel_token.cancelled() => {
                         //@todo work on these errors,
             if enabled!(Level::DEBUG) {
                 error!( id = &self.id.to_string(), ip = &address.to_string(), "Session Disconnected");
             }
                         break;
                     },
-                    _ = self.cancel_token.cancelled() => {
+                    () = self.cancel_token.cancelled() => {
                         // If a shutdown signal is received, return from `run`.
                         // This will result in the task terminating.
                         break;

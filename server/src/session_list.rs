@@ -87,7 +87,7 @@ impl<CState: Clone> SessionList<CState> {
                 "Session List sending {} miners reconnect message.",
                 self.inner.state.len()
             );
-            for entry in self.inner.state.iter() {
+            for entry in &self.inner.state {
                 let miner = entry.value();
                 if let Err(e) = miner.send_raw(msg.clone()) {
                     warn!(connection_id = %miner.id(), cause = %e, "Failed to send shutdown message");
@@ -105,7 +105,7 @@ impl<CState: Clone> SessionList<CState> {
         );
 
         //@todo we need to parallize this async - now we can do it without async though.
-        for entry in self.inner.state.iter() {
+        for entry in &self.inner.state {
             entry.value().shutdown();
         }
     }
