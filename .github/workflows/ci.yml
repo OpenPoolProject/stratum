@@ -4,6 +4,7 @@ name: ci
 permissions: write-all
 
 on:
+  merge_group:
   pull_request:
   push:
     branches:
