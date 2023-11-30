@@ -122,6 +122,8 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             //Resets the Session's last active, to detect for unactive connections
             session.active();
 
+            //@todo if a miner fails a function, like subscribe / authorize we don't catch it, and
+            //they can spam us.
             //Calls the Stratum method on the router.
             self.router
                 .call(
