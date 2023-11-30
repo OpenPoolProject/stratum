@@ -96,7 +96,7 @@ mod tests {
     use super::*;
     use tokio_test::assert_ok;
 
-    #[cfg_attr(coverage_nightly, no_coverage)]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     #[tokio::test]
     async fn idx_allocations() {
         let id_manager = IDManager::new(0);
@@ -120,7 +120,7 @@ mod tests {
         assert_eq!(rolled_id, SessionID::from(0));
     }
 
-    #[cfg_attr(coverage_nightly, no_coverage)]
+    #[cfg_attr(coverage_nightly, coverage(off))]
     #[tokio::test]
     async fn basic_idx_allocations_with_prefix() {
         let id_manager = IDManager::new(9);
