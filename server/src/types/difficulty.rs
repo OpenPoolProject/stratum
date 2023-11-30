@@ -27,8 +27,7 @@ impl Difficulty {
 
     #[must_use]
     pub fn log2(&self) -> u8 {
-        //@todo can we do self.0.ilog(2)
-        (self.0 as f64).log2() as u8
+        self.0.ilog2() as u8
     }
 }
 
@@ -60,4 +59,16 @@ fn format_difficulty(diff: u64) -> u64 {
     }
     assert!(i <= 63);
     1_u64 << i
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_difficulty_log2() {
+        for i in 1..64 {
+            assert_eq!(Difficulty::from(2u64.pow(i)).log2(), i as u8);
+        }
+    }
 }
