@@ -1,4 +1,4 @@
-#![cfg_attr(coverage_nightly, feature(no_coverage))]
+#![cfg_attr(coverage_nightly, coverage(off))]
 #![warn(clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
 //@todo fix this.
