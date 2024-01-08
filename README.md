@@ -11,7 +11,7 @@
 Rust library for building out stratum servers. Think what Tide or Actix are to building HTTP APIs on Rust, this library is that for stratum servers.
 
 - Support for 2 connection models. (TCP and Websockets)
-- Used in practice to support multiple various strstum protocol versions including: 
+- Used in practice to support multiple various stratum protocol versions including: 
 	- Stratum V1
 	- Stratum v2
 	- BTCAgent
