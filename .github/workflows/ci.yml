@@ -218,6 +218,7 @@ jobs:
           key:
             bloat-${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
       - name: Run cargo bloat
+        if: ${{ github.event_name != 'schedule' }}
         # @todo For security, let's fork this into the OpenPoolProject/actions
         # folder - the original (this is a fork) no longer works because it uses
         # a 3rd parter server to cache builds that is no longer existant.
