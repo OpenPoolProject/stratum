@@ -189,7 +189,7 @@ jobs:
           cargo llvm-cov report --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@0cf8684c821546a4e0c8c9a4cf4f21a7a0c5014b
+        uses: codecov/codecov-action@98ab2c591b94478f4c3606d68ff73601df85ec43
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: lcov.info
