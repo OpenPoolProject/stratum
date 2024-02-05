@@ -44,9 +44,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             self.connection.address
         };
 
-        //@todo this seems dangerous on Global Accelerator As they all use the same address ->
-        //Let's think about if we use this by default or not.
-        // self.ban_manager.check_banned(address)?;
+        if self.config_manager.ban_manager_enabled() {
+            self.ban_manager.check_banned(address)?;
+        }
 
         let (mut reader, tx, handle) = self.connection.init();
 
@@ -57,6 +57,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         let session = Session::new(
             self.id.clone(),
             session_id,
+            address,
             tx,
             self.config_manager.clone(),
             session_cancel_token.clone(),

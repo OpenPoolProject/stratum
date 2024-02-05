@@ -1,5 +1,5 @@
 use crate::{
-    config::{ConnectionConfig, DifficultyConfig},
+    config::{BanManagerConfig, ConnectionConfig, DifficultyConfig},
     id_manager::IDManager,
     router::Router,
     types::ReadyIndicator,
@@ -27,6 +27,7 @@ pub struct StratumServerBuilder<State, CState> {
     pub ready_indicator: ReadyIndicator,
     pub shutdown_message: Option<Buffer>,
     pub cancel_token: Option<CancellationToken>,
+    pub ban_manager_enabled: bool,
 }
 
 impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync + 'static>
@@ -62,6 +63,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
             // },
             shutdown_message: None,
             cancel_token: None,
+            ban_manager_enabled: false,
         }
     }
 
@@ -163,16 +165,28 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
         self
     }
 
+    #[must_use]
+    pub fn with_ban_manager(mut self, enabled: bool) -> Self {
+        self.ban_manager_enabled = enabled;
+        self
+    }
+
     pub async fn build(self) -> Result<StratumServer<State, CState>> {
+        let ban_manager_config = BanManagerConfig {
+            enabled: self.ban_manager_enabled,
+            ..Default::default()
+        };
+
         let config = Config {
             connection: self.connection_config,
             difficulty: self.var_diff_config,
-            bans: crate::config::BanManagerConfig::default(),
+            bans: ban_manager_config,
         };
 
         let config_manager = ConfigManager::new(config);
 
         let listener = TcpListener::bind(format!("{}:{}", self.host, self.port)).await?;
+
         //This will fail if unable to find a local port.
         let listen_address = listener.local_addr()?;
         let listener = TcpListenerStream::new(listener);

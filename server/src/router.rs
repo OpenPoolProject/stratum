@@ -49,6 +49,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Clone + Send + Sync + 'static
         // );
         // } else {
         tracing::debug!(
+            ip = connection.ip().to_string(),
             "Calling method: {} for connection: {}",
             value.method(),
             connection.id()

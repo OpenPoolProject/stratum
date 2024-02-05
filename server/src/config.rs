@@ -31,6 +31,10 @@ impl ConfigManager {
     pub(crate) fn difficulty_config(&self) -> &DifficultyConfig {
         &self.config.difficulty
     }
+
+    pub(crate) fn ban_manager_enabled(&self) -> bool {
+        self.config.bans.enabled
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -42,6 +46,7 @@ pub struct Config {
 
 #[derive(Clone, Debug)]
 pub struct BanManagerConfig {
+    pub(crate) enabled: bool,
     pub(crate) default_ban_duration: Duration,
     pub(crate) _ban_score_allowed: u64,
     pub(crate) _whitelisted_ips: Vec<IpAddr>,
@@ -51,6 +56,7 @@ pub struct BanManagerConfig {
 impl Default for BanManagerConfig {
     fn default() -> Self {
         BanManagerConfig {
+            enabled: false,
             default_ban_duration: Duration::from_secs(3600),
             _ban_score_allowed: 100,
             _whitelisted_ips: Vec::new(),

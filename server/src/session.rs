@@ -7,6 +7,7 @@ use extended_primitives::Buffer;
 use parking_lot::{Mutex, RwLock};
 use serde::Serialize;
 use std::{
+    net::SocketAddr,
     sync::Arc,
     time::{Duration, Instant, SystemTime},
 };
@@ -78,9 +79,11 @@ pub struct Session<State> {
     difficulty_settings: Arc<RwLock<DifficultySettings>>,
 }
 
+//@todo I want to get IP here and return it
 struct Inner<State> {
     pub id: ConnectionID,
     pub session_id: SessionID,
+    pub ip: SocketAddr,
     pub state: State,
 }
 
@@ -100,6 +103,7 @@ impl<State: Clone> Session<State> {
     pub fn new(
         id: ConnectionID,
         session_id: SessionID,
+        ip: SocketAddr,
         sender: UnboundedSender<SendInformation>,
         config_manager: ConfigManager,
         cancel_token: CancellationToken,
@@ -118,6 +122,7 @@ impl<State: Clone> Session<State> {
         let inner = Inner {
             id,
             session_id,
+            ip,
             state,
         };
 
@@ -374,6 +379,11 @@ impl<State: Clone> Session<State> {
 
     pub(crate) fn active(&self) {
         self.shared.lock().last_active = Instant::now();
+    }
+
+    #[must_use]
+    pub fn ip(&self) -> SocketAddr {
+        self.inner.ip
     }
 
     //@todo Use internal URLs if they exist otherwise use the default URL?
