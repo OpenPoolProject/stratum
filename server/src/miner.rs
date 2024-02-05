@@ -4,7 +4,7 @@ use crate::{
 };
 use parking_lot::Mutex;
 use std::sync::Arc;
-use tracing::warn;
+use tracing::{debug, warn};
 use uuid::Uuid;
 
 //A miner is essentially an individual worker unit. There can be multiple Miners on a single
@@ -180,7 +180,9 @@ impl Miner {
     //@todo see if we can solve a lot of these recasting issues.
     //@todo wrap u64 with a custom difficulty type.
     fn retarget(&self) {
+        //This is in milliseconds
         let now = utils::now();
+        // let retarget_time = self.config_manager.difficulty_config().retarget_time() * 1000.0;
 
         let mut difficulties = self.shared.difficulties.lock();
         let mut var_diff_stats = self.shared.var_diff_stats.lock();
@@ -198,10 +200,19 @@ impl Miner {
                 .difficulty_config()
                 .retarget_share_amount)
             || (now - var_diff_stats.last_retarget)
-                >= self.config_manager.difficulty_config().retarget_time as u128)
+                >= (self.config_manager.difficulty_config().retarget_time as u128 * 1000))
         {
             return;
         }
+
+        // dbg!(stats.accepted);
+        //
+        // dbg!(var_diff_stats.last_retarget_share);
+        // dbg!(
+        //     self.config_manager
+        //         .difficulty_config()
+        //         .retarget_share_amount
+        // );
 
         var_diff_stats.last_retarget = now;
         var_diff_stats.last_retarget_share = stats.accepted;
@@ -213,6 +224,9 @@ impl Miner {
         //This average is in milliseconds
         let avg = var_diff_stats.vardiff_buf.avg();
 
+        // debug!(average = ?avg);
+        // dbg!(avg);
+
         if avg <= 0.0 {
             return;
         }
@@ -223,6 +237,7 @@ impl Miner {
         let target_time = self.config_manager.difficulty_config().target_time as f64 * 1000.0;
 
         if avg > target_time {
+            //@todo this needs to just be target_time since we multiplied it above.
             if (avg / self.config_manager.difficulty_config().target_time as f64) <= 1.5 {
                 return;
             }
@@ -338,5 +353,78 @@ mod test {
         assert!(new_diff.is_some());
 
         //@todo we need some actual result here lol
+    }
+
+    #[test]
+    fn test_retarget() {
+        let connection_id = ConnectionID::new();
+        let worker_id = Uuid::new_v4();
+        let session_id = SessionID::from(1);
+
+        let config = Config::default();
+        let config_manager = ConfigManager::new(config.clone());
+
+        let diff_settings = DifficultySettings {
+            default: Difficulty::from(config.difficulty.initial_difficulty),
+            minimum: Difficulty::from(config.difficulty.minimum_difficulty),
+        };
+
+        let miner = Miner::new(
+            connection_id,
+            worker_id,
+            session_id,
+            None,
+            None,
+            config_manager,
+            diff_settings,
+        );
+
+        // OK what do we need to test here....
+        // 1. We need to solve the issue with why difficulty is flucuating so much with the single
+        //    miner that is on the pool right now from CLSK.
+        //
+        //    Scenario:
+        //    The current miner should be at roughly 120 TH/s
+        //    Which would equate to 120000000000000 (hashrate) = 4294967296 (multiplier) * effort /
+        //    time
+        //
+        //    For 1m (retarget interval) 120000000000000 * 60 / 4294967296 = effort for the whole
+        //    minute. So 1,676,380.6343078613. Cleaning that up, it's 1676360 If we divide that
+        //    across our various difficulty levels:
+        //
+        //    1676360 / 16384 ~= 102 shares per minute
+        //    1676360 / 32768 ~= 51 shares per minute
+        //    1676360 / 65536 ~= 25 shares per minute
+        //    1676360 / 131072  ~= 12.7  shares per minute
+        //    1676360 / 262144 ~=  6.4 shares per minute
+        //    1676360 / 524288 ~=  3.2 shares per minute
+        //
+
+        dbg!(miner.difficulties());
+
+        miner.valid_share();
+
+        for _ in 0..100 {
+            miner.valid_share();
+            sleep(std::time::Duration::from_millis(50));
+        }
+
+        dbg!(miner.difficulties());
+
+        let new_diff = miner.update_difficulty();
+        assert!(new_diff.is_some());
+
+        dbg!(miner.difficulties());
+
+        for _ in 0..100 {
+            miner.valid_share();
+        }
+
+        dbg!(miner.difficulties());
+
+        let new_diff = miner.update_difficulty();
+        assert!(new_diff.is_some());
+
+        dbg!(miner.difficulties());
     }
 }
