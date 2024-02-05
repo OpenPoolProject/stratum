@@ -7,7 +7,6 @@ pub struct ConfigManager {
     config: Arc<Config>,
 }
 
-//@todo just looking at this now, it seems highly highly inefficient if we are moving or cloning
 impl ConfigManager {
     pub(crate) fn new(config: Config) -> Self {
         Self {
@@ -30,6 +29,10 @@ impl ConfigManager {
 
     pub(crate) fn difficulty_config(&self) -> &DifficultyConfig {
         &self.config.difficulty
+    }
+
+    pub(crate) fn connection_config(&self) -> &ConnectionConfig {
+        &self.config.connection
     }
 
     pub(crate) fn ban_manager_enabled(&self) -> bool {
@@ -71,6 +74,9 @@ pub struct ConnectionConfig {
     pub(crate) max_connections: Option<usize>,
     /// Active Timeout is how long with no activity before we disconnect a miner.
     pub(crate) active_timeout: u64,
+    /// Initial Timeout is how long we wait for an initial message from a miner. Once they are
+    /// active, we switch to the active timeout setting.
+    pub(crate) inital_timeout: u64,
     //@todo maybe move this to a new struct called MinerConfig, but for now I think it's ok.
     /// Check Threshold is how many shares until we consider a ban on a miner
     pub(crate) check_threshold: u64,
@@ -85,6 +91,7 @@ impl Default for ConnectionConfig {
             proxy_protocol: false,
             max_connections: None,
             active_timeout: 600,
+            inital_timeout: 15,
             check_threshold: 500,
             invalid_percent: 50.0,
         }

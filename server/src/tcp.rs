@@ -72,8 +72,9 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         self.session_list.add_miner(address, session.clone());
 
-        //@todo mark this somewhere as the default timeout
-        let sleep = sleep(Duration::from_secs(15));
+        let sleep = sleep(Duration::from_secs(
+            self.config_manager.connection_config().inital_timeout,
+        ));
         tokio::pin!(sleep);
 
         //@todo we can return a value from this loop -> break can return a value, and so we may
@@ -88,7 +89,7 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
                     res = reader.read_frame() => {
                         match res {
                             Err(e) => {
-                                warn!("Session: {} errored with the following error: {}", session.id(), e);
+                                warn!(ip = session.ip().to_string(), "Session: {} errored with the following error: {}", session.id(), e);
                                 break;
                             },
                             Ok(frame) => frame,
@@ -155,9 +156,6 @@ impl<State: Clone + Send + Sync + 'static, CState: Default + Clone + Send + Sync
 
         session.shutdown();
 
-        //@todo below comment for older code, not accurate - review this though please.
-        //@todo swap this to self.cancel_token.cancel() and don't return this from the function. Should
-        //have the same effect
         self.cancel_token.cancel();
 
         //@todo we should also have a timeout here - but I may change write loop so we'll see

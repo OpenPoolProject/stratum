@@ -161,6 +161,8 @@ impl ConnectionReader {
                     continue;
                 }
 
+                //@todo I think we may want to log the buf here if it fails on trace - Right now we
+                //can't see what these connections are sending.
                 let msg: Request = serde_json::from_str(&buf)?;
 
                 return Ok(Some(Frame::V1(msg)));

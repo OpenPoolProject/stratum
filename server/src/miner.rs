@@ -1,5 +1,8 @@
 use crate::{
-    types::{ConnectionID, Difficulties, Difficulty, DifficultySettings, VarDiffBuffer},
+    types::{
+        BanStats, ConnectionID, Difficulties, Difficulty, DifficultySettings, MinerStats,
+        VarDiffBuffer, VarDiffStats,
+    },
     utils, ConfigManager, SessionID,
 };
 use parking_lot::Mutex;
@@ -25,10 +28,12 @@ pub(crate) struct Inner {
     pub(crate) name: Option<String>,
 }
 
+//@todo random reminder for myself here -> Would it be more efficient to wrap this entire struct in
+//a Mutex? My guess is no... But let's jsut re-review.
 #[derive(Debug)]
 pub(crate) struct Shared {
     difficulties: Mutex<Difficulties>,
-    needs_ban: Mutex<bool>,
+    ban_stats: Mutex<BanStats>,
     stats: Mutex<MinerStats>,
     var_diff_stats: Mutex<VarDiffStats>,
     difficulty_settings: Mutex<DifficultySettings>,
@@ -49,7 +54,10 @@ impl Miner {
 
         let shared = Shared {
             difficulties: Mutex::new(Difficulties::new_only_current(difficulty.default)),
-            needs_ban: Mutex::new(false),
+            ban_stats: Mutex::new(BanStats {
+                last_ban_check_share: 0,
+                needs_ban: false,
+            }),
             stats: Mutex::new(MinerStats {
                 accepted: 0,
                 stale: 0,
@@ -82,34 +90,52 @@ impl Miner {
         }
     }
 
-    // pub(crate) fn id(&self) -> Uuid {
-    //     self.inner.id
-    // }
-
     pub(crate) fn ban(&self) {
-        *self.shared.needs_ban.lock() = true;
+        //@todo I now set needs ban in consider ban so that I don't have to drop the Mutex. In
+        //here, we just really want to either contact the session, or disconnect the miner
+        // let mut ban_stats = self.shared.ban_stats.lock();
+        // ban_stats.needs_ban = true;
 
         //@todo I think we need to disconnect here as well.
+        //@todo ok as far as I can tell, a ban will *not* lead to a miner being disconnected from
+        //the pool right now.
+        //
+        //Couple of thoughts.
+        //
+        //1. Let's go with the most complex scenario. Single connection with multiple miners. We
+        //   want to disconnect this miner ONLY - How we do that will be complex because we will
+        //   want the other miners in this connection to still work.
+        //
+        //2. If it is a single miner and single connection, I think this becomes a bit easier. We
+        //   probably need a check in the tcp loop where we see if there are still remaining miners
+        //   on a connection? Or we just send this individual miner a ban signal (tbd)
+    }
+
+    pub fn needs_ban(&self) -> bool {
+        self.shared.ban_stats.lock().needs_ban
     }
 
     pub fn consider_ban(&self) {
         let stats = self.shared.stats.lock();
+        let mut ban_stats = self.shared.ban_stats.lock();
 
         //@note this could possibly possibly possibly overflow - let's just think about that as we
         //move forward.
+        //@todo I think this needs to be moved to like how retarget it used. Last ban check etc.
         let total = stats.accepted + stats.stale + stats.rejected;
 
-        let config = &self.config_manager.current_config().connection;
+        let config = &self.config_manager.connection_config();
 
-        if total >= config.check_threshold {
+        if total - ban_stats.last_ban_check_share >= config.check_threshold {
             let percent_bad: f64 = ((stats.stale + stats.rejected) as f64 / total as f64) * 100.0;
 
+            ban_stats.last_ban_check_share = total;
+
             if percent_bad < config.invalid_percent {
-                //@todo do we want to reset though?
-                //Although if we don't, then this will trigger on every new share after 500.
-                //So we could switch it to modulo 500 == 0
-                //@todo make this possible. Reset stats to 0.
-                // self.stats.lock().await = MinerStats::default();
+                //Does not need a ban
+                //@todo not sure if this is a good idea. Basically what we are saying is if the
+                //miner doesn't get banned in time, they can redeem themselves.
+                ban_stats.needs_ban = false;
             } else {
                 warn!(
                     id = ?self.inner.connection_id,
@@ -120,6 +146,8 @@ impl Miner {
                     stats.stale + stats.rejected,
                     total
                 );
+                ban_stats.needs_ban = true;
+
                 self.ban();
             }
         }
@@ -153,9 +181,7 @@ impl Miner {
 
         self.consider_ban();
 
-        //@todo see below
-        //I don't think we want to retarget on invalid shares, but let's double check later.
-        // self.retarget().await;
+        self.retarget();
     }
 
     pub fn rejected_share(&self) {
@@ -168,21 +194,18 @@ impl Miner {
 
         self.consider_ban();
 
-        //@todo see below
-        //I don't think we want to retarget on invalid shares, but let's double check later.
-        // self.retarget().await;
+        self.retarget();
     }
 
-    //@todo note, this only can be sent over ExMessage when it's hit a certain threshold.
-    //@todo self.set_difficulty
-    //@todo self.set_next_difficulty
-    //@todo does this need to return a result? Ideally not, but if we send difficulty, then maybe.
-    //@todo see if we can solve a lot of these recasting issues.
-    //@todo wrap u64 with a custom difficulty type.
     fn retarget(&self) {
         //This is in milliseconds
         let now = utils::now();
-        // let retarget_time = self.config_manager.difficulty_config().retarget_time() * 1000.0;
+        let difficulty_config = self.config_manager.difficulty_config();
+
+        //@todo why not just store this as u128... Let's do that now.
+        let retarget_time = difficulty_config.retarget_time as u128 * 1000;
+        let retarget_share_amount = difficulty_config.retarget_share_amount;
+        //@todo see above, should we just store this as f64 * 1000.0?
 
         let mut difficulties = self.shared.difficulties.lock();
         let mut var_diff_stats = self.shared.var_diff_stats.lock();
@@ -193,39 +216,22 @@ impl Miner {
         var_diff_stats.vardiff_buf.append(since_last);
         var_diff_stats.last_timestamp = now;
 
-        //@todo review this code, see if we can make this easier.
-        if !(((stats.accepted - var_diff_stats.last_retarget_share)
-            >= self
-                .config_manager
-                .difficulty_config()
-                .retarget_share_amount)
-            || (now - var_diff_stats.last_retarget)
-                >= (self.config_manager.difficulty_config().retarget_time as u128 * 1000))
-        {
+        //@todo add this as a function on miner stats please.
+        let total = stats.accepted + stats.rejected + stats.stale;
+
+        //This is the amoutn of shares we've added since the last retarget
+        let share_difference = total - var_diff_stats.last_retarget_share;
+        let time_difference = now - var_diff_stats.last_retarget;
+
+        if !((share_difference >= retarget_share_amount) || time_difference >= retarget_time) {
             return;
         }
-
-        // dbg!(stats.accepted);
-        //
-        // dbg!(var_diff_stats.last_retarget_share);
-        // dbg!(
-        //     self.config_manager
-        //         .difficulty_config()
-        //         .retarget_share_amount
-        // );
 
         var_diff_stats.last_retarget = now;
         var_diff_stats.last_retarget_share = stats.accepted;
 
-        // let variance = self.options.target_time * (self.options.variance_percent as f64 / 100.0);
-        // let time_min = self.options.target_time as f64 * 0.40;
-        // let time_max = self.options.target_time as f64 * 1.40;
-
         //This average is in milliseconds
         let avg = var_diff_stats.vardiff_buf.avg();
-
-        // debug!(average = ?avg);
-        // dbg!(avg);
 
         if avg <= 0.0 {
             return;
@@ -233,13 +239,12 @@ impl Miner {
 
         let mut new_diff;
 
-        //@todo figure out what else needs to come from config here, and comment out this function.
-        let target_time = self.config_manager.difficulty_config().target_time as f64 * 1000.0;
+        let target_time = difficulty_config.target_time as f64 * 1000.0;
 
+        //@todo these variances should probs come from config.
         if avg > target_time {
             //@todo this needs to just be target_time since we multiplied it above.
-            if (avg / (self.config_manager.difficulty_config().target_time as f64 * 1000.0)) <= 1.5
-            {
+            if (avg / target_time) <= 1.5 {
                 return;
             }
             new_diff = difficulties.current().as_u64() / 2;
@@ -251,7 +256,7 @@ impl Miner {
 
         new_diff = new_diff.clamp(
             self.shared.difficulty_settings.lock().minimum.as_u64(),
-            self.config_manager.difficulty_config().maximum_difficulty,
+            difficulty_config.maximum_difficulty,
         );
 
         if new_diff != difficulties.current().as_u64() {
@@ -287,23 +292,6 @@ impl Miner {
     pub fn session_id(&self) -> SessionID {
         self.inner.sid
     }
-}
-
-//@todo either wrap miner in a folder, or move these both to types
-#[derive(Debug, Clone)]
-pub struct MinerStats {
-    accepted: u64,
-    stale: u64,
-    rejected: u64,
-    last_active: u128,
-}
-
-#[derive(Debug)]
-pub struct VarDiffStats {
-    last_timestamp: u128,
-    last_retarget_share: u64,
-    last_retarget: u128,
-    vardiff_buf: VarDiffBuffer,
 }
 
 #[cfg(test)]
@@ -357,6 +345,39 @@ mod test {
     }
 
     #[test]
+    fn test_ban() {
+        let connection_id = ConnectionID::new();
+        let worker_id = Uuid::new_v4();
+        let session_id = SessionID::from(1);
+
+        let config = Config::default();
+        let config_manager = ConfigManager::new(config.clone());
+
+        let diff_settings = DifficultySettings {
+            default: Difficulty::from(config.difficulty.initial_difficulty),
+            minimum: Difficulty::from(config.difficulty.minimum_difficulty),
+        };
+        let miner = Miner::new(
+            connection_id,
+            worker_id,
+            session_id,
+            None,
+            None,
+            config_manager,
+            diff_settings,
+        );
+
+        miner.valid_share();
+
+        //Note Check threshold for miner bans is 500.
+        for _ in 0..500 {
+            miner.stale_share();
+        }
+
+        assert!(miner.needs_ban());
+    }
+
+    #[test]
     fn test_retarget() {
         let connection_id = ConnectionID::new();
         let worker_id = Uuid::new_v4();
@@ -382,7 +403,7 @@ mod test {
 
         // OK what do we need to test here....
         // 1. We need to solve the issue with why difficulty is flucuating so much with the single
-        //    miner that is on the pool right now from CLSK.
+        //    miner that is on the pool right now.
         //
         //    Scenario:
         //    The current miner should be at roughly 120 TH/s

@@ -7,6 +7,7 @@ use extended_primitives::Buffer;
 use parking_lot::{Mutex, RwLock};
 use serde::Serialize;
 use std::{
+    fmt::Display,
     net::SocketAddr,
     sync::Arc,
     time::{Duration, Instant, SystemTime},
@@ -62,6 +63,22 @@ pub enum SendInformation {
     Raw(Buffer),
 }
 
+impl Display for SendInformation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SendInformation::Json(s) => {
+                write!(f, "{}", s)
+            }
+            SendInformation::Text(s) => {
+                write!(f, "{}", s)
+            }
+            SendInformation::Raw(b) => {
+                write!(f, "{}", b)
+            }
+        }
+    }
+}
+
 //@todo thought process -> Rather than have this boolean variables that slowly add up over time, we
 //should add a new type of "SessionType". This will allow us to also incorporate other types of
 //connections that are developed in the future or that are already here and enables a lot easier
@@ -79,7 +96,6 @@ pub struct Session<State> {
     difficulty_settings: Arc<RwLock<DifficultySettings>>,
 }
 
-//@todo I want to get IP here and return it
 struct Inner<State> {
     pub id: ConnectionID,
     pub session_id: SessionID,
@@ -167,10 +183,9 @@ impl<State: Clone> Session<State> {
             return Ok(());
         }
 
-        debug!("Sending message: {}", serde_json::to_string(&message)?);
-
-        //@todo implement Display on SendInformation.
         let msg = SendInformation::Json(serde_json::to_string(&message)?);
+
+        debug!("Sending message: {}", msg);
 
         //@todo it may make sense to keep the sender inside of session here - not sure why it's in
         //connection like the way it is.
