@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 <!-- next-header -->
+## [5.8.0](https://github.com/OpenPoolProject/stratum/compare/v5.7.4...v5.8.0) (2024-02-05)
+
+
+### Features
+
+* misc updates, bump new version ([d1a33db](https://github.com/OpenPoolProject/stratum/commit/d1a33db89eb6190a080d39287b61fba08456529c))
+
 ## [Unreleased] - ReleaseDate
 
 ### Added
