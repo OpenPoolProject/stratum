@@ -4,7 +4,7 @@ use crate::{
 };
 use parking_lot::Mutex;
 use std::sync::Arc;
-use tracing::{debug, warn};
+use tracing::warn;
 use uuid::Uuid;
 
 //A miner is essentially an individual worker unit. There can be multiple Miners on a single
