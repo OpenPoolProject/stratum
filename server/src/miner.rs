@@ -238,7 +238,8 @@ impl Miner {
 
         if avg > target_time {
             //@todo this needs to just be target_time since we multiplied it above.
-            if (avg / self.config_manager.difficulty_config().target_time as f64) <= 1.5 {
+            if (avg / (self.config_manager.difficulty_config().target_time as f64 * 1000.0)) <= 1.5
+            {
                 return;
             }
             new_diff = difficulties.current().as_u64() / 2;
