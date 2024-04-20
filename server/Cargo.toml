@@ -47,7 +47,7 @@ uuid = { version = "1.7.0", features = ["serde", "v4", "fast-rng", "macro-diagno
 bytes = "1.5.0"
 
 # Utils
-thiserror = "1.0.50"
+thiserror = "1.0.59"
 bit-set = "0.5.3"
 dashmap = {version = "5.5.3"}
 rlimit = "0.10.1"
