@@ -205,14 +205,14 @@ jobs:
             stable
             # @todo potentially switch these with Swatinem rust-cache see above.
       - name: Cache cargo registry
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
         with:
           path: ~/.cargo/registry
           key:
             bloat-${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock')
             }}
       - name: Cache cargo index
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
         with:
           path: ~/.cargo/git
           key:
